@@ -11,6 +11,7 @@ import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import ru.zagrebin.culinaryblog.data.remote.api.AuthApi
+import ru.zagrebin.culinaryblog.data.remote.api.PostApi
 import ru.zagrebin.culinaryblog.data.storage.TokenStorage
 import javax.inject.Singleton
 
@@ -62,4 +63,9 @@ object NetworkModule {
 
     @Provides
     fun provideGson(): Gson = Gson()
+
+    @Provides
+    @Singleton
+    fun providePostApi(retrofit: Retrofit): PostApi =
+        retrofit.create(PostApi::class.java)
 }
