@@ -9,7 +9,7 @@ import ru.zagrebin.service.FileStorageService;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/v1/uploads")
+@RequestMapping("/api/uploads")
 public class UploadController {
 
     private final FileStorageService fileStorageService;

@@ -12,6 +12,8 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import ru.zagrebin.culinaryblog.data.remote.api.AuthApi
 import ru.zagrebin.culinaryblog.data.remote.api.PostApi
+import ru.zagrebin.culinaryblog.data.repository.PostRepository
+import ru.zagrebin.culinaryblog.data.repository.PostRepositoryImpl
 import ru.zagrebin.culinaryblog.data.storage.TokenStorage
 import javax.inject.Singleton
 
@@ -19,7 +21,7 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
-    private const val BASE_URL = "https://your.api.base.url/"
+    private const val BASE_URL = "http://192.168.3.102:8080/api/" // 10.0.2.2
 
     @Provides
     fun provideLogging(): HttpLoggingInterceptor {
@@ -61,11 +63,15 @@ object NetworkModule {
     fun provideAuthApi(retrofit: Retrofit): AuthApi =
         retrofit.create(AuthApi::class.java)
 
+
+    @Provides
+    fun providePostApi(retrofit: Retrofit): PostApi =
+        retrofit.create(PostApi::class.java)
+
     @Provides
     fun provideGson(): Gson = Gson()
 
     @Provides
     @Singleton
-    fun providePostApi(retrofit: Retrofit): PostApi =
-        retrofit.create(PostApi::class.java)
+    fun providePostRepository(api: PostApi): PostRepository = PostRepositoryImpl(api)
 }

@@ -12,7 +12,7 @@ import java.util.*;
         @Index(name = "idx_posts_status_created_at", columnList = "status, created_at"),
         @Index(name = "idx_posts_author", columnList = "author_id")
 })
-@Data
+@Getter @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder

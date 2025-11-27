@@ -10,7 +10,7 @@ import java.util.Set;
 @Table(name = "ingredients", indexes = {
         @Index(name = "idx_ingredient_name", columnList = "name")
 })
-@Data
+@Getter @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder

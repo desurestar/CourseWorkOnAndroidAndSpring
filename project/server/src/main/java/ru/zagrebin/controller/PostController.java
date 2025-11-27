@@ -12,7 +12,7 @@ import java.net.URI;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/v1/posts")
+@RequestMapping("/api/posts")
 public class PostController {
 
     private final PostService postService;
@@ -54,7 +54,7 @@ public class PostController {
     public ResponseEntity<PostCardDto> create(@Valid @RequestBody PostCreateDto dto) {
         PostCardDto created = postService.create(dto);
         // возвращаем 201 + location
-        URI location = URI.create("/api/v1/posts/" + created.getId());
+        URI location = URI.create("/api/posts/" + created.getId());
         return ResponseEntity.created(location).body(created);
     }
 
