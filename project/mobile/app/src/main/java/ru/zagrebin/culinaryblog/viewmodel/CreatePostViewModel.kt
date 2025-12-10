@@ -35,6 +35,10 @@ class CreatePostViewModel @Inject constructor(
     var authorId: Long = 1L
         private set
 
+    companion object {
+        const val GENERIC_ERROR_KEY = "GENERIC_CREATE_ERROR"
+    }
+
     fun setAuthorId(id: Long) {
         authorId = id
     }
@@ -77,7 +81,7 @@ class CreatePostViewModel @Inject constructor(
                 } else {
                     it.copy(
                         submitting = false,
-                        error = res.exceptionOrNull()?.message ?: "Ошибка создания поста"
+                        error = res.exceptionOrNull()?.message ?: GENERIC_ERROR_KEY
                     )
                 }
             }

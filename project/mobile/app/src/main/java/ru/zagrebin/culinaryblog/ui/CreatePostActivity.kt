@@ -89,8 +89,9 @@ class CreatePostActivity : AppCompatActivity() {
                     binding.progressIngredients.isVisible = state.loadingIngredients
                     binding.progressSubmit.isVisible = state.submitting
                     binding.buttonSubmit.isEnabled = !state.submitting
-                    binding.textError.isVisible = state.error != null
-                    binding.textError.text = state.error ?: ""
+                    val resolvedError = resolveErrorMessage(state.error)
+                    binding.textError.isVisible = !resolvedError.isNullOrBlank()
+                    binding.textError.text = resolvedError ?: ""
 
                     val newTags = state.tags
                     if (newTags != tags) {
@@ -212,7 +213,7 @@ class CreatePostActivity : AppCompatActivity() {
             val amount = row.inputAmount.text.toString().trim().toDoubleOrNull()
             val unit = row.inputUnit.text.toString().trim().ifBlank { null }
             if (selectedId != null) {
-                if (amount == null || amount <= 0.0) {
+                if (amount == null || amount <= MIN_INGREDIENT_AMOUNT) {
                     invalidAmount = true
                 } else {
                     ingredientRequests.add(
@@ -253,7 +254,7 @@ class CreatePostActivity : AppCompatActivity() {
         }
 
         val request = PostCreateRequest(
-            postType = "recipe",
+            postType = POST_TYPE_RECIPE,
             status = statusValues.getOrNull(binding.statusSpinner.selectedItemPosition) ?: "draft",
             title = title,
             excerpt = excerpt,
@@ -273,5 +274,15 @@ class CreatePostActivity : AppCompatActivity() {
 
     companion object {
         const val EXTRA_AUTHOR_ID = "extra_author_id"
+        private const val POST_TYPE_RECIPE = "recipe"
+        private const val MIN_INGREDIENT_AMOUNT = 0.0
+    }
+
+    private fun resolveErrorMessage(error: String?): String? {
+        return when (error) {
+            null -> null
+            CreatePostViewModel.GENERIC_ERROR_KEY -> getString(R.string.create_error_generic)
+            else -> error
+        }
     }
 }

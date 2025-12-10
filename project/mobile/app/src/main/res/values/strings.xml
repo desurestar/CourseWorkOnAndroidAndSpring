@@ -66,6 +66,7 @@
     <string name="create_ingredient_error">Выберите ингредиенты и количество</string>
     <string name="create_step_error">Заполните шаги или удалите пустые</string>
     <string name="create_success">Рецепт сохранён</string>
+    <string name="create_error_generic">Ошибка создания поста</string>
     <string name="status_draft">Черновик</string>
     <string name="status_published">Опубликован</string>
     <string name="create_loading_tags">Загрузка тегов</string>
