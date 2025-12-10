@@ -32,7 +32,12 @@ class CreatePostViewModel @Inject constructor(
     private val _state = MutableStateFlow(CreateFormState())
     val state: StateFlow<CreateFormState> = _state
 
-    val defaultAuthorId: Long = 1L
+    var authorId: Long = 1L
+        private set
+
+    fun setAuthorId(id: Long) {
+        authorId = id
+    }
 
     fun loadTags(search: String? = null) {
         viewModelScope.launch {

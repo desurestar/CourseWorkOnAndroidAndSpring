@@ -68,4 +68,7 @@
     <string name="create_success">Рецепт сохранён</string>
     <string name="status_draft">Черновик</string>
     <string name="status_published">Опубликован</string>
+    <string name="create_loading_tags">Загрузка тегов</string>
+    <string name="create_loading_ingredients">Загрузка ингредиентов</string>
+    <string name="create_loading_submit">Отправка рецепта</string>
 </resources>

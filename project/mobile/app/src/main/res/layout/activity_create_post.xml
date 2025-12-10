@@ -117,6 +117,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
+            android:contentDescription="@string/create_loading_tags"
             android:visibility="gone" />
 
         <LinearLayout
@@ -161,6 +162,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
+            android:contentDescription="@string/create_loading_ingredients"
             android:visibility="gone" />
 
         <LinearLayout
@@ -226,6 +228,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="6dp"
+            android:contentDescription="@string/create_loading_submit"
             android:visibility="gone" />
 
         <Button

@@ -46,6 +46,9 @@ class CreatePostActivity : AppCompatActivity() {
         binding = ActivityCreatePostBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        val passedAuthorId = intent.getLongExtra(EXTRA_AUTHOR_ID, viewModel.authorId)
+        viewModel.setAuthorId(passedAuthorId)
+
         setupStatusSpinner()
         setupClicks()
         observeState()
@@ -203,19 +206,30 @@ class CreatePostActivity : AppCompatActivity() {
         }
 
         val ingredientRequests = mutableListOf<PostIngredientRequest>()
+        var invalidAmount = false
         ingredientRows.forEach { row ->
             val selectedId = row.spinnerIngredient.tag as? Long
             val amount = row.inputAmount.text.toString().trim().toDoubleOrNull()
             val unit = row.inputUnit.text.toString().trim().ifBlank { null }
-            if (selectedId != null && amount != null) {
-                ingredientRequests.add(
-                    PostIngredientRequest(
-                        ingredientId = selectedId,
-                        quantityValue = amount,
-                        unit = unit
+            if (selectedId != null) {
+                if (amount == null || amount <= 0.0) {
+                    invalidAmount = true
+                } else {
+                    ingredientRequests.add(
+                        PostIngredientRequest(
+                            ingredientId = selectedId,
+                            quantityValue = amount,
+                            unit = unit
+                        )
                     )
-                )
+                }
             }
+        }
+
+        if (invalidAmount) {
+            binding.textError.isVisible = true
+            binding.textError.text = getString(R.string.create_ingredient_error)
+            return
         }
 
         if (ingredientRows.isNotEmpty() && ingredientRequests.isEmpty()) {
@@ -247,7 +261,7 @@ class CreatePostActivity : AppCompatActivity() {
             coverUrl = binding.inputCoverUrl.text.toString().trim().ifBlank { null },
             cookingTimeMinutes = binding.inputCookingTime.text.toString().trim().toIntOrNull(),
             calories = binding.inputCalories.text.toString().trim().toIntOrNull(),
-            authorId = viewModel.defaultAuthorId,
+            authorId = viewModel.authorId,
             tagIds = selectedTags.toList(),
             ingredients = ingredientRequests,
             steps = stepRequests
@@ -255,5 +269,9 @@ class CreatePostActivity : AppCompatActivity() {
 
         binding.textError.isVisible = false
         viewModel.createPost(request)
+    }
+
+    companion object {
+        const val EXTRA_AUTHOR_ID = "extra_author_id"
     }
 }
