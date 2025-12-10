@@ -63,7 +63,7 @@ public class PostServiceImpl implements PostService {
      * Возвращает страницу PostCardDto, сохраняя порядок по createdAt desc (через ids).
      */
     @Transactional(readOnly = true)
-    public Page<PostCardDto> getPublishedPostsPage(String status, Pageable pageable) {
+    public Page<PostCardDto> getPostsPageByStatus(String status, Pageable pageable) {
         // 1) Получаем id'шники с учётом пагинации/сортировки
         List<Long> ids = postRepository.findIdsByStatusOrderByCreatedAtDesc(status, pageable);
 

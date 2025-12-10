@@ -11,7 +11,7 @@ import ru.zagrebin.dto.PostUpdateDto;
 public interface PostService {
     List<PostCardDto> getAllPublishedPosts();
 
-    Page<PostCardDto> getPublishedPostsPage(String status, Pageable pageable);
+    Page<PostCardDto> getPostsPageByStatus(String status, Pageable pageable);
 
     PostFullDto getFullPost(Long postId, Long currentUserId);
 

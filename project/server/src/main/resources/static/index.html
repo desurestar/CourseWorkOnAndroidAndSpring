@@ -37,7 +37,7 @@
             return `<div class="card__cover card__cover--placeholder" aria-hidden="true"></div>`;
         }
         return `<div class="card__cover">
-                    <img src="${coverUrl}" alt="Обложка: ${escapeHtml(title) || 'пост'}">
+                    <img src="${escapeHtml(coverUrl)}" alt="Обложка: ${escapeHtml(title) || 'пост'}">
                 </div>`;
     };
 
