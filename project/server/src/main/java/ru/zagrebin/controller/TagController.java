@@ -34,7 +34,8 @@ public class TagController {
             @RequestParam(name = "page_size", defaultValue = "16") int pageSize,
             @RequestParam(required = false) String search
     ) {
-        Pageable pageable = PageRequest.of(Math.max(page, 1) - 1, pageSize);
+        int pageIndex = Math.max(page - 1, 0);
+        Pageable pageable = PageRequest.of(pageIndex, pageSize);
         Page<Tag> tags = (search != null && !search.isBlank())
                 ? tagRepository.findByNameContainingIgnoreCase(search, pageable)
                 : tagRepository.findAll(pageable);

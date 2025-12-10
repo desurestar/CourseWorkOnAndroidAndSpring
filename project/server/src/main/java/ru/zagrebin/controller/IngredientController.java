@@ -34,7 +34,8 @@ public class IngredientController {
             @RequestParam(name = "page_size", defaultValue = "30") int pageSize,
             @RequestParam(required = false) String search
     ) {
-        Pageable pageable = PageRequest.of(Math.max(page, 1) - 1, pageSize);
+        int pageIndex = Math.max(page - 1, 0);
+        Pageable pageable = PageRequest.of(pageIndex, pageSize);
         Page<Ingredient> ingredients = (search != null && !search.isBlank())
                 ? ingredientRepository.findByNameContainingIgnoreCase(search, pageable)
                 : ingredientRepository.findAll(pageable);
