@@ -22,12 +22,22 @@
     const cardsEl = document.getElementById('cards');
     const fallbackEl = document.getElementById('fallback');
 
-    const buildCover = (coverUrl) => {
+    const escapeHtml = (value) => {
+        if (value === null || value === undefined) return "";
+        return String(value)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#39;");
+    };
+
+    const buildCover = (coverUrl, title) => {
         if (!coverUrl) {
             return `<div class="card__cover card__cover--placeholder" aria-hidden="true"></div>`;
         }
         return `<div class="card__cover">
-                    <img src="${coverUrl}" alt="">
+                    <img src="${coverUrl}" alt="Обложка: ${escapeHtml(title) || 'пост'}">
                 </div>`;
     };
 
@@ -53,11 +63,11 @@
         fallbackEl.style.display = 'none';
         cardsEl.innerHTML = posts.map(post => `
             <article class="card">
-                ${buildCover(post.coverUrl)}
-                ${buildTags(post.tags)}
-                <h3>${post.title ?? 'Без названия'}</h3>
-                <div class="card__meta">${formatMeta(post)}</div>
-                <p class="card__excerpt">${post.excerpt ?? 'Описание скоро появится.'}</p>
+                ${buildCover(post.coverUrl, post.title)}
+                ${buildTags(post.tags?.map(escapeHtml))}
+                <h3>${escapeHtml(post.title) || 'Без названия'}</h3>
+                <div class="card__meta">${escapeHtml(formatMeta(post))}</div>
+                <p class="card__excerpt">${escapeHtml(post.excerpt) || 'Описание скоро появится.'}</p>
                 <div class="card__footer">
                     <span class="status-badge">❤ ${post.likesCount ?? 0}</span>
                     <button class="btn" type="button">Читать</button>

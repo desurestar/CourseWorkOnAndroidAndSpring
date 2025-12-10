@@ -31,10 +31,10 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     Optional<Post> findByIdWithAllRelations(@Param("id") Long id);
 
     @Modifying
-    @Query("update Post p set p.likesCount = coalesce(p.likesCount, 0) + 1 where p.id = :id")
-    void incrementLikesCount(@Param("id") Long id);
+    @Query("update Post p set p.likesCount = coalesce(p.likesCount, 0) + 1 where p.id = :postId")
+    void incrementLikesCount(@Param("postId") Long postId);
 
     @Modifying
-    @Query("update Post p set p.likesCount = greatest(coalesce(p.likesCount, 0) - 1, 0) where p.id = :id")
-    void decrementLikesCount(@Param("id") Long id);
+    @Query("update Post p set p.likesCount = greatest(coalesce(p.likesCount, 0) - 1, 0) where p.id = :postId")
+    void decrementLikesCount(@Param("postId") Long postId);
 }
