@@ -32,5 +32,5 @@ class TokenStorage @Inject constructor(@ApplicationContext private val context: 
     // Backward-compatible alias, kept to avoid crashes if called from old code paths
     fun cleatToken() = clearToken()
 
-    fun getToken(): String? =prefs.getString("access_token", null)
+    fun getToken(): String? = prefs.getString("access_token", null)
 }
