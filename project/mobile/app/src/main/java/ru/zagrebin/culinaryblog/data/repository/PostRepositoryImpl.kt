@@ -1,7 +1,7 @@
-package ru.zagrebin.culinaryblog.data.repository;
+package ru.zagrebin.culinaryblog.data.repository
 
 import javax.inject.Inject
-import ru.zagrebin.culinaryblog.data.remote.api.PostApi;
+import ru.zagrebin.culinaryblog.data.remote.api.PostApi
 import ru.zagrebin.culinaryblog.data.remote.dto.toModel
 import ru.zagrebin.culinaryblog.model.IngredientItem
 import ru.zagrebin.culinaryblog.model.PostCard

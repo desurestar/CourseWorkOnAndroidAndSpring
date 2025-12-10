@@ -213,7 +213,7 @@ class CreatePostActivity : AppCompatActivity() {
             val amount = row.inputAmount.text.toString().trim().toDoubleOrNull()
             val unit = row.inputUnit.text.toString().trim().ifBlank { null }
             if (selectedId != null) {
-                if (amount == null || amount < MIN_INGREDIENT_AMOUNT) {
+                if (amount == null || amount < MIN_POSITIVE_AMOUNT) {
                     invalidAmount = true
                 } else {
                     ingredientRequests.add(
@@ -227,13 +227,7 @@ class CreatePostActivity : AppCompatActivity() {
             }
         }
 
-        if (invalidAmount) {
-            binding.textError.isVisible = true
-            binding.textError.text = getString(R.string.create_ingredient_error)
-            return
-        }
-
-        if (ingredientRows.isNotEmpty() && ingredientRequests.isEmpty()) {
+        if (invalidAmount || (ingredientRows.isNotEmpty() && ingredientRequests.isEmpty())) {
             binding.textError.isVisible = true
             binding.textError.text = getString(R.string.create_ingredient_error)
             return
@@ -275,7 +269,8 @@ class CreatePostActivity : AppCompatActivity() {
     companion object {
         const val EXTRA_AUTHOR_ID = "extra_author_id"
         private const val POST_TYPE_RECIPE = "recipe"
-        private const val MIN_INGREDIENT_AMOUNT = 0.000001
+        // Threshold to ensure ingredient amount is positive
+        private const val MIN_POSITIVE_AMOUNT = 0.000001
     }
 
     private fun resolveErrorMessage(error: String?): String? {
