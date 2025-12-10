@@ -88,6 +88,13 @@ header p {
 	margin-bottom: 0.9rem;
 }
 
+.card__cover--placeholder::before {
+	content: "";
+	position: absolute;
+	inset: 0;
+	background: linear-gradient(135deg, #f5c16c, #dfeee0);
+}
+
 .card__cover img {
 	position: absolute;
 	inset: 0;

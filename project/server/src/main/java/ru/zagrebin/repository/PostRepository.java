@@ -35,6 +35,6 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     void incrementLikesCount(@Param("id") Long id);
 
     @Modifying
-    @Query("update Post p set p.likesCount = case when coalesce(p.likesCount, 0) > 0 then p.likesCount - 1 else 0 end where p.id = :id")
+    @Query("update Post p set p.likesCount = greatest(coalesce(p.likesCount, 0) - 1, 0) where p.id = :id")
     void decrementLikesCount(@Param("id") Long id);
 }

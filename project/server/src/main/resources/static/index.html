@@ -24,9 +24,7 @@
 
     const buildCover = (coverUrl) => {
         if (!coverUrl) {
-            return `<div class="card__cover" aria-hidden="true">
-                        <div style="position:absolute; inset:0; background: linear-gradient(135deg,#f5c16c,#dfeee0);"></div>
-                    </div>`;
+            return `<div class="card__cover card__cover--placeholder" aria-hidden="true"></div>`;
         }
         return `<div class="card__cover">
                     <img src="${coverUrl}" alt="">

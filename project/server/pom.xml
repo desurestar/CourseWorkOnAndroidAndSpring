@@ -27,6 +27,7 @@
         <url/>
     </scm>
     <properties>
+        <!-- Java 17 matches the available toolchain in CI/runtime -->
         <java.version>17</java.version>
         <lombok.version>1.18.34</lombok.version>
     </properties>
