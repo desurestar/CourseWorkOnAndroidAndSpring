@@ -1,3 +1,15 @@
 <resources>
     <string name="app_name">Culinary Blog</string>
+    <string name="nav_recipes">Рецепты</string>
+    <string name="nav_articles">Статьи</string>
+    <string name="nav_create">Создать</string>
+    <string name="nav_messenger">Мессенджер</string>
+    <string name="nav_profile">Профиль</string>
+    <string name="view_stub_title">Добро пожаловать в Culinary Blog</string>
+    <string name="view_stub_message">Интерфейс переведен на обычные Views. Выберите пункт нижней навигации, чтобы увидеть соответствующий экран.</string>
+    <string name="recipes_stub_message">Здесь будет список рецептов в традиционном View-оформлении. Пока показываем текст-заглушку.</string>
+    <string name="articles_stub_message">Экран статей будет отображаться здесь после реализации на Views.</string>
+    <string name="create_stub_message">Раздел создания записей появится здесь. Используйте Views для ввода данных.</string>
+    <string name="messenger_stub_message">Мессенджер будет перенесён на стандартные элементы интерфейса.</string>
+    <string name="profile_stub_message">Здесь будет ваш профиль. Экран готов для реализации на обычных Views.</string>
 </resources>

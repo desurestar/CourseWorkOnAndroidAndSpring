@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/menu_recipes"
+        android:icon="@drawable/ic_nav_recipes"
+        android:title="@string/nav_recipes" />
+    <item
+        android:id="@+id/menu_articles"
+        android:icon="@drawable/ic_nav_articles"
+        android:title="@string/nav_articles" />
+    <item
+        android:id="@+id/menu_create"
+        android:icon="@drawable/ic_nav_create"
+        android:title="@string/nav_create" />
+    <item
+        android:id="@+id/menu_messenger"
+        android:icon="@drawable/ic_nav_messenger"
+        android:title="@string/nav_messenger" />
+    <item
+        android:id="@+id/menu_profile"
+        android:icon="@drawable/ic_nav_profile"
+        android:title="@string/nav_profile" />
+</menu>
