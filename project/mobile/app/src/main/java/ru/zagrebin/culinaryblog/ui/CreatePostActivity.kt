@@ -270,7 +270,7 @@ class CreatePostActivity : AppCompatActivity() {
         const val EXTRA_AUTHOR_ID = "extra_author_id"
         private const val POST_TYPE_RECIPE = "recipe"
         // Threshold to ensure ingredient amount is positive
-        private const val MIN_POSITIVE_AMOUNT = 0.000001
+        private const val MIN_POSITIVE_AMOUNT = 0.01
     }
 
     private fun resolveErrorMessage(error: String?): String? {
