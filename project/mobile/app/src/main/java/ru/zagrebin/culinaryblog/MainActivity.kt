@@ -166,7 +166,7 @@ class MainActivity : AppCompatActivity() {
     companion object {
         private const val DEFAULT_POST_TYPE = "recipe"
         private const val ARTICLE_POST_TYPE = "article"
-        private const val DEFAULT_TAB_ID = R.id.menu_recipes
+        private  val DEFAULT_TAB_ID = R.id.menu_recipes
     }
 
     private fun normalizePostType(postType: String?): String =
