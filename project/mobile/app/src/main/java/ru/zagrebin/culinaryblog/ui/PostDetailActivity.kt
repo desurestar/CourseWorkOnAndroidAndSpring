@@ -1,6 +1,9 @@
 package ru.zagrebin.culinaryblog.ui
 
 import android.os.Bundle
+import android.os.Build
+import android.widget.LinearLayout
+import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
@@ -19,7 +22,7 @@ class PostDetailActivity : AppCompatActivity() {
         binding = ActivityPostDetailBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        val post = intent.getSerializableExtra(EXTRA_POST) as? PostCard
+        val post = readPostFromIntent()
         if (post == null) {
             finish()
             return
@@ -28,7 +31,7 @@ class PostDetailActivity : AppCompatActivity() {
     }
 
     private fun render(post: PostCard) {
-        val isRecipe = normalizePostType(post.postType) == DEFAULT_POST_TYPE
+        val isRecipe = normalizePostType(post.postType) == RECIPE_POST_TYPE
 
         binding.authorName.text =
             post.authorName?.ifBlank { getString(R.string.author_unknown) }
@@ -40,8 +43,8 @@ class PostDetailActivity : AppCompatActivity() {
         binding.postTitle.text = post.title.ifBlank { getString(R.string.card_title_placeholder) }
         binding.postDescription.text =
             post.excerpt.ifBlank { getString(R.string.card_excerpt_placeholder) }
-        binding.postContent.text =
-            post.excerpt.ifBlank { getString(R.string.card_excerpt_placeholder) }
+        val contentText = post.excerpt.takeIf { it.isNotBlank() }
+        binding.postContent.text = contentText ?: getString(R.string.content_stub)
 
         val coverUrl = post.coverUrl?.takeIf { it.isNotBlank() }
         binding.postCover.load(coverUrl) {
@@ -81,21 +84,20 @@ class PostDetailActivity : AppCompatActivity() {
         if (!isRecipe) return
 
         binding.stepsContainer.removeAllViews()
-        val steps = excerpt.split(".", "!", "?")
-            .map { it.trim() }
-            .filter { it.isNotEmpty() }
+        val stepText = excerpt.takeIf { it.isNotBlank() }
+        binding.stepsStub.isVisible = stepText.isNullOrBlank()
+        if (stepText.isNullOrBlank()) return
 
-        binding.stepsStub.isVisible = steps.isEmpty()
-        steps.forEachIndexed { index, step ->
-            val view = layoutInflater.inflate(
-                android.R.layout.simple_list_item_1,
-                binding.stepsContainer,
-                false
-            ) as android.widget.TextView
-            view.text = "${index + 1}. $step"
-            view.setTextColor(ContextCompat.getColor(this, R.color.recipe_primary))
-            binding.stepsContainer.addView(view)
-        }
+        val view = TextView(this)
+        view.layoutParams = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        )
+        view.text = "1. $stepText"
+        view.setTextAppearance(R.style.TextAppearance_MaterialComponents.Body2)
+        view.setTextColor(ContextCompat.getColor(this, R.color.recipe_primary))
+        view.textSize = 16f
+        binding.stepsContainer.addView(view)
     }
 
     private fun bindMeta(isRecipe: Boolean, post: PostCard) {
@@ -109,7 +111,7 @@ class PostDetailActivity : AppCompatActivity() {
             binding.calories.text = getString(R.string.calories_format, it)
         }
 
-        binding.viewsText.text = getString(R.string.views_format, (post.viewsCount ?: 0).toInt())
+        binding.viewsText.text = getString(R.string.views_format, post.viewsCount ?: 0L)
         binding.likesText.text = getString(R.string.likes_format, post.likesCount)
     }
 
@@ -121,11 +123,20 @@ class PostDetailActivity : AppCompatActivity() {
         }
 
     private fun normalizePostType(postType: String?): String =
-        postType?.lowercase()?.takeIf { it.isNotBlank() } ?: DEFAULT_POST_TYPE
+        postType?.lowercase()?.takeIf { it.isNotBlank() } ?: RECIPE_POST_TYPE
+
+    private fun readPostFromIntent(): PostCard? {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            intent.getParcelableExtra(EXTRA_POST, PostCard::class.java)
+        } else {
+            @Suppress("DEPRECATION")
+            intent.getParcelableExtra(EXTRA_POST)
+        }
+    }
 
     companion object {
         const val EXTRA_POST = "extra_post"
-        private const val DEFAULT_POST_TYPE = "recipe"
+        private const val RECIPE_POST_TYPE = "recipe"
         private const val ARTICLE_POST_TYPE = "article"
     }
 }

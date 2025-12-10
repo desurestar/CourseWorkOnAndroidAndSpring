@@ -137,7 +137,7 @@ class MainActivity : AppCompatActivity() {
                 cardBinding.calories.text = getString(R.string.calories_format, it)
             }
             cardBinding.viewsText.text =
-                getString(R.string.views_format, (post.viewsCount ?: 0L).toInt())
+                getString(R.string.views_format, post.viewsCount ?: 0L)
             cardBinding.likesText.text = getString(R.string.likes_format, post.likesCount)
 
             val coverUrl = post.coverUrl?.takeIf { it.isNotBlank() }

@@ -38,4 +38,5 @@
     <string name="steps_stub">Шаги рецепта скоро появятся.</string>
     <string name="ingredients_stub">Список ингредиентов пока не указан.</string>
     <string name="content_title">Содержание</string>
+    <string name="content_stub">Полный текст поста появится позже.</string>
 </resources>

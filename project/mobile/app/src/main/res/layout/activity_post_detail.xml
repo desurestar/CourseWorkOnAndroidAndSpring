@@ -23,7 +23,7 @@
                 android:layout_height="44dp"
                 android:background="@drawable/bg_avatar_placeholder"
                 android:gravity="center"
-                android:text="A"
+                android:text=""
                 android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"
                 android:textColor="@color/recipe_primary"
                 android:textStyle="bold" />
@@ -111,7 +111,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
-            android:text="@string/card_excerpt_placeholder"
+            android:text="@string/content_stub"
             android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"
             android:textColor="#4A4034" />
 

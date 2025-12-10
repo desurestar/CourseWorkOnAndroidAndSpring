@@ -28,7 +28,7 @@
                 android:layout_height="40dp"
                 android:background="@drawable/bg_avatar_placeholder"
                 android:gravity="center"
-                android:text="A"
+                android:text=""
                 android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"
                 android:textColor="@color/recipe_primary"
                 android:textStyle="bold" />

@@ -1,7 +1,9 @@
 package ru.zagrebin.culinaryblog.model
 
-import java.io.Serializable
+import android.os.Parcelable
+import kotlinx.parcelize.Parcelize
 
+@Parcelize
 data class PostCard(
     val id: Long,
     val title: String,
@@ -16,4 +18,4 @@ data class PostCard(
     val publishedAt: String?,
     val tags: Set<String>?,
     val viewsCount: Long?
-): Serializable
+): Parcelable
