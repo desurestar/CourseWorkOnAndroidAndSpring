@@ -12,6 +12,7 @@ public class PostCardDto {
     private String excerpt;
     private String coverUrl;
     private Long authorId;
+    private String postType;
     private int likesCount;
     private Integer cookingTimeMinutes;
     private Integer calories;

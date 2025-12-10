@@ -14,6 +14,12 @@
         <p>Свежие публикации из базы. Страница автоматически подгружает данные через API.</p>
     </header>
 
+    <div class="filters" role="group" aria-label="Фильтр типа постов">
+        <button class="filter-btn filter-btn--active" type="button" data-filter="all">Все</button>
+        <button class="filter-btn" type="button" data-filter="recipe">Рецепты</button>
+        <button class="filter-btn" type="button" data-filter="article">Посты</button>
+    </div>
+
     <div id="cards" class="cards-grid" aria-live="polite"></div>
     <p id="fallback" class="fallback" style="display: none;"></p>
 </div>
@@ -21,6 +27,11 @@
 <script>
     const cardsEl = document.getElementById('cards');
     const fallbackEl = document.getElementById('fallback');
+    const filterButtons = document.querySelectorAll('[data-filter]');
+    const DEFAULT_POST_TYPE = 'recipe';
+    const ARTICLE_POST_TYPE = 'article';
+    let allPosts = [];
+    let currentFilter = 'all';
 
     const escapeHtml = (value) => {
         if (value === null || value === undefined) return "";
@@ -46,6 +57,13 @@
         return `<div class="card__tags">${tags.map(t => `<span class="tag">${escapeHtml(t)}</span>`).join('')}</div>`;
     };
 
+    const normalizePostType = (postType) => (postType || DEFAULT_POST_TYPE).toLowerCase();
+
+    const formatType = (postType) => {
+        const normalized = normalizePostType(postType);
+        return normalized === ARTICLE_POST_TYPE ? 'Пост' : 'Рецепт';
+    };
+
     const formatMeta = (post) => {
         const bits = [];
         if (post.authorName) bits.push(post.authorName);
@@ -63,6 +81,9 @@
         fallbackEl.style.display = 'none';
         cardsEl.innerHTML = posts.map(post => `
             <article class="card">
+                <div class="card__type">
+                    <span class="status-badge status-badge--muted">${escapeHtml(formatType(post.postType))}</span>
+                </div>
                 ${buildCover(post.coverUrl, post.title)}
                 ${buildTags(post.tags?.map(escapeHtml))}
                 <h3>${escapeHtml(post.title) || 'Без названия'}</h3>
@@ -76,19 +97,50 @@
         `).join('');
     };
 
+    const applyFilter = (filterValue) => {
+        currentFilter = filterValue;
+        filterButtons.forEach(btn => btn.classList.toggle('filter-btn--active', btn.dataset.filter === filterValue));
+        if (!allPosts.length) {
+            renderCards([]);
+            return;
+        }
+        if (filterValue === 'all') {
+            renderCards(allPosts);
+            return;
+        }
+        const filtered = allPosts.filter(p => {
+            const normalized = normalizePostType(p.postType);
+            if (filterValue === ARTICLE_POST_TYPE) return normalized === ARTICLE_POST_TYPE;
+            return normalized === DEFAULT_POST_TYPE;
+        });
+        renderCards(filtered);
+    };
+
     const loadPosts = async () => {
         try {
             const response = await fetch('/api/posts');
-            if (!response.ok) {
-                throw new Error(`Ошибка сервера: ${response.status}`);
-            }
-            const data = await response.json();
-            renderCards(data);
-        } catch (e) {
-            fallbackEl.textContent = 'Не удалось загрузить данные. Проверьте подключение к серверу.';
-            fallbackEl.style.display = 'block';
+        if (!response.ok) {
+            throw new Error(`Ошибка сервера: ${response.status}`);
         }
+        const data = await response.json();
+        if (!Array.isArray(data)) {
+            console.error('Unexpected API response format', data);
+            fallbackEl.textContent = 'Ответ сервера в неожиданном формате.';
+            fallbackEl.style.display = 'block';
+            allPosts = [];
+            return;
+        }
+        allPosts = data;
+        applyFilter(currentFilter);
+    } catch (e) {
+        fallbackEl.textContent = 'Не удалось загрузить данные. Проверьте подключение к серверу.';
+        fallbackEl.style.display = 'block';
+    }
     };
+
+    filterButtons.forEach(btn => {
+        btn.addEventListener('click', () => applyFilter(btn.dataset.filter));
+    });
 
     loadPosts();
 </script>
