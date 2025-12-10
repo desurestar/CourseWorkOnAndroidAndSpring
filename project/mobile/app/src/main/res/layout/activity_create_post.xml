@@ -69,7 +69,7 @@
                 android:padding="10dp" />
 
             <Space
-                android:layout_width="8dp"
+                android:layout_width="@dimen/create_horizontal_space"
                 android:layout_height="wrap_content" />
 
             <EditText

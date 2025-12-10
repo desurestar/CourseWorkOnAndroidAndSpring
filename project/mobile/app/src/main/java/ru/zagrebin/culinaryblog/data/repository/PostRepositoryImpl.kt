@@ -1,5 +1,6 @@
 package ru.zagrebin.culinaryblog.data.repository;
 
+import javax.inject.Inject
 import ru.zagrebin.culinaryblog.data.remote.api.PostApi;
 import ru.zagrebin.culinaryblog.data.remote.dto.toModel
 import ru.zagrebin.culinaryblog.model.IngredientItem
@@ -7,7 +8,6 @@ import ru.zagrebin.culinaryblog.model.PostCard
 import ru.zagrebin.culinaryblog.model.PostCreateRequest
 import ru.zagrebin.culinaryblog.model.PostFull
 import ru.zagrebin.culinaryblog.model.TagItem
-import javax.inject.Inject
 
 class PostRepositoryImpl @Inject constructor(
     private val api: PostApi
