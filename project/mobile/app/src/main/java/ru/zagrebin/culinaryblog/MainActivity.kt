@@ -16,6 +16,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import ru.zagrebin.culinaryblog.databinding.ActivityMainBinding
 import ru.zagrebin.culinaryblog.model.PostCard
+import ru.zagrebin.culinaryblog.ui.CreatePostActivity
 import ru.zagrebin.culinaryblog.ui.PostDetailActivity
 import ru.zagrebin.culinaryblog.viewmodel.PostViewModel
 import ru.zagrebin.culinaryblog.viewmodel.PostsUiState
@@ -35,6 +36,10 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         binding.bottomNavigation.setOnItemSelectedListener { item ->
+            if (item.itemId == R.id.menu_create) {
+                startActivity(Intent(this, CreatePostActivity::class.java))
+                return@setOnItemSelectedListener false
+            }
             applySelection(item.itemId)
             true
         }

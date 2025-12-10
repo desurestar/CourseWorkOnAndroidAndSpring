@@ -30,6 +30,11 @@
             android:exported="false"
             android:label="@string/app_name"
             android:theme="@style/Theme.CulinaryBlog" />
+        <activity
+            android:name=".ui.CreatePostActivity"
+            android:exported="false"
+            android:label="@string/app_name"
+            android:theme="@style/Theme.CulinaryBlog" />
     </application>
 
 </manifest>
