@@ -21,4 +21,22 @@
     <string name="card_title_placeholder">Без названия</string>
     <string name="card_excerpt_placeholder">Описание скоро появится.</string>
     <string name="card_meta_placeholder">Автор • Время приготовления</string>
+    <string name="author_unknown">Автор</string>
+    <string name="published_unknown">Дата не указана</string>
+    <string name="cooking_time_placeholder">⏱ время неизвестно</string>
+    <string name="calories_placeholder">🔥 калории не указаны</string>
+    <string name="views_placeholder">👁 0</string>
+    <string name="likes_placeholder">❤ 0</string>
+    <string name="cooking_time_format">⏱ %1$d мин</string>
+    <string name="calories_format">🔥 %1$d ккал</string>
+    <string name="views_format">👁 %1$d</string>
+    <string name="likes_format">❤ %1$d</string>
+    <string name="ingredients_title">Ингредиенты</string>
+    <string name="steps_title">Шаги приготовления</string>
+    <string name="comments_title">Комментарии</string>
+    <string name="comments_stub">Здесь пока нет комментариев. Оставьте первый!</string>
+    <string name="steps_stub">Шаги рецепта скоро появятся.</string>
+    <string name="ingredients_stub">Список ингредиентов пока не указан.</string>
+    <string name="content_title">Содержание</string>
+    <string name="content_stub">Полный текст поста появится позже.</string>
 </resources>
