@@ -1,5 +1,6 @@
 package ru.zagrebin.culinaryblog
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
@@ -8,12 +9,14 @@ import androidx.core.view.isVisible
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import coil.load
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import ru.zagrebin.culinaryblog.databinding.ActivityMainBinding
 import ru.zagrebin.culinaryblog.model.PostCard
+import ru.zagrebin.culinaryblog.ui.PostDetailActivity
 import ru.zagrebin.culinaryblog.viewmodel.PostViewModel
 import ru.zagrebin.culinaryblog.viewmodel.PostsUiState
 
@@ -112,22 +115,42 @@ class MainActivity : AppCompatActivity() {
                 false
             )
             cardBinding.postType.text = formatType(post.postType)
+            cardBinding.authorName.text =
+                post.authorName?.ifBlank { getString(R.string.author_unknown) }
+                    ?: getString(R.string.author_unknown)
+            cardBinding.avatarInitial.text = post.authorName?.firstOrNull()?.uppercase() ?: "?"
+            cardBinding.publishedAt.text =
+                post.publishedAt ?: getString(R.string.published_unknown)
             cardBinding.postTitle.text = post.title.ifBlank { getString(R.string.card_title_placeholder) }
             cardBinding.postExcerpt.text = post.excerpt.ifBlank { getString(R.string.card_excerpt_placeholder) }
-            cardBinding.postMeta.text = buildMeta(post)
             bindTags(cardBinding.tagsGroup, post.tags)
+
+            val isRecipe = normalizePostType(post.postType) == DEFAULT_POST_TYPE
+            val hasRecipeMeta = isRecipe && (post.cookingTimeMinutes != null || post.calories != null)
+            cardBinding.recipeMeta.isVisible = hasRecipeMeta
+            cardBinding.cookingTime.isVisible = hasRecipeMeta && post.cookingTimeMinutes != null
+            cardBinding.calories.isVisible = hasRecipeMeta && post.calories != null
+            post.cookingTimeMinutes?.let {
+                cardBinding.cookingTime.text = getString(R.string.cooking_time_format, it)
+            }
+            post.calories?.let {
+                cardBinding.calories.text = getString(R.string.calories_format, it)
+            }
+            cardBinding.viewsText.text =
+                getString(R.string.views_format, (post.viewsCount ?: 0L).toInt())
+            cardBinding.likesText.text = getString(R.string.likes_format, post.likesCount)
+
+            val coverUrl = post.coverUrl?.takeIf { it.isNotBlank() }
+            cardBinding.postCover.load(coverUrl) {
+                placeholder(R.drawable.bg_image_placeholder)
+                error(R.drawable.bg_image_placeholder)
+                crossfade(true)
+            }
+
+            cardBinding.root.setOnClickListener { openPost(post) }
 
             binding.postsContainer.addView(cardBinding.root)
         }
-    }
-
-    private fun buildMeta(post: PostCard): String {
-        val bits = mutableListOf<String>()
-        post.authorName?.takeIf { it.isNotBlank() }?.let { bits.add(it) }
-        post.cookingTimeMinutes?.let { bits.add("$it мин") }
-        post.calories?.let { bits.add("$it ккал") }
-        bits.add("❤ ${post.likesCount}")
-        return bits.joinToString(" • ")
     }
 
     private fun formatType(postType: String?): String =
@@ -161,6 +184,12 @@ class MainActivity : AppCompatActivity() {
         RECIPES,
         ARTICLES,
         OTHER
+    }
+
+    private fun openPost(post: PostCard) {
+        val intent = Intent(this, PostDetailActivity::class.java)
+        intent.putExtra(PostDetailActivity.EXTRA_POST, post)
+        startActivity(intent)
     }
 
     companion object {
