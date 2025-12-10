@@ -23,6 +23,7 @@ public final class PostMapper {
         dto.setExcerpt(p.getExcerpt());
         dto.setCoverUrl(p.getCoverUrl());
         dto.setAuthorId(p.getAuthor() != null ? p.getAuthor().getId() : null);
+        dto.setPostType(p.getPostType());
         dto.setLikesCount(p.getLikesCount() == null ? 0 : p.getLikesCount());
         dto.setCookingTimeMinutes(p.getCookingTimeMinutes());
         dto.setCalories(p.getCalories());

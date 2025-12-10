@@ -10,6 +10,7 @@ fun PostCardDto.toModel(): PostCard = PostCard(
     excerpt = excerpt,
     coverUrl = coverUrl,
     authorId = authorId,
+    postType = postType,
     likesCount = likesCount,
     cookingTimeMinutes = cookingTimeMinutes,
     calories = calories,

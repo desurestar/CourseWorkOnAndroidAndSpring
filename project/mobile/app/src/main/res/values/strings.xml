@@ -12,4 +12,13 @@
     <string name="create_stub_message">Раздел создания записей появится здесь. Используйте Views для ввода данных.</string>
     <string name="messenger_stub_message">Мессенджер будет перенесён на стандартные элементы интерфейса.</string>
     <string name="profile_stub_message">Здесь будет ваш профиль. Экран готов для реализации на обычных Views.</string>
+    <string name="recipes_subtitle">Свежие рецепты и подборки прямо из базы данных.</string>
+    <string name="articles_subtitle">Новые статьи и посты из базы данных.</string>
+    <string name="error_loading">Не удалось загрузить ленту. Проверьте сервер.</string>
+    <string name="empty_posts">Публикаций пока нет.</string>
+    <string name="post_type_recipe">Рецепт</string>
+    <string name="post_type_article">Пост</string>
+    <string name="card_title_placeholder">Без названия</string>
+    <string name="card_excerpt_placeholder">Описание скоро появится.</string>
+    <string name="card_meta_placeholder">Автор • Время приготовления</string>
 </resources>

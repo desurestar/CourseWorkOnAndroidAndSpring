@@ -1,14 +1,30 @@
 package ru.zagrebin.culinaryblog
 
 import android.os.Bundle
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
+import androidx.core.view.isVisible
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import com.google.android.material.chip.Chip
+import com.google.android.material.chip.ChipGroup
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
 import ru.zagrebin.culinaryblog.databinding.ActivityMainBinding
+import ru.zagrebin.culinaryblog.model.PostCard
+import ru.zagrebin.culinaryblog.viewmodel.PostViewModel
+import ru.zagrebin.culinaryblog.viewmodel.PostsUiState
 
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
+    private val postViewModel: PostViewModel by viewModels()
+    private var latestState: PostsUiState = PostsUiState(isLoading = true)
+
+    private var currentTab: ContentTab = ContentTab.RECIPES
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -19,20 +35,140 @@ class MainActivity : AppCompatActivity() {
             applySelection(item.itemId)
             true
         }
-        binding.bottomNavigation.selectedItemId = R.id.menu_recipes
-        applySelection(R.id.menu_recipes)
+        binding.bottomNavigation.selectedItemId = DEFAULT_TAB_ID
+
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                postViewModel.uiState.collect { state ->
+                    latestState = state
+                    renderState(state)
+                }
+            }
+        }
+
+        applySelection(DEFAULT_TAB_ID)
     }
 
     private fun applySelection(itemId: Int) {
-        val (title, message) = when (itemId) {
-            R.id.menu_recipes -> getString(R.string.nav_recipes) to getString(R.string.recipes_stub_message)
-            R.id.menu_articles -> getString(R.string.nav_articles) to getString(R.string.articles_stub_message)
-            R.id.menu_create -> getString(R.string.nav_create) to getString(R.string.create_stub_message)
-            R.id.menu_messenger -> getString(R.string.nav_messenger) to getString(R.string.messenger_stub_message)
-            R.id.menu_profile -> getString(R.string.nav_profile) to getString(R.string.profile_stub_message)
-            else -> getString(R.string.view_stub_title) to getString(R.string.view_stub_message)
+        currentTab = when (itemId) {
+            R.id.menu_recipes -> ContentTab.RECIPES
+            R.id.menu_articles -> ContentTab.ARTICLES
+            else -> ContentTab.OTHER
         }
-        binding.titleText.text = title
-        binding.contentText.text = message
+
+        if (currentTab == ContentTab.OTHER) {
+            binding.titleText.text = getString(R.string.view_stub_title)
+            binding.subtitleText.text = getString(R.string.view_stub_message)
+            binding.postsContent.isVisible = false
+            binding.stubText.isVisible = true
+            binding.stubText.text = when (itemId) {
+                R.id.menu_create -> getString(R.string.create_stub_message)
+                R.id.menu_messenger -> getString(R.string.messenger_stub_message)
+                R.id.menu_profile -> getString(R.string.profile_stub_message)
+                else -> getString(R.string.view_stub_message)
+            }
+            return
+        }
+
+        binding.postsContent.isVisible = true
+        binding.stubText.isVisible = false
+
+        if (currentTab == ContentTab.RECIPES) {
+            binding.titleText.text = getString(R.string.nav_recipes)
+            binding.subtitleText.text = getString(R.string.recipes_subtitle)
+        } else {
+            binding.titleText.text = getString(R.string.nav_articles)
+            binding.subtitleText.text = getString(R.string.articles_subtitle)
+        }
+
+        renderState(latestState)
     }
+
+    private fun renderState(state: PostsUiState) {
+        if (currentTab == ContentTab.OTHER) return
+
+        binding.progressBar.isVisible = state.isLoading
+        binding.errorText.isVisible = state.error != null
+        binding.errorText.text = state.error ?: ""
+
+        val filteredPosts = filterPosts(state.posts)
+        binding.emptyText.isVisible = !state.isLoading && state.error == null && filteredPosts.isEmpty()
+
+        renderPosts(filteredPosts)
+    }
+
+    private fun filterPosts(posts: List<PostCard>): List<PostCard> = when (currentTab) {
+        ContentTab.RECIPES -> posts.filter { normalizePostType(it.postType) == DEFAULT_POST_TYPE }
+        ContentTab.ARTICLES -> posts.filter { normalizePostType(it.postType) == ARTICLE_POST_TYPE }
+        else -> posts
+    }
+
+    private fun renderPosts(posts: List<PostCard>) {
+        binding.postsContainer.removeAllViews()
+        posts.forEach { post ->
+            val cardBinding = ru.zagrebin.culinaryblog.databinding.ItemPostCardBinding.inflate(
+                layoutInflater,
+                binding.postsContainer,
+                false
+            )
+            cardBinding.postType.text = formatType(post.postType)
+            cardBinding.postTitle.text = post.title.ifBlank { getString(R.string.card_title_placeholder) }
+            cardBinding.postExcerpt.text = post.excerpt.ifBlank { getString(R.string.card_excerpt_placeholder) }
+            cardBinding.postMeta.text = buildMeta(post)
+            bindTags(cardBinding.tagsGroup, post.tags)
+
+            binding.postsContainer.addView(cardBinding.root)
+        }
+    }
+
+    private fun buildMeta(post: PostCard): String {
+        val bits = mutableListOf<String>()
+        post.authorName?.takeIf { it.isNotBlank() }?.let { bits.add(it) }
+        post.cookingTimeMinutes?.let { bits.add("$it мин") }
+        post.calories?.let { bits.add("$it ккал") }
+        bits.add("❤ ${post.likesCount}")
+        return bits.joinToString(" • ")
+    }
+
+    private fun formatType(postType: String?): String =
+        if (normalizePostType(postType) == ARTICLE_POST_TYPE) {
+            getString(R.string.post_type_article)
+        } else {
+            getString(R.string.post_type_recipe)
+        }
+
+    private fun bindTags(group: ChipGroup, tags: Set<String>?) {
+        group.removeAllViews()
+        if (tags.isNullOrEmpty()) {
+            group.isVisible = false
+            return
+        }
+
+        group.isVisible = true
+        tags.forEach { tag ->
+            val chip = Chip(this)
+            chip.text = tag
+            chip.isCheckable = false
+            chip.isClickable = false
+            chip.chipBackgroundColor =
+                ContextCompat.getColorStateList(this, R.color.recipe_primary_light)
+            chip.setTextColor(ContextCompat.getColor(this, R.color.recipe_primary))
+            group.addView(chip)
+        }
+    }
+
+    private enum class ContentTab {
+        RECIPES,
+        ARTICLES,
+        OTHER
+    }
+
+    companion object {
+        private const val DEFAULT_POST_TYPE = "recipe"
+        private const val ARTICLE_POST_TYPE = "article"
+        private const val DEFAULT_TAB_ID = R.id.menu_recipes
+    }
+
+    private fun normalizePostType(postType: String?): String =
+        postType?.lowercase()?.takeIf { it.isNotBlank() } ?: DEFAULT_POST_TYPE
 }

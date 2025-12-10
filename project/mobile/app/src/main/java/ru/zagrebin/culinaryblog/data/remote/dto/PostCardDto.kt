@@ -6,6 +6,7 @@ data class PostCardDto(
         val excerpt: String,
         val coverUrl: String?,
         val authorId: Long?,
+        val postType: String?,
         val likesCount: Int,
         val cookingTimeMinutes: Int?,
         val calories: Int?,

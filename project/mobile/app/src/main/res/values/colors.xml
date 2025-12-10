@@ -7,4 +7,9 @@
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+    <color name="recipe_background">#FFFAEC</color>
+    <color name="recipe_primary">#083B10</color>
+    <color name="recipe_primary_light">#DFEEE0</color>
+    <color name="recipe_card">#FFF6D9</color>
+    <color name="recipe_button">#F5C16C</color>
 </resources>
