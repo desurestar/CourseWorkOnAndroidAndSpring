@@ -139,7 +139,7 @@ class PostDetailActivity : AppCompatActivity() {
                 LinearLayout.LayoutParams.WRAP_CONTENT
             )
             view.text = "${index + 1}. ${step.description}"
-            view.setTextAppearance(R.style.TextAppearance_MaterialComponents.Body2)
+            view.setTextAppearance(com.google.android.material.R.style.TextAppearance_MaterialComponents_Body2)
             view.setTextColor(ContextCompat.getColor(this, R.color.recipe_primary))
             view.textSize = 16f
             binding.stepsContainer.addView(view)
