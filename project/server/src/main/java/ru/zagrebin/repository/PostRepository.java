@@ -17,7 +17,7 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     @EntityGraph(attributePaths = {"author", "tags"})
     List<Post> findByStatusOrderByCreatedAtDesc(String status);
 
-    @Query("select p.id from Post p where lower(p.status) = lower(:status) order by p.createdAt desc")
+    @Query("select p.id from Post p where p.status = :status order by p.createdAt desc")
     List<Long> findIdsByStatusOrderByCreatedAtDesc(@Param("status") String status, Pageable pageable);
 
     @EntityGraph(attributePaths = {"author", "tags", "ingredients", "ingredients.ingredient", "steps"})
