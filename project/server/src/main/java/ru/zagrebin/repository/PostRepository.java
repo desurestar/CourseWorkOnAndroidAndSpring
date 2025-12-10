@@ -26,8 +26,15 @@ public interface PostRepository extends JpaRepository<Post, Long> {
 
     long countByStatus(String status);
 
-    @EntityGraph(attributePaths = {"author", "tags", "ingredients", "ingredients.ingredient", "steps"})
-    @Query("select p from Post p where p.id = :id")
+    @Query("""
+        select distinct p from Post p
+        left join fetch p.author
+        left join fetch p.tags
+        left join fetch p.ingredients pi
+        left join fetch pi.ingredient
+        left join fetch p.steps s
+        where p.id = :id
+    """)
     Optional<Post> findByIdWithAllRelations(@Param("id") Long id);
 
     @Modifying
