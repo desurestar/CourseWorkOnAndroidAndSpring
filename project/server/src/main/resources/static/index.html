@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Рецепты и посты — Кулинарный блог</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<div class="container">
+    <header>
+        <p class="status-badge">Лента из базы данных</p>
+        <h1>Рецепты и посты</h1>
+        <p>Свежие публикации из базы. Страница автоматически подгружает данные через API.</p>
+    </header>
+
+    <div id="cards" class="cards-grid" aria-live="polite"></div>
+    <p id="fallback" class="fallback" style="display: none;"></p>
+</div>
+
+<script>
+    const cardsEl = document.getElementById('cards');
+    const fallbackEl = document.getElementById('fallback');
+
+    const escapeHtml = (value) => {
+        if (value === null || value === undefined) return "";
+        return String(value)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#39;");
+    };
+
+    const buildCover = (coverUrl, title) => {
+        if (!coverUrl) {
+            return `<div class="card__cover card__cover--placeholder" aria-hidden="true"></div>`;
+        }
+        return `<div class="card__cover">
+                    <img src="${escapeHtml(coverUrl)}" alt="Обложка: ${escapeHtml(title) || 'пост'}">
+                </div>`;
+    };
+
+    const buildTags = (tags) => {
+        if (!tags || !tags.length) return '';
+        return `<div class="card__tags">${tags.map(t => `<span class="tag">${escapeHtml(t)}</span>`).join('')}</div>`;
+    };
+
+    const formatMeta = (post) => {
+        const bits = [];
+        if (post.authorName) bits.push(post.authorName);
+        if (post.cookingTimeMinutes) bits.push(`${post.cookingTimeMinutes} мин`);
+        if (post.calories) bits.push(`${post.calories} ккал`);
+        return bits.join(' • ');
+    };
+
+    const renderCards = (posts) => {
+        if (!posts.length) {
+            fallbackEl.textContent = 'Посты не найдены. Добавьте записи в базу данных.';
+            fallbackEl.style.display = 'block';
+            return;
+        }
+        fallbackEl.style.display = 'none';
+        cardsEl.innerHTML = posts.map(post => `
+            <article class="card">
+                ${buildCover(post.coverUrl, post.title)}
+                ${buildTags(post.tags?.map(escapeHtml))}
+                <h3>${escapeHtml(post.title) || 'Без названия'}</h3>
+                <div class="card__meta">${escapeHtml(formatMeta(post))}</div>
+                <p class="card__excerpt">${escapeHtml(post.excerpt) || 'Описание скоро появится.'}</p>
+                <div class="card__footer">
+                    <span class="status-badge">❤ ${post.likesCount ?? 0}</span>
+                    <button class="btn" type="button">Читать</button>
+                </div>
+            </article>
+        `).join('');
+    };
+
+    const loadPosts = async () => {
+        try {
+            const response = await fetch('/api/posts');
+            if (!response.ok) {
+                throw new Error(`Ошибка сервера: ${response.status}`);
+            }
+            const data = await response.json();
+            renderCards(data);
+        } catch (e) {
+            fallbackEl.textContent = 'Не удалось загрузить данные. Проверьте подключение к серверу.';
+            fallbackEl.style.display = 'block';
+        }
+    };
+
+    loadPosts();
+</script>
+</body>
+</html>
