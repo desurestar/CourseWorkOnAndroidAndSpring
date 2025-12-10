@@ -10,6 +10,7 @@ import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import ru.zagrebin.culinaryblog.BuildConfig
 import ru.zagrebin.culinaryblog.data.remote.api.AuthApi
 import ru.zagrebin.culinaryblog.data.remote.api.PostApi
 import ru.zagrebin.culinaryblog.data.repository.PostRepository
@@ -25,7 +26,12 @@ object NetworkModule {
     @Provides
     fun provideLogging(): HttpLoggingInterceptor {
         val l = HttpLoggingInterceptor()
-        l.level = HttpLoggingInterceptor.Level.BODY
+        l.redactHeader("Authorization")
+        l.level = if (BuildConfig.DEBUG) {
+            HttpLoggingInterceptor.Level.BODY
+        } else {
+            HttpLoggingInterceptor.Level.BASIC
+        }
         return l
     }
 

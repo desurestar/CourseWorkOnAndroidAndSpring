@@ -8,9 +8,9 @@ server:
 
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/blogDB
-    username: postgres
-    password: 190485
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/blogDB}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:190485}
     driver-class-name: org.postgresql.Driver
 
   jpa:
