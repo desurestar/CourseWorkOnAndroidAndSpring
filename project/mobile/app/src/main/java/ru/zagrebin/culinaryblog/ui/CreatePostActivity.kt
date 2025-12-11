@@ -1,9 +1,14 @@
 package ru.zagrebin.culinaryblog.ui
 
+import android.Manifest
+import android.graphics.Bitmap
+import android.net.Uri
 import android.os.Bundle
+import android.provider.OpenableColumns
 import android.widget.ArrayAdapter
 import android.widget.CheckBox
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.isVisible
@@ -11,7 +16,9 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import ru.zagrebin.culinaryblog.R
 import ru.zagrebin.culinaryblog.databinding.ActivityCreatePostBinding
 import ru.zagrebin.culinaryblog.databinding.ItemIngredientRowBinding
@@ -35,10 +42,40 @@ class CreatePostActivity : AppCompatActivity() {
 
     private var tags: List<TagItem> = emptyList()
     private var ingredients: List<IngredientItem> = emptyList()
+    private var selectedPostType: String = POST_TYPE_RECIPE
+    private var pendingImageTarget: ImageTarget? = null
 
     private val statusValues = listOf("draft", "published")
     private val statusLabels by lazy {
         listOf(getString(R.string.status_draft), getString(R.string.status_published))
+    }
+
+    private val galleryLauncher = registerForActivityResult(
+        ActivityResultContracts.GetContent()
+    ) { uri ->
+        uri?.let { handleImageUri(it) } ?: run { pendingImageTarget = null }
+    }
+
+    private val cameraLauncher = registerForActivityResult(
+        ActivityResultContracts.TakePicturePreview()
+    ) { bitmap ->
+        val target = pendingImageTarget
+        pendingImageTarget = null
+        if (bitmap != null && target != null) {
+            handleCameraBitmap(target, bitmap)
+        }
+    }
+
+    private val cameraPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        val target = pendingImageTarget
+        if (granted && target != null) {
+            cameraLauncher.launch(null)
+        } else {
+            pendingImageTarget = null
+            Toast.makeText(this, R.string.create_upload_error, Toast.LENGTH_SHORT).show()
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -50,13 +87,13 @@ class CreatePostActivity : AppCompatActivity() {
         viewModel.setAuthorId(passedAuthorId)
 
         setupStatusSpinner()
+        setupPostTypeSelector()
         setupClicks()
         observeState()
 
         viewModel.loadTags()
         viewModel.loadIngredients()
-        addIngredientRow()
-        addStepRow()
+        updateRecipeVisibility()
     }
 
     private fun setupStatusSpinner() {
@@ -69,6 +106,17 @@ class CreatePostActivity : AppCompatActivity() {
         binding.statusSpinner.adapter = adapter
     }
 
+    private fun setupPostTypeSelector() {
+        binding.postTypeGroup.setOnCheckedChangeListener { _, checkedId ->
+            selectedPostType = if (checkedId == binding.radioArticle.id) {
+                POST_TYPE_ARTICLE
+            } else {
+                POST_TYPE_RECIPE
+            }
+            updateRecipeVisibility()
+        }
+    }
+
     private fun setupClicks() {
         binding.buttonSearchTags.setOnClickListener {
             viewModel.loadTags(binding.inputTagSearch.text.toString().trim().ifBlank { null })
@@ -79,6 +127,8 @@ class CreatePostActivity : AppCompatActivity() {
         binding.buttonAddIngredient.setOnClickListener { addIngredientRow() }
         binding.buttonAddStep.setOnClickListener { addStepRow() }
         binding.buttonSubmit.setOnClickListener { submit() }
+        binding.buttonPickCover.setOnClickListener { pickImage(ImageTarget.Cover) }
+        binding.buttonCaptureCover.setOnClickListener { captureImage(ImageTarget.Cover) }
     }
 
     private fun observeState() {
@@ -192,8 +242,24 @@ class CreatePostActivity : AppCompatActivity() {
             binding.stepsContainer.removeView(rowBinding.root)
             stepRows.remove(rowBinding)
         }
+        rowBinding.buttonPickStepImage.setOnClickListener { pickImage(ImageTarget.Step(rowBinding)) }
+        rowBinding.buttonCaptureStepImage.setOnClickListener { captureImage(ImageTarget.Step(rowBinding)) }
         stepRows.add(rowBinding)
         binding.stepsContainer.addView(rowBinding.root)
+    }
+
+    private fun updateRecipeVisibility() {
+        val isRecipe = selectedPostType == POST_TYPE_RECIPE
+        binding.recipeSection.isVisible = isRecipe
+        if (isRecipe) {
+            if (ingredientRows.isEmpty()) addIngredientRow()
+            if (stepRows.isEmpty()) addStepRow()
+        } else {
+            ingredientRows.clear()
+            stepRows.clear()
+            binding.ingredientsContainer.removeAllViews()
+            binding.stepsContainer.removeAllViews()
+        }
     }
 
     private fun submit() {
@@ -206,49 +272,61 @@ class CreatePostActivity : AppCompatActivity() {
             return
         }
 
-        val ingredientRequests = mutableListOf<PostIngredientRequest>()
-        var invalidAmount = false
-        ingredientRows.forEach { row ->
-            val selectedId = row.spinnerIngredient.tag as? Long
-            val amount = row.inputAmount.text.toString().trim().toDoubleOrNull()
-            val unit = row.inputUnit.text.toString().trim().ifBlank { null }
-            if (selectedId != null) {
-                if (amount == null || amount < MIN_POSITIVE_AMOUNT) {
-                    invalidAmount = true
-                } else {
-                    ingredientRequests.add(
-                        PostIngredientRequest(
-                            ingredientId = selectedId,
-                            quantityValue = amount,
-                            unit = unit
+        val isRecipe = selectedPostType == POST_TYPE_RECIPE
+
+        val ingredientRequests = if (isRecipe) {
+            val list = mutableListOf<PostIngredientRequest>()
+            var invalidAmount = false
+            ingredientRows.forEach { row ->
+                val selectedId = row.spinnerIngredient.tag as? Long
+                val amount = row.inputAmount.text.toString().trim().toDoubleOrNull()
+                val unit = row.inputUnit.text.toString().trim().ifBlank { null }
+                if (selectedId != null) {
+                    if (amount == null || amount < MIN_POSITIVE_AMOUNT) {
+                        invalidAmount = true
+                    } else {
+                        list.add(
+                            PostIngredientRequest(
+                                ingredientId = selectedId,
+                                quantityValue = amount,
+                                unit = unit
+                            )
                         )
-                    )
+                    }
                 }
             }
+
+            if (invalidAmount || (ingredientRows.isNotEmpty() && list.isEmpty())) {
+                binding.textError.isVisible = true
+                binding.textError.text = getString(R.string.create_ingredient_error)
+                return
+            }
+            list
+        } else {
+            emptyList()
         }
 
-        if (invalidAmount || (ingredientRows.isNotEmpty() && ingredientRequests.isEmpty())) {
-            binding.textError.isVisible = true
-            binding.textError.text = getString(R.string.create_ingredient_error)
-            return
-        }
+        val stepRequests = if (isRecipe) {
+            val steps = stepRows.mapIndexed { index, row ->
+                RecipeStepRequest(
+                    order = index + 1,
+                    description = row.inputStepDescription.text.toString().trim(),
+                    imageUrl = row.inputStepImage.text.toString().trim().ifBlank { null }
+                )
+            }.filter { it.description.isNotBlank() }
 
-        val stepRequests = stepRows.mapIndexed { index, row ->
-            RecipeStepRequest(
-                order = index + 1,
-                description = row.inputStepDescription.text.toString().trim(),
-                imageUrl = row.inputStepImage.text.toString().trim().ifBlank { null }
-            )
-        }.filter { it.description.isNotBlank() }
-
-        if (stepRows.isNotEmpty() && stepRequests.isEmpty()) {
-            binding.textError.isVisible = true
-            binding.textError.text = getString(R.string.create_step_error)
-            return
+            if (stepRows.isNotEmpty() && steps.isEmpty()) {
+                binding.textError.isVisible = true
+                binding.textError.text = getString(R.string.create_step_error)
+                return
+            }
+            steps
+        } else {
+            emptyList()
         }
 
         val request = PostCreateRequest(
-            postType = POST_TYPE_RECIPE,
+            postType = selectedPostType,
             status = statusValues.getOrNull(binding.statusSpinner.selectedItemPosition) ?: "draft",
             title = title,
             excerpt = excerpt,
@@ -266,9 +344,93 @@ class CreatePostActivity : AppCompatActivity() {
         viewModel.createPost(request)
     }
 
+    private fun pickImage(target: ImageTarget) {
+        pendingImageTarget = target
+        galleryLauncher.launch("image/*")
+    }
+
+    private fun captureImage(target: ImageTarget) {
+        pendingImageTarget = target
+        cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+    }
+
+    private fun handleImageUri(uri: Uri) {
+        val target = pendingImageTarget ?: return
+        lifecycleScope.launch {
+            val bytes = withContext(Dispatchers.IO) {
+                contentResolver.openInputStream(uri)?.use { it.readBytes() }
+            }
+            val mime = contentResolver.getType(uri) ?: "image/jpeg"
+            pendingImageTarget = null
+            if (bytes == null) {
+                Toast.makeText(this@CreatePostActivity, R.string.create_upload_error, Toast.LENGTH_SHORT).show()
+                return@launch
+            }
+            val name = extractFileName(uri, mime)
+            uploadImageBytes(target, bytes, mime, name)
+        }
+    }
+
+    private fun handleCameraBitmap(target: ImageTarget, bitmap: Bitmap) {
+        lifecycleScope.launch {
+            val bytes = withContext(Dispatchers.IO) {
+                val stream = java.io.ByteArrayOutputStream()
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 90, stream)
+                stream.toByteArray()
+            }
+            uploadImageBytes(target, bytes, "image/jpeg", "camera_${System.currentTimeMillis()}.jpg")
+        }
+    }
+
+    private fun uploadImageBytes(target: ImageTarget, bytes: ByteArray, mimeType: String, fileName: String) {
+        binding.buttonSubmit.isEnabled = false
+        Toast.makeText(this, R.string.create_uploading, Toast.LENGTH_SHORT).show()
+        viewModel.uploadImage(
+            type = when (target) {
+                ImageTarget.Cover -> "cover"
+                is ImageTarget.Step -> "step"
+            },
+            fileName = fileName,
+            content = bytes,
+            mimeType = mimeType
+        ) { result ->
+            binding.buttonSubmit.isEnabled = !viewModel.state.value.submitting
+            result.onSuccess { url ->
+                when (target) {
+                    ImageTarget.Cover -> binding.inputCoverUrl.setText(url)
+                    is ImageTarget.Step -> target.binding.inputStepImage.setText(url)
+                }
+                Toast.makeText(this, R.string.create_upload_success, Toast.LENGTH_SHORT).show()
+            }.onFailure {
+                Toast.makeText(this, R.string.create_upload_error, Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun extractFileName(uri: Uri, mimeType: String): String {
+        val nameFromCursor = contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)
+            ?.use { cursor ->
+                val idx = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                if (idx >= 0 && cursor.moveToFirst()) cursor.getString(idx) else null
+            }
+        if (!nameFromCursor.isNullOrBlank()) return nameFromCursor
+
+        val segment = uri.lastPathSegment
+        if (!segment.isNullOrBlank()) return segment
+
+        val ext = mimeType.substringAfter('/', "bin")
+        return "upload_${System.currentTimeMillis()}.$ext"
+    }
+
+    private sealed interface ImageTarget {
+        data object Cover : ImageTarget
+        data class Step(val binding: ItemStepRowBinding) : ImageTarget
+    }
+
     companion object {
         const val EXTRA_AUTHOR_ID = "extra_author_id"
         private const val POST_TYPE_RECIPE = "recipe"
+        private const val POST_TYPE_ARTICLE = "article"
         // Threshold to ensure ingredient amount is positive
         private const val MIN_POSITIVE_AMOUNT = 0.01
     }
