@@ -1,6 +1,9 @@
 package ru.zagrebin.culinaryblog.data.repository
 
 import javax.inject.Inject
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import ru.zagrebin.culinaryblog.data.remote.api.PostApi
 import ru.zagrebin.culinaryblog.data.remote.dto.toModel
 import ru.zagrebin.culinaryblog.model.IngredientItem
@@ -60,6 +63,27 @@ class PostRepositoryImpl @Inject constructor(
             if (resp.isSuccessful) {
                 val body = resp.body()
                 Result.success(body?.results?.map { it.toModel() } ?: emptyList())
+            } else {
+                Result.failure(RuntimeException("Server error: ${resp.code()}"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun uploadImage(
+        type: String,
+        fileName: String,
+        content: ByteArray,
+        mimeType: String
+    ): Result<String> {
+        return try {
+            val requestBody = content.toRequestBody(mimeType.toMediaTypeOrNull())
+            val part = MultipartBody.Part.createFormData("file", fileName, requestBody)
+            val resp = api.upload(type, part)
+            if (resp.isSuccessful) {
+                val body = resp.body() ?: return Result.failure(RuntimeException("Empty body"))
+                Result.success(body.url)
             } else {
                 Result.failure(RuntimeException("Server error: ${resp.code()}"))
             }

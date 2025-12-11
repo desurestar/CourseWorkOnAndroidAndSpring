@@ -71,6 +71,19 @@ class CreatePostViewModel @Inject constructor(
         }
     }
 
+    fun uploadImage(
+        type: String,
+        fileName: String,
+        content: ByteArray,
+        mimeType: String,
+        onResult: (Result<String>) -> Unit
+    ) {
+        viewModelScope.launch {
+            val res = repository.uploadImage(type, fileName, content, mimeType)
+            onResult(res)
+        }
+    }
+
     fun createPost(request: PostCreateRequest) {
         viewModelScope.launch {
             _state.update { it.copy(submitting = true, error = null, created = null) }

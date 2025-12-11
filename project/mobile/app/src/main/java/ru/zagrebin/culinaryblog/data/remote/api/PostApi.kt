@@ -1,9 +1,12 @@
 package ru.zagrebin.culinaryblog.data.remote.api
 
 import retrofit2.Response
-import retrofit2.http.GET
+import okhttp3.MultipartBody
 import retrofit2.http.Body
+import retrofit2.http.GET
+import retrofit2.http.Multipart
 import retrofit2.http.POST
+import retrofit2.http.Part
 import retrofit2.http.Path
 import retrofit2.http.Query
 import ru.zagrebin.culinaryblog.data.remote.dto.PostCardDto
@@ -12,6 +15,7 @@ import ru.zagrebin.culinaryblog.data.remote.dto.PostFullDto
 import ru.zagrebin.culinaryblog.data.remote.dto.IngredientDto
 import ru.zagrebin.culinaryblog.data.remote.dto.PaginatedResponseDto
 import ru.zagrebin.culinaryblog.data.remote.dto.TagDto
+import ru.zagrebin.culinaryblog.data.remote.dto.UploadResponseDto
 import ru.zagrebin.culinaryblog.model.PostCreateRequest
 
 interface PostApi {
@@ -37,6 +41,13 @@ interface PostApi {
         @Query("page_size") pageSize: Int = 30,
         @Query("search") search: String? = null
     ): Response<PaginatedResponseDto<IngredientDto>>
+
+    @Multipart
+    @POST("uploads/{type}")
+    suspend fun upload(
+        @Path("type") type: String,
+        @Part file: MultipartBody.Part
+    ): Response<UploadResponseDto>
 
     @POST("posts")
     suspend fun createPost(@Body request: PostCreateRequest): Response<PostCardDto>

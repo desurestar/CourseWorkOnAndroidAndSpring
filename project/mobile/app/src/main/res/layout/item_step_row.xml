@@ -20,6 +20,31 @@
         android:layout_marginTop="4dp"
         android:hint="@string/create_step_image_hint" />
 
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/buttonPickStepImage"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/create_cover_pick" />
+
+        <Space
+            android:layout_width="@dimen/create_horizontal_space"
+            android:layout_height="wrap_content" />
+
+        <Button
+            android:id="@+id/buttonCaptureStepImage"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/create_cover_capture" />
+    </LinearLayout>
+
     <Button
         android:id="@+id/buttonRemoveStep"
         android:layout_width="wrap_content"

@@ -95,7 +95,7 @@ public class PostAssembler {
         }
 
         // likes/comments/views default already via entity @PrePersist
-        return postRepository.save(post); // cascade saves nested entities
+        return post; // will be persisted by service
     }
 
     /**
