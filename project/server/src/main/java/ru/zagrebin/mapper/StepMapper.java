@@ -2,6 +2,7 @@ package ru.zagrebin.mapper;
 
 import ru.zagrebin.dto.RecipeStepDto;
 import ru.zagrebin.model.RecipeStep;
+import ru.zagrebin.util.UrlHelper;
 
 public final class StepMapper {
     private StepMapper() {}
@@ -11,7 +12,7 @@ public final class StepMapper {
         RecipeStepDto dto = new RecipeStepDto();
         dto.setOrder(s.getOrder());
         dto.setDescription(s.getDescription());
-        dto.setImageUrl(s.getImageUrl());
+        dto.setImageUrl(UrlHelper.toAbsolute(s.getImageUrl()));
         return dto;
     }
 }

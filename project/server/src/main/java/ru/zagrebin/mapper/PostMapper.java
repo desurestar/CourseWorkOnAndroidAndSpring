@@ -11,6 +11,7 @@ import ru.zagrebin.dto.PostFullDto;
 import ru.zagrebin.model.Post;
 import ru.zagrebin.model.RecipeStep;
 import ru.zagrebin.model.Tag;
+import ru.zagrebin.util.UrlHelper;
 
 public final class PostMapper {
     private PostMapper() {}
@@ -21,7 +22,7 @@ public final class PostMapper {
         dto.setId(p.getId());
         dto.setTitle(p.getTitle());
         dto.setExcerpt(p.getExcerpt());
-        dto.setCoverUrl(p.getCoverUrl());
+        dto.setCoverUrl(UrlHelper.toAbsolute(p.getCoverUrl()));
         dto.setAuthorId(p.getAuthor() != null ? p.getAuthor().getId() : null);
         dto.setPostType(p.getPostType());
         dto.setLikesCount(p.getLikesCount() == null ? 0 : p.getLikesCount());
@@ -43,7 +44,7 @@ public final class PostMapper {
         dto.setTitle(p.getTitle());
         dto.setExcerpt(p.getExcerpt());
         dto.setContent(p.getContent());
-        dto.setCoverUrl(p.getCoverUrl());
+        dto.setCoverUrl(UrlHelper.toAbsolute(p.getCoverUrl()));
         dto.setCreatedAt(p.getCreatedAt());
         dto.setUpdatedAt(p.getUpdatedAt());
         // author
