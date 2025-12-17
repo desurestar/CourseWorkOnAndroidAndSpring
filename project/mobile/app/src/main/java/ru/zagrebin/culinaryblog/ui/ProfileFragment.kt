@@ -1,6 +1,8 @@
 package ru.zagrebin.culinaryblog.ui
 
+import android.app.Activity
 import android.content.Intent
+import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -34,6 +36,7 @@ import ru.zagrebin.culinaryblog.viewmodel.PostsUiState
 import ru.zagrebin.culinaryblog.viewmodel.ProfileUiState
 import ru.zagrebin.culinaryblog.viewmodel.ProfileViewModel
 import javax.inject.Inject
+import java.io.ByteArrayOutputStream
 
 @AndroidEntryPoint
 class ProfileFragment : Fragment() {
@@ -42,10 +45,23 @@ class ProfileFragment : Fragment() {
     private val binding get() = _binding!!
     private val postViewModel: PostViewModel by viewModels()
     private val profileViewModel: ProfileViewModel by viewModels()
+    private var pendingAvatarBitmap: Bitmap? = null
+    private var pendingAvatarUri: Uri? = null
     private val pickAvatarLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         if (uri != null) {
-            uploadAvatar(uri)
+            pendingAvatarUri = uri
+            startAvatarCrop(uri)
         }
+    }
+    private val cropAvatarLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        val data = result.data
+        val bitmap = data?.extras?.get("data") as? Bitmap
+        if (result.resultCode == Activity.RESULT_OK && bitmap != null) {
+            handleCroppedAvatar(bitmap)
+        } else {
+            pendingAvatarUri?.let { uploadAvatar(it) }
+        }
+        pendingAvatarUri = null
     }
     @Inject lateinit var tokenStorage: TokenStorage
 
@@ -79,6 +95,7 @@ class ProfileFragment : Fragment() {
         }
         setupTabs()
         setupActions()
+        setEditingVisible(false)
         observeProfile()
         renderUserStub()
         observePosts()
@@ -87,6 +104,8 @@ class ProfileFragment : Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
+        pendingAvatarBitmap = null
+        pendingAvatarUri = null
     }
 
     private fun setupTabs() {
@@ -126,12 +145,17 @@ class ProfileFragment : Fragment() {
             profileViewModel.saveProfile()
         }
         binding.buttonEditProfile.setOnClickListener {
+            setEditingVisible(true)
             binding.editDisplayName.requestFocus()
             binding.profileScroll.smoothScrollTo(0, binding.editDisplayName.top)
         }
         setupInputs()
         renderFollowers(listOf("Алексей", "Мария", "Владимир"))
         renderFollowing(listOf("Иван", "Дарья"))
+    }
+
+    private fun setEditingVisible(show: Boolean) {
+        binding.editSection.isVisible = show
     }
 
     private fun setupInputs() {
@@ -176,6 +200,9 @@ class ProfileFragment : Fragment() {
             binding.editUsername.updateTextIfDifferent(profileViewModel.username.value)
             binding.editEmail.updateTextIfDifferent(profileViewModel.email.value)
             val avatar = profileViewModel.avatarUrl.value ?: user.avatarUrl
+            if (!avatar.isNullOrBlank()) {
+                pendingAvatarBitmap = null
+            }
             renderAvatar(avatar, displayName)
         } else {
             renderUserStub()
@@ -186,17 +213,53 @@ class ProfileFragment : Fragment() {
     private fun renderAvatar(avatarUrl: String?, title: String?) {
         val initial = title?.firstOrNull()?.uppercase() ?: "U"
         binding.profileAvatar.text = initial
+        pendingAvatarBitmap?.let { bitmap ->
+            binding.profileAvatarImage.setImageBitmap(bitmap)
+            binding.profileAvatarImage.isVisible = true
+            binding.profileAvatar.isVisible = false
+            return
+        }
         if (avatarUrl.isNullOrBlank()) {
             binding.profileAvatarImage.setImageDrawable(null)
             binding.profileAvatarImage.isVisible = false
+            binding.profileAvatar.isVisible = true
             return
         }
+        binding.profileAvatar.isVisible = false
         binding.profileAvatarImage.isVisible = true
         binding.profileAvatarImage.load(avatarUrl) {
             placeholder(R.drawable.bg_avatar_placeholder)
             error(R.drawable.bg_avatar_placeholder)
             crossfade(true)
         }
+    }
+
+    private fun startAvatarCrop(uri: Uri) {
+        val cropIntent = Intent("com.android.camera.action.CROP").apply {
+            setDataAndType(uri, "image/*")
+            putExtra("crop", "true")
+            putExtra("aspectX", 1)
+            putExtra("aspectY", 1)
+            putExtra("outputX", 512)
+            putExtra("outputY", 512)
+            putExtra("scale", true)
+            putExtra("return-data", true)
+            putExtra("circleCrop", true)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        try {
+            cropAvatarLauncher.launch(cropIntent)
+        } catch (_: Exception) {
+            uploadAvatar(uri)
+        }
+    }
+
+    private fun handleCroppedAvatar(bitmap: Bitmap) {
+        pendingAvatarBitmap = bitmap
+        renderAvatar(profileViewModel.avatarUrl.value, binding.profileName.text?.toString())
+        val output = ByteArrayOutputStream()
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 90, output)
+        uploadAvatarBytes(output.toByteArray(), "image/jpeg")
     }
 
     private fun uploadAvatar(uri: Uri) {
@@ -210,6 +273,20 @@ class ProfileFragment : Fragment() {
                 binding.profileError.text = getString(R.string.profile_avatar_read_error)
                 return@launch
             }
+            pendingAvatarBitmap = null
+            binding.profileAvatarImage.load(uri) {
+                placeholder(R.drawable.bg_avatar_placeholder)
+                error(R.drawable.bg_avatar_placeholder)
+                crossfade(true)
+            }
+            binding.profileAvatarImage.isVisible = true
+            binding.profileAvatar.isVisible = false
+            uploadAvatarBytes(bytes, mimeType)
+        }
+    }
+
+    private fun uploadAvatarBytes(bytes: ByteArray, mimeType: String) {
+        viewLifecycleOwner.lifecycleScope.launch {
             profileViewModel.uploadAvatar(
                 "avatar_${System.currentTimeMillis()}.jpg",
                 bytes,

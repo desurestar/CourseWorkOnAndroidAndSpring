@@ -19,6 +19,7 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import coil.load
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -129,6 +130,7 @@ class CreatePostFragment : Fragment() {
         viewModel.loadTags()
         viewModel.loadIngredients()
         updateRecipeVisibility()
+        showCoverPreview(binding.inputCoverUrl.text?.toString())
     }
 
     override fun onDestroyView() {
@@ -303,6 +305,31 @@ class CreatePostFragment : Fragment() {
         rowBinding.buttonCaptureStepImage.setOnClickListener { captureImage(ImageTarget.Step(rowBinding)) }
         stepRows.add(rowBinding)
         binding.stepsContainer.addView(rowBinding.root)
+        showStepPreview(rowBinding, rowBinding.inputStepImage.text?.toString())
+    }
+
+    private fun showCoverPreview(url: String?) {
+        val safeUrl = url?.takeIf { it.isNotBlank() }
+        binding.coverPreview.isVisible = !safeUrl.isNullOrBlank()
+        if (!safeUrl.isNullOrBlank()) {
+            binding.coverPreview.load(safeUrl) {
+                placeholder(R.drawable.bg_image_placeholder)
+                error(R.drawable.bg_image_placeholder)
+                crossfade(true)
+            }
+        }
+    }
+
+    private fun showStepPreview(rowBinding: ItemStepRowBinding, url: String?) {
+        val safeUrl = url?.takeIf { it.isNotBlank() }
+        rowBinding.stepImagePreview.isVisible = !safeUrl.isNullOrBlank()
+        if (!safeUrl.isNullOrBlank()) {
+            rowBinding.stepImagePreview.load(safeUrl) {
+                placeholder(R.drawable.bg_image_placeholder)
+                error(R.drawable.bg_image_placeholder)
+                crossfade(true)
+            }
+        }
     }
 
     private fun updateRecipeVisibility() {
@@ -454,8 +481,14 @@ class CreatePostFragment : Fragment() {
             binding.buttonSubmit.isEnabled = !viewModel.state.value.submitting
             result.onSuccess { url ->
                 when (target) {
-                    ImageTarget.Cover -> binding.inputCoverUrl.setText(url)
-                    is ImageTarget.Step -> target.binding.inputStepImage.setText(url)
+                    ImageTarget.Cover -> {
+                        binding.inputCoverUrl.setText(url)
+                        showCoverPreview(url)
+                    }
+                    is ImageTarget.Step -> {
+                        target.binding.inputStepImage.setText(url)
+                        showStepPreview(target.binding, url)
+                    }
                 }
                 Toast.makeText(requireContext(), R.string.create_upload_success, Toast.LENGTH_SHORT).show()
             }.onFailure {

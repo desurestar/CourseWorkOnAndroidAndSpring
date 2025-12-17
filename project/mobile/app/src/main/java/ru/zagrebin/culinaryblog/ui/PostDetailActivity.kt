@@ -163,16 +163,45 @@ class PostDetailActivity : AppCompatActivity() {
         val stepsSafe = steps.sortedBy { it.order }
         binding.stepsStub.isVisible = stepsSafe.isEmpty()
         stepsSafe.forEachIndexed { index, step ->
-            val view = TextView(this)
-            view.layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            )
-            view.text = "${index + 1}. ${step.description}"
-            view.setTextAppearance(com.google.android.material.R.style.TextAppearance_MaterialComponents_Body2)
-            view.setTextColor(ContextCompat.getColor(this, R.color.recipe_primary))
-            view.textSize = 16f
-            binding.stepsContainer.addView(view)
+            val container = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply { bottomMargin = resources.getDimensionPixelSize(R.dimen.step_item_margin_bottom) }
+            }
+
+            val textView = TextView(this).apply {
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                )
+                text = "${index + 1}. ${step.description}"
+                setTextAppearance(com.google.android.material.R.style.TextAppearance_MaterialComponents_Body2)
+                setTextColor(ContextCompat.getColor(this@PostDetailActivity, R.color.recipe_primary))
+                textSize = 16f
+            }
+            container.addView(textView)
+
+            val imageUrl = step.imageUrl?.takeIf { it.isNotBlank() }
+            if (imageUrl != null) {
+                val imageView = android.widget.ImageView(this).apply {
+                    layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        resources.getDimensionPixelSize(R.dimen.step_item_image_height)
+                    ).apply { topMargin = resources.getDimensionPixelSize(R.dimen.step_item_image_margin_top) }
+                    scaleType = android.widget.ImageView.ScaleType.CENTER_CROP
+                    setBackgroundResource(R.drawable.bg_image_placeholder)
+                }
+                imageView.load(imageUrl) {
+                    placeholder(R.drawable.bg_image_placeholder)
+                    error(R.drawable.bg_image_placeholder)
+                    crossfade(true)
+                }
+                container.addView(imageView)
+            }
+
+            binding.stepsContainer.addView(container)
         }
     }
 
