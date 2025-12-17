@@ -130,7 +130,6 @@ class CreatePostFragment : Fragment() {
         viewModel.loadTags()
         viewModel.loadIngredients()
         updateRecipeVisibility()
-        showCoverPreview(binding.inputCoverUrl.text?.toString())
     }
 
     override fun onDestroyView() {
@@ -305,30 +304,33 @@ class CreatePostFragment : Fragment() {
         rowBinding.buttonCaptureStepImage.setOnClickListener { captureImage(ImageTarget.Step(rowBinding)) }
         stepRows.add(rowBinding)
         binding.stepsContainer.addView(rowBinding.root)
-        showStepPreview(rowBinding, rowBinding.inputStepImage.text?.toString())
     }
 
     private fun showCoverPreview(url: String?) {
         val safeUrl = url?.takeIf { it.isNotBlank() }
-        binding.coverPreview.isVisible = !safeUrl.isNullOrBlank()
-        if (!safeUrl.isNullOrBlank()) {
-            binding.coverPreview.load(safeUrl) {
-                placeholder(R.drawable.bg_image_placeholder)
-                error(R.drawable.bg_image_placeholder)
-                crossfade(true)
-            }
+        if (safeUrl == null) {
+            binding.coverPreview.isVisible = false
+            return
+        }
+        binding.coverPreview.isVisible = true
+        binding.coverPreview.load(safeUrl) {
+            placeholder(R.drawable.bg_image_placeholder)
+            error(R.drawable.bg_image_placeholder)
+            crossfade(true)
         }
     }
 
     private fun showStepPreview(rowBinding: ItemStepRowBinding, url: String?) {
         val safeUrl = url?.takeIf { it.isNotBlank() }
-        rowBinding.stepImagePreview.isVisible = !safeUrl.isNullOrBlank()
-        if (!safeUrl.isNullOrBlank()) {
-            rowBinding.stepImagePreview.load(safeUrl) {
-                placeholder(R.drawable.bg_image_placeholder)
-                error(R.drawable.bg_image_placeholder)
-                crossfade(true)
-            }
+        if (safeUrl == null) {
+            rowBinding.stepImagePreview.isVisible = false
+            return
+        }
+        rowBinding.stepImagePreview.isVisible = true
+        rowBinding.stepImagePreview.load(safeUrl) {
+            placeholder(R.drawable.bg_image_placeholder)
+            error(R.drawable.bg_image_placeholder)
+            crossfade(true)
         }
     }
 

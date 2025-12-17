@@ -1,8 +1,10 @@
 package ru.zagrebin.culinaryblog.ui
 
 import android.app.Activity
+import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -25,6 +27,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import android.util.Log
+import kotlin.math.max
 import ru.zagrebin.culinaryblog.AuthActivity
 import ru.zagrebin.culinaryblog.MainActivity
 import ru.zagrebin.culinaryblog.R
@@ -55,7 +59,8 @@ class ProfileFragment : Fragment() {
     }
     private val cropAvatarLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         val data = result.data
-        val bitmap = data?.extras?.get("data") as? Bitmap
+        val bitmap = (data?.extras?.get("data") as? Bitmap)
+            ?: data?.data?.let { uri -> decodeBitmap(uri) }
         if (result.resultCode == Activity.RESULT_OK && bitmap != null) {
             handleCroppedAvatar(bitmap)
         } else {
@@ -214,7 +219,11 @@ class ProfileFragment : Fragment() {
         val initial = title?.firstOrNull()?.uppercase() ?: "U"
         binding.profileAvatar.text = initial
         pendingAvatarBitmap?.let { bitmap ->
-            binding.profileAvatarImage.setImageBitmap(bitmap)
+            binding.profileAvatarImage.load(bitmap) {
+                placeholder(R.drawable.bg_avatar_placeholder)
+                error(R.drawable.bg_avatar_placeholder)
+                crossfade(true)
+            }
             binding.profileAvatarImage.isVisible = true
             binding.profileAvatar.isVisible = false
             return
@@ -235,22 +244,44 @@ class ProfileFragment : Fragment() {
     }
 
     private fun startAvatarCrop(uri: Uri) {
-        val cropIntent = Intent("com.android.camera.action.CROP").apply {
+        val cropIntent = Intent(CROP_ACTION).apply {
             setDataAndType(uri, "image/*")
             putExtra("crop", "true")
-            putExtra("aspectX", 1)
-            putExtra("aspectY", 1)
-            putExtra("outputX", 512)
-            putExtra("outputY", 512)
+            putExtra("aspectX", CROP_ASPECT)
+            putExtra("aspectY", CROP_ASPECT)
+            putExtra("outputX", CROP_OUTPUT)
+            putExtra("outputY", CROP_OUTPUT)
             putExtra("scale", true)
             putExtra("return-data", true)
             putExtra("circleCrop", true)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
+        val handler = cropIntent.resolveActivity(requireContext().packageManager)
+        if (handler == null) {
+            uploadAvatar(uri)
+            return
+        }
         try {
             cropAvatarLauncher.launch(cropIntent)
-        } catch (_: Exception) {
+        } catch (exception: ActivityNotFoundException) {
+            Log.w(TAG, "Crop action not available, falling back to direct upload", exception)
             uploadAvatar(uri)
+        }
+    }
+
+    private fun decodeBitmap(uri: Uri): Bitmap? {
+        val resolver = requireContext().contentResolver
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        resolver.openInputStream(uri)?.use { stream ->
+            BitmapFactory.decodeStream(stream, null, bounds)
+        }
+        if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
+        val rawSample = max(bounds.outWidth / AVATAR_MAX_SIZE, bounds.outHeight / AVATAR_MAX_SIZE)
+            .coerceAtLeast(1)
+        val sampleSize = Integer.highestOneBit(rawSample).let { if (it < rawSample) it * 2 else it }
+        val options = BitmapFactory.Options().apply { inSampleSize = sampleSize }
+        return resolver.openInputStream(uri)?.use { stream ->
+            BitmapFactory.decodeStream(stream, null, options)
         }
     }
 
@@ -258,9 +289,11 @@ class ProfileFragment : Fragment() {
         pendingAvatarBitmap = bitmap
         renderAvatar(profileViewModel.avatarUrl.value, binding.profileName.text?.toString())
         val output = ByteArrayOutputStream()
-        bitmap.compress(Bitmap.CompressFormat.JPEG, 90, output)
+        bitmap.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, output)
         uploadAvatarBytes(output.toByteArray(), "image/jpeg")
     }
+
+    private fun generateAvatarFileName(): String = "avatar_${System.currentTimeMillis()}.jpg"
 
     private fun uploadAvatar(uri: Uri) {
         viewLifecycleOwner.lifecycleScope.launch {
@@ -288,7 +321,7 @@ class ProfileFragment : Fragment() {
     private fun uploadAvatarBytes(bytes: ByteArray, mimeType: String) {
         viewLifecycleOwner.lifecycleScope.launch {
             profileViewModel.uploadAvatar(
-                "avatar_${System.currentTimeMillis()}.jpg",
+                generateAvatarFileName(),
                 bytes,
                 mimeType
             )
@@ -430,6 +463,15 @@ class ProfileFragment : Fragment() {
                 else -> false
             }
         }
+    }
+
+    companion object {
+        private const val TAG = "ProfileFragment"
+        private const val CROP_ACTION = "com.android.camera.action.CROP"
+        private const val AVATAR_MAX_SIZE = 1024
+        private const val CROP_ASPECT = 1
+        private const val CROP_OUTPUT = 512
+        private const val JPEG_QUALITY = 90
     }
 
     interface Host {
