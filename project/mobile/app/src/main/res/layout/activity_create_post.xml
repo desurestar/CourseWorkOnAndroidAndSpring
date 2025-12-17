@@ -96,7 +96,8 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
                     android:hint="@string/create_cover_hint"
-                    android:padding="10dp" />
+                    android:padding="10dp"
+                    android:visibility="gone" />
 
                 <LinearLayout
                     android:id="@+id/coverActionsRow"
@@ -123,6 +124,16 @@
                         android:layout_weight="1"
                         android:text="@string/create_cover_capture" />
                 </LinearLayout>
+
+                <ImageView
+                    android:id="@+id/coverPreview"
+                    android:layout_width="match_parent"
+                    android:layout_height="200dp"
+                    android:layout_marginTop="8dp"
+                    android:adjustViewBounds="true"
+                    android:background="@drawable/bg_image_placeholder"
+                    android:scaleType="centerCrop"
+                    android:visibility="gone" />
 
                 <TextView
                     android:layout_width="match_parent"

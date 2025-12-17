@@ -19,6 +19,7 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import coil.load
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -305,6 +306,34 @@ class CreatePostFragment : Fragment() {
         binding.stepsContainer.addView(rowBinding.root)
     }
 
+    private fun showCoverPreview(url: String?) {
+        val safeUrl = url?.takeIf { it.isNotBlank() }
+        if (safeUrl == null) {
+            binding.coverPreview.isVisible = false
+            return
+        }
+        binding.coverPreview.isVisible = true
+        binding.coverPreview.load(safeUrl) {
+            placeholder(R.drawable.bg_image_placeholder)
+            error(R.drawable.bg_image_placeholder)
+            crossfade(true)
+        }
+    }
+
+    private fun showStepPreview(rowBinding: ItemStepRowBinding, url: String?) {
+        val safeUrl = url?.takeIf { it.isNotBlank() }
+        if (safeUrl == null) {
+            rowBinding.stepImagePreview.isVisible = false
+            return
+        }
+        rowBinding.stepImagePreview.isVisible = true
+        rowBinding.stepImagePreview.load(safeUrl) {
+            placeholder(R.drawable.bg_image_placeholder)
+            error(R.drawable.bg_image_placeholder)
+            crossfade(true)
+        }
+    }
+
     private fun updateRecipeVisibility() {
         val isRecipe = selectedPostType == POST_TYPE_RECIPE
         binding.recipeSection.isVisible = isRecipe
@@ -454,8 +483,14 @@ class CreatePostFragment : Fragment() {
             binding.buttonSubmit.isEnabled = !viewModel.state.value.submitting
             result.onSuccess { url ->
                 when (target) {
-                    ImageTarget.Cover -> binding.inputCoverUrl.setText(url)
-                    is ImageTarget.Step -> target.binding.inputStepImage.setText(url)
+                    ImageTarget.Cover -> {
+                        binding.inputCoverUrl.setText(url)
+                        showCoverPreview(url)
+                    }
+                    is ImageTarget.Step -> {
+                        target.binding.inputStepImage.setText(url)
+                        showStepPreview(target.binding, url)
+                    }
                 }
                 Toast.makeText(requireContext(), R.string.create_upload_success, Toast.LENGTH_SHORT).show()
             }.onFailure {

@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <dimen name="create_horizontal_space">8dp</dimen>
+    <dimen name="step_item_margin_bottom">8dp</dimen>
+    <dimen name="step_item_image_height">180dp</dimen>
+    <dimen name="step_item_image_margin_top">6dp</dimen>
 </resources>
