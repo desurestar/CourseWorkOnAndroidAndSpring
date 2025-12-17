@@ -3,6 +3,7 @@ package ru.zagrebin.culinaryblog.data.remote.api
 import retrofit2.Response
 import okhttp3.MultipartBody
 import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.Multipart
 import retrofit2.http.POST
@@ -51,4 +52,10 @@ interface PostApi {
 
     @POST("posts")
     suspend fun createPost(@Body request: PostCreateRequest): Response<PostCardDto>
+
+    @POST("posts/{id}/like")
+    suspend fun like(@Path("id") id: Long): Response<Unit>
+
+    @DELETE("posts/{id}/like")
+    suspend fun unlike(@Path("id") id: Long): Response<Unit>
 }

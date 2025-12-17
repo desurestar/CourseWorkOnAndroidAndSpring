@@ -14,4 +14,6 @@ interface PostRepository {
     suspend fun getIngredients(search: String? = null): Result<List<IngredientItem>>
     suspend fun uploadImage(type: String, fileName: String, content: ByteArray, mimeType: String): Result<String>
     suspend fun createPost(request: PostCreateRequest): Result<PostCard>
+    suspend fun like(postId: Long): Result<Unit>
+    suspend fun unlike(postId: Long): Result<Unit>
 }

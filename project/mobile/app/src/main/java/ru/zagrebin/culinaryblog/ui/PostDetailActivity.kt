@@ -1,5 +1,6 @@
 package ru.zagrebin.culinaryblog.ui
 
+import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.widget.LinearLayout
@@ -12,13 +13,18 @@ import androidx.lifecycle.lifecycleScope
 import coil.load
 import com.google.android.material.chip.Chip
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import ru.zagrebin.culinaryblog.R
+import ru.zagrebin.culinaryblog.AuthActivity
+import ru.zagrebin.culinaryblog.data.repository.CommentRepository
 import ru.zagrebin.culinaryblog.data.repository.PostRepository
+import ru.zagrebin.culinaryblog.data.storage.TokenStorage
 import ru.zagrebin.culinaryblog.databinding.ActivityPostDetailBinding
 import ru.zagrebin.culinaryblog.model.PostCard
 import ru.zagrebin.culinaryblog.model.PostFull
 import ru.zagrebin.culinaryblog.model.PostStep
+import ru.zagrebin.culinaryblog.model.Comment
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -26,6 +32,13 @@ class PostDetailActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityPostDetailBinding
     @Inject lateinit var postRepository: PostRepository
+    @Inject lateinit var commentRepository: CommentRepository
+    @Inject lateinit var tokenStorage: TokenStorage
+
+    private var currentPostId: Long = -1
+    private var isLiked: Boolean = false
+    private var likesCount: Int = 0
+    private var replyTo: Comment? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -37,12 +50,24 @@ class PostDetailActivity : AppCompatActivity() {
             finish()
             return
         }
+        currentPostId = post.id
+        likesCount = post.likesCount
         renderPreview(post)
+        setupInteractions()
+        collectComments(post.id)
         loadFull(post.id)
+    }
+
+    private fun setupInteractions() {
+        binding.buttonLike.setOnClickListener { toggleLike() }
+        binding.buttonSendComment.setOnClickListener { sendComment() }
+        binding.buttonCancelReply.setOnClickListener { clearReplyTarget() }
+        updateLikeUi()
     }
 
     private fun renderPreview(post: PostCard) {
         val isRecipe = normalizePostType(post.postType) == RECIPE_POST_TYPE
+        isLiked = false
 
         binding.authorName.text =
             post.authorName?.ifBlank { getString(R.string.author_unknown) }
@@ -66,10 +91,14 @@ class PostDetailActivity : AppCompatActivity() {
         bindIngredients(isRecipe, post.tags?.toList())
         bindSteps(isRecipe, emptyList())
         bindMeta(isRecipe, post.cookingTimeMinutes, post.calories, post.viewsCount, post.likesCount)
+        updateLikeUi()
     }
 
     private fun renderFull(post: PostFull) {
         val isRecipe = normalizePostType(post.postType) == RECIPE_POST_TYPE
+        currentPostId = post.id
+        likesCount = post.likesCount
+        isLiked = post.liked
 
         binding.authorName.text =
             post.author?.displayName?.ifBlank { getString(R.string.author_unknown) }
@@ -102,6 +131,7 @@ class PostDetailActivity : AppCompatActivity() {
         bindIngredients(isRecipe, ingredientLabels)
         bindSteps(isRecipe, post.steps)
         bindMeta(isRecipe, post.cookingTimeMinutes, post.calories, post.viewsCount, post.likesCount)
+        updateLikeUi()
     }
 
     private fun bindIngredients(isRecipe: Boolean, ingredients: List<String>?) {
@@ -158,7 +188,8 @@ class PostDetailActivity : AppCompatActivity() {
         }
 
         binding.viewsText.text = getString(R.string.views_format, views ?: 0L)
-        binding.likesText.text = getString(R.string.likes_format, likes)
+        likesCount = likes
+        binding.likesText.text = getString(R.string.likes_format, likesCount)
     }
 
     private fun loadFull(id: Long) {
@@ -199,6 +230,101 @@ class PostDetailActivity : AppCompatActivity() {
             @Suppress("DEPRECATION")
             intent.getParcelableExtra(EXTRA_POST)
         }
+    }
+
+    private fun toggleLike() {
+        if (currentPostId <= 0) return
+        if (tokenStorage.getToken().isNullOrBlank()) {
+            openAuth()
+            return
+        }
+
+        lifecycleScope.launch {
+            val result = if (isLiked) postRepository.unlike(currentPostId) else postRepository.like(currentPostId)
+            if (result.isSuccess) {
+                isLiked = !isLiked
+                likesCount = (likesCount + if (isLiked) 1 else -1).coerceAtLeast(0)
+                updateLikeUi()
+            } else {
+                Toast.makeText(
+                    this@PostDetailActivity,
+                    R.string.error_loading,
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        }
+    }
+
+    private fun updateLikeUi() {
+        binding.likesText.text = getString(R.string.likes_format, likesCount)
+        binding.buttonLike.text = if (isLiked) getString(R.string.action_unlike) else getString(R.string.action_like)
+    }
+
+    private fun collectComments(postId: Long) {
+        lifecycleScope.launch {
+            commentRepository.getComments(postId).collect { renderComments(it) }
+        }
+    }
+
+    private fun renderComments(items: List<Comment>) {
+        binding.commentsStub.isVisible = items.isEmpty()
+        binding.commentsList.isVisible = items.isNotEmpty()
+        binding.commentsList.removeAllViews()
+
+        val byParent = items.groupBy { it.parentId }
+
+        fun renderLevel(parentId: Long?, depth: Int) {
+            val level = byParent[parentId] ?: return
+            level.forEach { comment ->
+                val view = layoutInflater.inflate(android.R.layout.simple_list_item_2, binding.commentsList, false)
+                val title = view.findViewById<TextView>(android.R.id.text1)
+                val body = view.findViewById<TextView>(android.R.id.text2)
+                val date = comment.createdAt.substringBefore("T")
+                title.text = "${comment.authorName} • $date"
+                body.text = comment.message
+                val paddingStart = (depth * 28) + view.paddingStart
+                view.setPaddingRelative(paddingStart, view.paddingTop, view.paddingEnd, view.paddingBottom)
+                view.setOnClickListener { setReplyTarget(comment) }
+                binding.commentsList.addView(view)
+                renderLevel(comment.id, depth + 1)
+            }
+        }
+
+        renderLevel(null, 0)
+    }
+
+    private fun setReplyTarget(comment: Comment) {
+        replyTo = comment
+        binding.replyRow.isVisible = true
+        binding.replyLabel.text = getString(R.string.comments_replying) + " — " + comment.authorName
+    }
+
+    private fun clearReplyTarget() {
+        replyTo = null
+        binding.replyRow.isVisible = false
+    }
+
+    private fun sendComment() {
+        if (currentPostId <= 0) return
+        val text = binding.inputComment.text.toString().trim()
+        if (text.isBlank()) {
+            Toast.makeText(this, R.string.comments_hint, Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        if (tokenStorage.getToken().isNullOrBlank()) {
+            openAuth()
+            return
+        }
+
+        val author = "Вы"
+        commentRepository.addComment(currentPostId, author, text, replyTo?.id)
+        binding.inputComment.text?.clear()
+        clearReplyTarget()
+    }
+
+    private fun openAuth() {
+        startActivity(Intent(this, AuthActivity::class.java))
     }
 
     companion object {

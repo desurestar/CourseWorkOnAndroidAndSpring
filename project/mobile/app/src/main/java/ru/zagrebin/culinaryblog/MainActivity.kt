@@ -14,12 +14,16 @@ import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
+import ru.zagrebin.culinaryblog.AuthActivity
 import ru.zagrebin.culinaryblog.databinding.ActivityMainBinding
 import ru.zagrebin.culinaryblog.model.PostCard
+import ru.zagrebin.culinaryblog.data.storage.TokenStorage
 import ru.zagrebin.culinaryblog.ui.CreatePostActivity
+import ru.zagrebin.culinaryblog.ui.ProfileActivity
 import ru.zagrebin.culinaryblog.ui.PostDetailActivity
 import ru.zagrebin.culinaryblog.viewmodel.PostViewModel
 import ru.zagrebin.culinaryblog.viewmodel.PostsUiState
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
@@ -27,6 +31,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private val postViewModel: PostViewModel by viewModels()
     private var latestState: PostsUiState = PostsUiState(isLoading = true)
+    @Inject lateinit var tokenStorage: TokenStorage
 
     private var currentTab: ContentTab = ContentTab.RECIPES
 
@@ -37,7 +42,19 @@ class MainActivity : AppCompatActivity() {
 
         binding.bottomNavigation.setOnItemSelectedListener { item ->
             if (item.itemId == R.id.menu_create) {
-                startActivity(Intent(this, CreatePostActivity::class.java))
+                if (tokenStorage.getToken().isNullOrBlank()) {
+                    startActivity(Intent(this, AuthActivity::class.java))
+                } else {
+                    startActivity(Intent(this, CreatePostActivity::class.java))
+                }
+                return@setOnItemSelectedListener false
+            }
+            if (item.itemId == R.id.menu_profile) {
+                if (tokenStorage.getToken().isNullOrBlank()) {
+                    startActivity(Intent(this, AuthActivity::class.java))
+                } else {
+                    startActivity(Intent(this, ProfileActivity::class.java))
+                }
                 return@setOnItemSelectedListener false
             }
             applySelection(item.itemId)

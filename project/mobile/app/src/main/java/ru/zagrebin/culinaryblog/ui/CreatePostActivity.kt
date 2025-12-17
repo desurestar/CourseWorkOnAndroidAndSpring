@@ -1,6 +1,7 @@
 package ru.zagrebin.culinaryblog.ui
 
 import android.Manifest
+import android.content.Intent
 import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Bundle
@@ -15,12 +16,8 @@ import androidx.core.view.isVisible
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
-import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import javax.inject.Inject
 import ru.zagrebin.culinaryblog.R
+import ru.zagrebin.culinaryblog.AuthActivity
 import ru.zagrebin.culinaryblog.data.storage.TokenStorage
 import ru.zagrebin.culinaryblog.databinding.ActivityCreatePostBinding
 import ru.zagrebin.culinaryblog.databinding.ItemIngredientRowBinding
@@ -31,6 +28,11 @@ import ru.zagrebin.culinaryblog.model.PostIngredientRequest
 import ru.zagrebin.culinaryblog.model.RecipeStepRequest
 import ru.zagrebin.culinaryblog.model.TagItem
 import ru.zagrebin.culinaryblog.viewmodel.CreatePostViewModel
+import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class CreatePostActivity : AppCompatActivity() {
@@ -88,6 +90,7 @@ class CreatePostActivity : AppCompatActivity() {
 
         if (tokenStorage.getToken().isNullOrBlank()) {
             Toast.makeText(this, getString(R.string.create_login_required), Toast.LENGTH_LONG).show()
+            startActivity(Intent(this, AuthActivity::class.java))
             finish()
             return
         }
