@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.zagrebin.dto.AuthRequest;
 import ru.zagrebin.dto.AuthResponse;
 import ru.zagrebin.dto.RegisterRequest;
+import ru.zagrebin.dto.UpdateProfileRequest;
 import ru.zagrebin.dto.UserDto;
 import ru.zagrebin.model.User;
 import ru.zagrebin.repository.UserRepository;
@@ -79,6 +80,46 @@ public class AuthServiceImpl implements AuthService {
     public UserDto getCurrentUser(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("User not found"));
+        return toDto(user);
+    }
+
+    @Override
+    @Transactional
+    public UserDto updateCurrentUser(Long userId, UpdateProfileRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("User not found"));
+
+        if (request.getUsername() != null && !request.getUsername().isBlank()
+                && !request.getUsername().equals(user.getUsername())) {
+            if (userRepository.existsByUsername(request.getUsername())) {
+                throw new IllegalArgumentException("Пользователь с таким именем уже существует");
+            }
+            user.setUsername(request.getUsername());
+        }
+
+        if (request.getEmail() != null && !request.getEmail().isBlank()
+                && !request.getEmail().equalsIgnoreCase(user.getEmail())) {
+            if (userRepository.existsByEmail(request.getEmail())) {
+                throw new IllegalArgumentException("Пользователь с таким email уже существует");
+            }
+            user.setEmail(request.getEmail());
+        }
+
+        if (request.getDisplayName() != null) {
+            String display = request.getDisplayName().trim();
+            user.setDisplayName(display.isEmpty() ? null : display);
+        }
+
+        if (request.getAvatarUrl() != null) {
+            String avatar = request.getAvatarUrl().trim();
+            user.setAvatarUrl(avatar.isEmpty() ? null : avatar);
+        }
+
+        User saved = userRepository.save(user);
+        return toDto(saved);
+    }
+
+    private UserDto toDto(User user) {
         return new UserDto(
                 user.getId(),
                 user.getUsername(),

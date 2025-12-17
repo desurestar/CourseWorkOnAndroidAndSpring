@@ -108,4 +108,11 @@
     <string name="profile_user_stub">Гость</string>
     <string name="profile_email_stub">email не указан</string>
     <string name="profile_open_drafts">Перейти к черновикам</string>
+    <string name="profile_change_avatar">Изменить аватар</string>
+    <string name="profile_display_name">Отображаемое имя</string>
+    <string name="profile_username">Имя пользователя</string>
+    <string name="profile_email_label">Email</string>
+    <string name="profile_save">Сохранить</string>
+    <string name="profile_avatar_content_description">Текущий аватар</string>
+    <string name="profile_avatar_read_error">Не удалось прочитать выбранное изображение</string>
 </resources>
