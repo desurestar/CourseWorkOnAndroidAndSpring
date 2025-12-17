@@ -80,4 +80,6 @@ dependencies {
     implementation("androidx.security:security-crypto:1.1.0-alpha03")
     implementation("androidx.activity:activity-ktx:1.8.0")
     implementation("io.coil-kt:coil:2.6.0")
+
+    implementation("androidx.fragment:fragment-ktx:1.8.4")
 }

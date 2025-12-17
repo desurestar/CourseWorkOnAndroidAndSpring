@@ -205,7 +205,7 @@ class ProfileFragment : Fragment() {
             val bytes = withContext(Dispatchers.IO) {
                 requireContext().contentResolver.openInputStream(uri)?.use { it.readBytes() }
             }
-            if (bytes.isNullOrEmpty()) {
+            if (bytes == null || bytes.isEmpty()) {
                 binding.profileError.isVisible = true
                 binding.profileError.text = getString(R.string.profile_avatar_read_error)
                 return@launch

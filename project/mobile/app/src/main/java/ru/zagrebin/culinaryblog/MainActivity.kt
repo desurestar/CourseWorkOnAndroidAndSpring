@@ -325,7 +325,7 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
         private const val ARTICLE_POST_TYPE = "article"
         private const val CREATE_TAG = "create_tab_fragment"
         private const val PROFILE_TAG = "profile_tab_fragment"
-        private const val DEFAULT_TAB_ID = R.id.menu_recipes
+        private val DEFAULT_TAB_ID = R.id.menu_recipes
         const val EXTRA_TARGET_TAB = "extra_target_tab"
         const val EXTRA_TAB_RECIPES = "tab_recipes"
         const val EXTRA_TAB_ARTICLES = "tab_articles"
