@@ -20,6 +20,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import ru.zagrebin.culinaryblog.MainActivity
 import ru.zagrebin.culinaryblog.AuthActivity
 import ru.zagrebin.culinaryblog.R
 import ru.zagrebin.culinaryblog.data.storage.TokenStorage
@@ -57,6 +58,7 @@ class ProfileActivity : AppCompatActivity() {
         binding = ActivityProfileBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        setupBottomNavigation()
         setupTabs()
         setupActions()
         observeProfile()
@@ -96,6 +98,10 @@ class ProfileActivity : AppCompatActivity() {
         }
         binding.buttonSaveProfile.setOnClickListener {
             profileViewModel.saveProfile()
+        }
+        binding.buttonEditProfile.setOnClickListener {
+            binding.editDisplayName.requestFocus()
+            binding.profileScroll.smoothScrollTo(0, binding.editDisplayName.top)
         }
         setupInputs()
         renderFollowers(listOf("Алексей", "Мария", "Владимир"))
@@ -138,8 +144,8 @@ class ProfileActivity : AppCompatActivity() {
                 ?: user.username
                 ?: getString(R.string.profile_user_stub)
             binding.profileName.text = displayName
-            binding.profileEmail.text = user.email?.ifBlank { getString(R.string.profile_email_stub) }
-                ?: getString(R.string.profile_email_stub)
+            val emailValue = profileViewModel.email.value.ifBlank { user.email.orEmpty() }
+            binding.profileEmail.text = emailValue.ifBlank { getString(R.string.profile_email_stub) }
             binding.editDisplayName.updateTextIfDifferent(profileViewModel.displayName.value)
             binding.editUsername.updateTextIfDifferent(profileViewModel.username.value)
             binding.editEmail.updateTextIfDifferent(profileViewModel.email.value)
@@ -222,23 +228,35 @@ class ProfileActivity : AppCompatActivity() {
             return
         }
         posts.forEach { post ->
-            val view = layoutInflater.inflate(android.R.layout.simple_list_item_2, container, false)
-            view.findViewById<TextView>(android.R.id.text1).text = post.title.ifBlank { getString(R.string.card_title_placeholder) }
-            view.findViewById<TextView>(android.R.id.text2).text = post.excerpt.ifBlank { getString(R.string.card_excerpt_placeholder) }
+            val view = layoutInflater.inflate(R.layout.item_post_mini, container, false)
+            view.findViewById<TextView>(R.id.miniPostTitle).text =
+                post.title.ifBlank { getString(R.string.card_title_placeholder) }
+            view.findViewById<TextView>(R.id.miniPostExcerpt).text =
+                post.excerpt.ifBlank { getString(R.string.card_excerpt_placeholder) }
+            view.findViewById<TextView>(R.id.miniPostMeta).text =
+                post.publishedAt ?: getString(R.string.published_unknown)
+            view.findViewById<TextView>(R.id.miniPostLikes).text =
+                getString(R.string.likes_format, post.likesCount)
+            val coverUrl = post.coverUrl?.takeIf { it.isNotBlank() }
+            view.findViewById<android.widget.ImageView>(R.id.miniPostCover).load(coverUrl) {
+                placeholder(R.drawable.bg_image_placeholder)
+                error(R.drawable.bg_image_placeholder)
+                crossfade(true)
+            }
             view.setOnClickListener { openPost(post) }
             container.addView(view)
         }
     }
 
     private fun renderFollowers(items: List<String>) {
-        renderSimpleList(binding.followersList, items)
+        renderSimpleList(binding.followersList, items, getString(R.string.profile_followers))
     }
 
     private fun renderFollowing(items: List<String>) {
-        renderSimpleList(binding.followingList, items)
+        renderSimpleList(binding.followingList, items, getString(R.string.profile_following))
     }
 
-    private fun renderSimpleList(container: LinearLayout, items: List<String>) {
+    private fun renderSimpleList(container: LinearLayout, items: List<String>, meta: String) {
         container.removeAllViews()
         if (items.isEmpty()) {
             val stub = TextView(this)
@@ -247,8 +265,10 @@ class ProfileActivity : AppCompatActivity() {
             return
         }
         items.forEach { name ->
-            val view = layoutInflater.inflate(android.R.layout.simple_list_item_1, container, false)
-            view.findViewById<TextView>(android.R.id.text1).text = name
+            val view = layoutInflater.inflate(R.layout.item_profile_mini, container, false)
+            view.findViewById<TextView>(R.id.miniProfileName).text = name
+            view.findViewById<TextView>(R.id.miniProfileAvatar).text = name.firstOrNull()?.uppercase() ?: "?"
+            view.findViewById<TextView>(R.id.miniProfileMeta).text = meta
             container.addView(view)
         }
     }
@@ -273,5 +293,39 @@ class ProfileActivity : AppCompatActivity() {
         val intent = Intent(this, PostDetailActivity::class.java)
         intent.putExtra(PostDetailActivity.EXTRA_POST, post)
         startActivity(intent)
+    }
+
+    private fun setupBottomNavigation() {
+        binding.profileBottomNavigation.selectedItemId = R.id.menu_profile
+        binding.profileBottomNavigation.setOnItemSelectedListener { item ->
+            when (item.itemId) {
+                R.id.menu_recipes -> {
+                    startActivity(
+                        Intent(this, MainActivity::class.java)
+                            .putExtra(MainActivity.EXTRA_TARGET_TAB, MainActivity.EXTRA_TAB_RECIPES)
+                    )
+                    finish()
+                    true
+                }
+
+                R.id.menu_articles -> {
+                    startActivity(
+                        Intent(this, MainActivity::class.java)
+                            .putExtra(MainActivity.EXTRA_TARGET_TAB, MainActivity.EXTRA_TAB_ARTICLES)
+                    )
+                    finish()
+                    true
+                }
+
+                R.id.menu_create -> {
+                    startActivity(Intent(this, CreatePostActivity::class.java))
+                    finish()
+                    true
+                }
+
+                R.id.menu_profile -> true
+                else -> false
+            }
+        }
     }
 }

@@ -1,6 +1,7 @@
 package ru.zagrebin.culinaryblog.ui
 
 import android.Manifest
+import android.app.Activity
 import android.content.Intent
 import android.graphics.Bitmap
 import android.net.Uri
@@ -25,6 +26,7 @@ import ru.zagrebin.culinaryblog.databinding.ItemStepRowBinding
 import ru.zagrebin.culinaryblog.model.IngredientItem
 import ru.zagrebin.culinaryblog.model.PostCreateRequest
 import ru.zagrebin.culinaryblog.model.PostIngredientRequest
+import ru.zagrebin.culinaryblog.model.PostCard
 import ru.zagrebin.culinaryblog.model.RecipeStepRequest
 import ru.zagrebin.culinaryblog.model.TagItem
 import ru.zagrebin.culinaryblog.viewmodel.CreatePostViewModel
@@ -98,6 +100,7 @@ class CreatePostActivity : AppCompatActivity() {
         val passedAuthorId = intent.getLongExtra(EXTRA_AUTHOR_ID, viewModel.authorId)
         viewModel.setAuthorId(passedAuthorId)
 
+        setupBottomNavigation()
         setupStatusSpinner()
         setupPostTypeSelector()
         setupClicks()
@@ -173,6 +176,13 @@ class CreatePostActivity : AppCompatActivity() {
                             getString(R.string.create_success),
                             Toast.LENGTH_LONG
                         ).show()
+                        setResult(Activity.RESULT_OK, Intent().putExtra(EXTRA_CREATED_POST, it))
+                        startActivity(
+                            Intent(this@CreatePostActivity, PostDetailActivity::class.java).putExtra(
+                                PostDetailActivity.EXTRA_POST,
+                                it
+                            )
+                        )
                         finish()
                     }
                 }
@@ -441,6 +451,7 @@ class CreatePostActivity : AppCompatActivity() {
 
     companion object {
         const val EXTRA_AUTHOR_ID = "extra_author_id"
+        const val EXTRA_CREATED_POST = "extra_created_post"
         private const val POST_TYPE_RECIPE = "recipe"
         private const val POST_TYPE_ARTICLE = "article"
         // Threshold to ensure ingredient amount is positive
@@ -452,6 +463,40 @@ class CreatePostActivity : AppCompatActivity() {
             null -> null
             CreatePostViewModel.GENERIC_ERROR_KEY -> getString(R.string.create_error_generic)
             else -> error
+        }
+    }
+
+    private fun setupBottomNavigation() {
+        binding.createBottomNavigation.selectedItemId = R.id.menu_create
+        binding.createBottomNavigation.setOnItemSelectedListener { item ->
+            when (item.itemId) {
+                R.id.menu_recipes -> {
+                    startActivity(
+                        Intent(this, MainActivity::class.java)
+                            .putExtra(MainActivity.EXTRA_TARGET_TAB, MainActivity.EXTRA_TAB_RECIPES)
+                    )
+                    finish()
+                    true
+                }
+
+                R.id.menu_articles -> {
+                    startActivity(
+                        Intent(this, MainActivity::class.java)
+                            .putExtra(MainActivity.EXTRA_TARGET_TAB, MainActivity.EXTRA_TAB_ARTICLES)
+                    )
+                    finish()
+                    true
+                }
+
+                R.id.menu_profile -> {
+                    startActivity(Intent(this, ProfileActivity::class.java))
+                    finish()
+                    true
+                }
+
+                R.id.menu_create -> true
+                else -> false
+            }
         }
     }
 }

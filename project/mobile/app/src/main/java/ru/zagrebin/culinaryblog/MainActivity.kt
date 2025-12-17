@@ -2,6 +2,7 @@ package ru.zagrebin.culinaryblog
 
 import android.content.Intent
 import android.os.Bundle
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
@@ -33,6 +34,32 @@ class MainActivity : AppCompatActivity() {
     private var latestState: PostsUiState = PostsUiState(isLoading = true)
     @Inject lateinit var tokenStorage: TokenStorage
 
+    private val createPostLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == RESULT_OK) {
+            val created = result.data?.let { data ->
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                    data.getParcelableExtra(CreatePostActivity.EXTRA_CREATED_POST, PostCard::class.java)
+                } else {
+                    @Suppress("DEPRECATION")
+                    data.getParcelableExtra(CreatePostActivity.EXTRA_CREATED_POST)
+                }
+            }
+            created?.let { post ->
+                val targetTabId = if (normalizePostType(post.postType) == ARTICLE_POST_TYPE) {
+                    R.id.menu_articles
+                } else {
+                    R.id.menu_recipes
+                }
+                binding.bottomNavigation.selectedItemId = targetTabId
+                postViewModel.loadPosts()
+                openPost(post)
+            } ?: postViewModel.loadPosts()
+            binding.swipeRefresh.isRefreshing = false
+        }
+    }
+
     private var currentTab: ContentTab = ContentTab.RECIPES
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -40,12 +67,14 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        binding.swipeRefresh.setOnRefreshListener { postViewModel.loadPosts() }
+
         binding.bottomNavigation.setOnItemSelectedListener { item ->
             if (item.itemId == R.id.menu_create) {
                 if (tokenStorage.getToken().isNullOrBlank()) {
                     startActivity(Intent(this, AuthActivity::class.java))
                 } else {
-                    startActivity(Intent(this, CreatePostActivity::class.java))
+                    createPostLauncher.launch(Intent(this, CreatePostActivity::class.java))
                 }
                 return@setOnItemSelectedListener false
             }
@@ -60,7 +89,11 @@ class MainActivity : AppCompatActivity() {
             applySelection(item.itemId)
             true
         }
-        binding.bottomNavigation.selectedItemId = DEFAULT_TAB_ID
+        val initialTab = intent.getStringExtra(EXTRA_TARGET_TAB)
+        binding.bottomNavigation.selectedItemId = when (initialTab) {
+            EXTRA_TAB_ARTICLES -> R.id.menu_articles
+            else -> DEFAULT_TAB_ID
+        }
 
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -71,7 +104,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        applySelection(DEFAULT_TAB_ID)
+        applySelection(binding.bottomNavigation.selectedItemId)
     }
 
     private fun applySelection(itemId: Int) {
@@ -86,6 +119,8 @@ class MainActivity : AppCompatActivity() {
             binding.subtitleText.text = getString(R.string.view_stub_message)
             binding.postsContent.isVisible = false
             binding.stubText.isVisible = true
+            binding.swipeRefresh.isEnabled = false
+            binding.swipeRefresh.isRefreshing = false
             binding.stubText.text = when (itemId) {
                 R.id.menu_create -> getString(R.string.create_stub_message)
                 R.id.menu_messenger -> getString(R.string.messenger_stub_message)
@@ -97,6 +132,7 @@ class MainActivity : AppCompatActivity() {
 
         binding.postsContent.isVisible = true
         binding.stubText.isVisible = false
+        binding.swipeRefresh.isEnabled = true
 
         if (currentTab == ContentTab.RECIPES) {
             binding.titleText.text = getString(R.string.nav_recipes)
@@ -115,6 +151,7 @@ class MainActivity : AppCompatActivity() {
         binding.progressBar.isVisible = state.isLoading
         binding.errorText.isVisible = state.error != null
         binding.errorText.text = state.error ?: ""
+        binding.swipeRefresh.isRefreshing = state.isLoading && currentTab != ContentTab.OTHER
 
         val filteredPosts = filterPosts(state.posts)
         binding.emptyText.isVisible = !state.isLoading && state.error == null && filteredPosts.isEmpty()
@@ -218,6 +255,9 @@ class MainActivity : AppCompatActivity() {
         private const val DEFAULT_POST_TYPE = "recipe"
         private const val ARTICLE_POST_TYPE = "article"
         private  val DEFAULT_TAB_ID = R.id.menu_recipes
+        const val EXTRA_TARGET_TAB = "extra_target_tab"
+        const val EXTRA_TAB_RECIPES = "tab_recipes"
+        const val EXTRA_TAB_ARTICLES = "tab_articles"
     }
 
     private fun normalizePostType(postType: String?): String =

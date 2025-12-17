@@ -59,6 +59,7 @@ dependencies {
     implementation(libs.okhttp.logging.interceptor)
 
     implementation(libs.coroutines.android)
+    implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
 
     // Hilt (DI) — опционально, но рекомендую
     implementation("com.google.dagger:hilt-android:2.47")
