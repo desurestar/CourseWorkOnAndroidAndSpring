@@ -5,6 +5,7 @@
     <string name="nav_create">Создать</string>
     <string name="nav_messenger">Мессенджер</string>
     <string name="nav_profile">Профиль</string>
+    <string name="scroll_to_top">Наверх</string>
     <string name="view_stub_title">Добро пожаловать в Culinary Blog</string>
     <string name="view_stub_message">Интерфейс переведен на обычные Views. Выберите пункт нижней навигации, чтобы увидеть соответствующий экран.</string>
     <string name="recipes_stub_message">Здесь будет список рецептов в традиционном View-оформлении. Пока показываем текст-заглушку.</string>
