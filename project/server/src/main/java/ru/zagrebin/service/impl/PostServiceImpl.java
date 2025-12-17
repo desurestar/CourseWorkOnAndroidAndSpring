@@ -113,9 +113,14 @@ public class PostServiceImpl implements PostService {
 
     @Override
     @Transactional
-    public PostCardDto create(PostCreateDto dto) {
+    public PostCardDto create(PostCreateDto dto, Long currentUserId) {
+        if (currentUserId == null) {
+            throw new org.springframework.security.access.AccessDeniedException("Требуется авторизация");
+        }
+        var author = userRepository.findById(currentUserId)
+                .orElseThrow(() -> new EntityNotFoundException("User not found: " + currentUserId));
         // При создании: можно загружать файлы через fileStorageService если нужно
-        Post created = postAssembler.createFromDto(dto);
+        Post created = postAssembler.createFromDto(dto, author);
         // Сохраняем сущность (assembler должен заполнить необходимые поля)
         Post saved = postRepository.save(created);
         return PostMapper.toCard(saved);
@@ -128,9 +133,14 @@ public class PostServiceImpl implements PostService {
                 .orElseThrow(() -> new EntityNotFoundException("Post not found: " + postId));
 
         // Проверка авторства (пример)
-        if (currentUserId != null && existing.getAuthor() != null && !existing.getAuthor().getId().equals(currentUserId)) {
-            log.debug("User {} is not author of post {}", currentUserId, postId);
-            // при необходимости бросаем исключение контроля доступа
+        if (currentUserId == null) {
+            throw new org.springframework.security.access.AccessDeniedException("Требуется авторизация");
+        }
+        var currentUser = userRepository.findById(currentUserId)
+                .orElseThrow(() -> new EntityNotFoundException("User not found: " + currentUserId));
+        boolean isAdmin = "admin".equalsIgnoreCase(currentUser.getRole());
+        if (existing.getAuthor() != null && !existing.getAuthor().getId().equals(currentUserId) && !isAdmin) {
+            throw new org.springframework.security.access.AccessDeniedException("Недостаточно прав для изменения поста");
         }
 
         Post updated = postAssembler.updateFromDto(postId, dto);
@@ -149,13 +159,23 @@ public class PostServiceImpl implements PostService {
 
     @Override
     @Transactional
-    public void delete(Long postId) {
+    public void delete(Long postId, Long currentUserId) {
         if (!postRepository.existsById(postId)) {
             throw new EntityNotFoundException("Post not found: " + postId);
         }
 
+        if (currentUserId == null) {
+            throw new org.springframework.security.access.AccessDeniedException("Требуется авторизация");
+        }
+
         Post post = postRepository.findByIdWithAllRelations(postId).orElse(null);
         if (post != null) {
+            var currentUser = userRepository.findById(currentUserId)
+                    .orElseThrow(() -> new EntityNotFoundException("User not found: " + currentUserId));
+            boolean isAdmin = "admin".equalsIgnoreCase(currentUser.getRole());
+            if (post.getAuthor() != null && !post.getAuthor().getId().equals(currentUserId) && !isAdmin) {
+                throw new org.springframework.security.access.AccessDeniedException("Недостаточно прав для удаления поста");
+            }
             if (post.getCoverUrl() != null) {
                 try { fileStorageService.delete(post.getCoverUrl()); } catch (Exception ex) { log.warn("Failed to delete cover: {}", ex.getMessage()); }
             }

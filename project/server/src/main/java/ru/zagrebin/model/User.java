@@ -33,11 +33,17 @@ public class User {
     @Column(name = "avatar_url")
     private String avatarUrl;
 
+    @Column(name = "password_hash")
+    private String passwordHash;
+
     @Column(length = 20)
     private String role;
 
     @Column(name = "date_joined")
     private OffsetDateTime dateJoined;
+
+    @Column(name = "last_login")
+    private OffsetDateTime lastLogin;
 
     @ManyToMany
     @JoinTable(

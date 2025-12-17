@@ -74,6 +74,7 @@
     <string name="create_uploading">Загружаем фото…</string>
     <string name="create_upload_success">Изображение добавлено</string>
     <string name="create_success">Пост сохранён</string>
+    <string name="create_login_required">Необходимо войти, чтобы создавать посты</string>
     <string name="create_error_generic">Ошибка создания поста</string>
     <string name="status_draft">Черновик</string>
     <string name="status_published">Опубликован</string>

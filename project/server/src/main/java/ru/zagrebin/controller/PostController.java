@@ -2,9 +2,10 @@ package ru.zagrebin.controller;
 
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import ru.zagrebin.dto.*;
-import ru.zagrebin.model.Post;
+import ru.zagrebin.security.UserPrincipal;
 import ru.zagrebin.service.LikeService;
 import ru.zagrebin.service.PostService;
 
@@ -40,9 +41,11 @@ public class PostController {
     @GetMapping("/{id}")
     public ResponseEntity<PostFullDto> getFull(
             @PathVariable Long id,
+            @AuthenticationPrincipal UserPrincipal principal,
             @RequestParam(name = "currentUserId", required = false) Long currentUserId
     ) {
-        PostFullDto dto = postService.getFullPost(id, currentUserId);
+        Long userId = currentUserId != null ? currentUserId : (principal != null ? principal.getId() : null);
+        PostFullDto dto = postService.getFullPost(id, userId);
         return ResponseEntity.ok(dto);
     }
 
@@ -51,8 +54,9 @@ public class PostController {
      * Создание поста. В идеале currentUser берётся по JWT — сейчас authorId в dto.
      */
     @PostMapping
-    public ResponseEntity<PostCardDto> create(@Valid @RequestBody PostCreateDto dto) {
-        PostCardDto created = postService.create(dto);
+    public ResponseEntity<PostCardDto> create(@Valid @RequestBody PostCreateDto dto,
+                                              @AuthenticationPrincipal UserPrincipal principal) {
+        PostCardDto created = postService.create(dto, principal != null ? principal.getId() : null);
         // возвращаем 201 + location
         URI location = URI.create("/api/posts/" + created.getId());
         return ResponseEntity.created(location).body(created);
@@ -67,9 +71,9 @@ public class PostController {
     public ResponseEntity<PostFullDto> update(
             @PathVariable Long id,
             @Valid @RequestBody PostUpdateDto dto,
-            @RequestParam(name = "currentUserId", required = false) Long currentUserId
+            @AuthenticationPrincipal UserPrincipal principal
     ) {
-        PostFullDto updated = postService.update(id, dto, currentUserId);
+        PostFullDto updated = postService.update(id, dto, principal != null ? principal.getId() : null);
         return ResponseEntity.ok(updated);
     }
 
@@ -77,8 +81,9 @@ public class PostController {
      * DELETE /api/v1/posts/{id}
      */
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
-        postService.delete(id);
+    public ResponseEntity<Void> delete(@PathVariable Long id,
+                                       @AuthenticationPrincipal UserPrincipal principal) {
+        postService.delete(id, principal != null ? principal.getId() : null);
         return ResponseEntity.noContent().build();
     }
 
@@ -87,8 +92,9 @@ public class PostController {
      * Поставить лайк. В реальном приложении userId берём из токена.
      */
     @PostMapping("/{id}/like")
-    public ResponseEntity<Void> like(@PathVariable Long id, @RequestParam Long userId) {
-        boolean ok = likeService.like(id, userId);
+    public ResponseEntity<Void> like(@PathVariable Long id,
+                                     @AuthenticationPrincipal UserPrincipal principal) {
+        boolean ok = principal != null && likeService.like(id, principal.getId());
         return ok ? ResponseEntity.ok().build() : ResponseEntity.status(409).build();
     }
 
@@ -97,8 +103,9 @@ public class PostController {
      * Убрать лайк
      */
     @DeleteMapping("/{id}/like")
-    public ResponseEntity<Void> unlike(@PathVariable Long id, @RequestParam Long userId) {
-        boolean ok = likeService.unlike(id, userId);
+    public ResponseEntity<Void> unlike(@PathVariable Long id,
+                                       @AuthenticationPrincipal UserPrincipal principal) {
+        boolean ok = principal != null && likeService.unlike(id, principal.getId());
         return ok ? ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
     }
 }

@@ -20,6 +20,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import ru.zagrebin.culinaryblog.R
+import ru.zagrebin.culinaryblog.data.storage.TokenStorage
 import ru.zagrebin.culinaryblog.databinding.ActivityCreatePostBinding
 import ru.zagrebin.culinaryblog.databinding.ItemIngredientRowBinding
 import ru.zagrebin.culinaryblog.databinding.ItemStepRowBinding
@@ -35,6 +36,7 @@ class CreatePostActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityCreatePostBinding
     private val viewModel: CreatePostViewModel by viewModels()
+    private val tokenStorage by lazy { TokenStorage(this) }
 
     private val ingredientRows = mutableListOf<ItemIngredientRowBinding>()
     private val stepRows = mutableListOf<ItemStepRowBinding>()
@@ -80,6 +82,11 @@ class CreatePostActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        if (tokenStorage.getToken().isNullOrBlank()) {
+            Toast.makeText(this, getString(R.string.create_login_required), Toast.LENGTH_LONG).show()
+            finish()
+            return
+        }
         binding = ActivityCreatePostBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
