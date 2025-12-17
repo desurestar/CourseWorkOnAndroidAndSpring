@@ -1,19 +1,25 @@
 package ru.zagrebin.culinaryblog.ui
 
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.isVisible
+import androidx.core.widget.doAfterTextChanged
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import coil.load
 import com.google.android.material.tabs.TabLayout
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import ru.zagrebin.culinaryblog.AuthActivity
 import ru.zagrebin.culinaryblog.R
 import ru.zagrebin.culinaryblog.data.storage.TokenStorage
@@ -22,6 +28,8 @@ import ru.zagrebin.culinaryblog.model.PostCard
 import ru.zagrebin.culinaryblog.ui.CreatePostActivity
 import ru.zagrebin.culinaryblog.viewmodel.PostViewModel
 import ru.zagrebin.culinaryblog.viewmodel.PostsUiState
+import ru.zagrebin.culinaryblog.viewmodel.ProfileUiState
+import ru.zagrebin.culinaryblog.viewmodel.ProfileViewModel
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -29,6 +37,12 @@ class ProfileActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityProfileBinding
     private val postViewModel: PostViewModel by viewModels()
+    private val profileViewModel: ProfileViewModel by viewModels()
+    private val pickAvatarLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        if (uri != null) {
+            uploadAvatar(uri)
+        }
+    }
     @Inject lateinit var tokenStorage: TokenStorage
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -45,6 +59,7 @@ class ProfileActivity : AppCompatActivity() {
 
         setupTabs()
         setupActions()
+        observeProfile()
         renderUserStub()
         observePosts()
     }
@@ -76,8 +91,108 @@ class ProfileActivity : AppCompatActivity() {
         binding.buttonOpenDrafts.setOnClickListener {
             startActivity(Intent(this, CreatePostActivity::class.java))
         }
+        binding.buttonChangeAvatar.setOnClickListener {
+            pickAvatarLauncher.launch("image/*")
+        }
+        binding.buttonSaveProfile.setOnClickListener {
+            profileViewModel.saveProfile()
+        }
+        setupInputs()
         renderFollowers(listOf("Алексей", "Мария", "Владимир"))
         renderFollowing(listOf("Иван", "Дарья"))
+    }
+
+    private fun setupInputs() {
+        binding.editDisplayName.doAfterTextChanged {
+            profileViewModel.displayName.value = it?.toString() ?: ""
+        }
+        binding.editUsername.doAfterTextChanged {
+            profileViewModel.username.value = it?.toString() ?: ""
+        }
+        binding.editEmail.doAfterTextChanged {
+            profileViewModel.email.value = it?.toString() ?: ""
+        }
+    }
+
+    private fun observeProfile() {
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                profileViewModel.uiState.collectLatest { renderProfile(it) }
+            }
+        }
+    }
+
+    private fun renderProfile(state: ProfileUiState) {
+        binding.profileProgress.isVisible = state.isLoading || state.isSaving
+        binding.buttonSaveProfile.isEnabled = !state.isLoading && !state.isSaving
+        binding.buttonChangeAvatar.isEnabled = binding.buttonSaveProfile.isEnabled
+
+        binding.profileMessage.isVisible = state.message != null
+        binding.profileMessage.text = state.message ?: ""
+        binding.profileError.isVisible = state.error != null
+        binding.profileError.text = state.error ?: ""
+
+        val user = state.user
+        if (user != null) {
+            val displayName = user.displayName?.takeIf { it.isNotBlank() }
+                ?: user.username
+                ?: getString(R.string.profile_user_stub)
+            binding.profileName.text = displayName
+            binding.profileEmail.text = user.email?.ifBlank { getString(R.string.profile_email_stub) }
+                ?: getString(R.string.profile_email_stub)
+            binding.editDisplayName.updateTextIfDifferent(profileViewModel.displayName.value)
+            binding.editUsername.updateTextIfDifferent(profileViewModel.username.value)
+            binding.editEmail.updateTextIfDifferent(profileViewModel.email.value)
+            val avatar = profileViewModel.avatarUrl.value ?: user.avatarUrl
+            renderAvatar(avatar, displayName)
+        } else {
+            renderUserStub()
+            renderAvatar(null, binding.profileName.text?.toString())
+        }
+    }
+
+    private fun renderAvatar(avatarUrl: String?, title: String?) {
+        val initial = title?.firstOrNull()?.uppercase() ?: "U"
+        binding.profileAvatar.text = initial
+        if (avatarUrl.isNullOrBlank()) {
+            binding.profileAvatarImage.setImageDrawable(null)
+            binding.profileAvatarImage.isVisible = false
+            return
+        }
+        binding.profileAvatarImage.isVisible = true
+        binding.profileAvatarImage.load(avatarUrl) {
+            placeholder(R.drawable.bg_avatar_placeholder)
+            error(R.drawable.bg_avatar_placeholder)
+            crossfade(true)
+        }
+    }
+
+    private fun uploadAvatar(uri: Uri) {
+        lifecycleScope.launch {
+            val mimeType = contentResolver.getType(uri) ?: "image/jpeg"
+            val bytes = withContext(Dispatchers.IO) {
+                contentResolver.openInputStream(uri)?.use { it.readBytes() }
+            }
+            if (bytes.isNullOrEmpty()) {
+                binding.profileError.isVisible = true
+                binding.profileError.text = getString(R.string.profile_avatar_read_error)
+                return@launch
+            }
+            profileViewModel.uploadAvatar(
+                "avatar_${System.currentTimeMillis()}.jpg",
+                bytes,
+                mimeType
+            )
+        }
+    }
+
+    private fun TextView.updateTextIfDifferent(newValue: String) {
+        if (text?.toString() != newValue) {
+            setText(newValue)
+            if (this is com.google.android.material.textfield.TextInputEditText) {
+                setSelection(newValue.length)
+            }
+        }
     }
 
     private fun observePosts() {
@@ -150,6 +265,8 @@ class ProfileActivity : AppCompatActivity() {
         binding.profileName.text = getString(R.string.profile_user_stub)
         binding.profileEmail.text = getString(R.string.profile_email_stub)
         binding.profileAvatar.text = binding.profileName.text.firstOrNull()?.uppercase() ?: "U"
+        binding.profileAvatarImage.setImageDrawable(null)
+        binding.profileAvatarImage.isVisible = false
     }
 
     private fun openPost(post: PostCard) {

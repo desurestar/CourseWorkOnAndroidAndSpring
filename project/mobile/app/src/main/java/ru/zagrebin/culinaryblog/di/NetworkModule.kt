@@ -13,6 +13,8 @@ import retrofit2.converter.gson.GsonConverterFactory
 import ru.zagrebin.culinaryblog.BuildConfig
 import ru.zagrebin.culinaryblog.data.remote.api.AuthApi
 import ru.zagrebin.culinaryblog.data.remote.api.PostApi
+import ru.zagrebin.culinaryblog.data.repository.ProfileRepository
+import ru.zagrebin.culinaryblog.data.repository.ProfileRepositoryImpl
 import ru.zagrebin.culinaryblog.data.repository.PostRepository
 import ru.zagrebin.culinaryblog.data.repository.PostRepositoryImpl
 import ru.zagrebin.culinaryblog.data.storage.TokenStorage
@@ -79,4 +81,11 @@ object NetworkModule {
     @Provides
     @Singleton
     fun providePostRepository(api: PostApi): PostRepository = PostRepositoryImpl(api)
+
+    @Provides
+    @Singleton
+    fun provideProfileRepository(
+        authApi: AuthApi,
+        postRepository: PostRepository
+    ): ProfileRepository = ProfileRepositoryImpl(authApi, postRepository)
 }

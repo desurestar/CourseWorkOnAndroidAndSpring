@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.*;
 import ru.zagrebin.dto.AuthRequest;
 import ru.zagrebin.dto.AuthResponse;
 import ru.zagrebin.dto.RegisterRequest;
+import ru.zagrebin.dto.UpdateProfileRequest;
 import ru.zagrebin.dto.UserDto;
 import ru.zagrebin.security.UserPrincipal;
 import ru.zagrebin.service.AuthService;
@@ -37,5 +38,14 @@ public class AuthController {
             return ResponseEntity.status(401).build();
         }
         return ResponseEntity.ok(authService.getCurrentUser(principal.getId()));
+    }
+
+    @PutMapping("/me")
+    public ResponseEntity<UserDto> updateMe(@AuthenticationPrincipal UserPrincipal principal,
+                                            @RequestBody UpdateProfileRequest request) {
+        if (principal == null) {
+            return ResponseEntity.status(401).build();
+        }
+        return ResponseEntity.ok(authService.updateCurrentUser(principal.getId(), request));
     }
 }
