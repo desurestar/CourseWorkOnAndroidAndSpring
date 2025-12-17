@@ -37,8 +37,6 @@ import ru.zagrebin.culinaryblog.model.PostIngredientRequest
 import ru.zagrebin.culinaryblog.model.RecipeStepRequest
 import ru.zagrebin.culinaryblog.model.TagItem
 import ru.zagrebin.culinaryblog.viewmodel.CreatePostViewModel
-import ru.zagrebin.culinaryblog.ui.PostDetailActivity
-import ru.zagrebin.culinaryblog.ui.ProfileActivity
 import javax.inject.Inject
 
 @AndroidEntryPoint

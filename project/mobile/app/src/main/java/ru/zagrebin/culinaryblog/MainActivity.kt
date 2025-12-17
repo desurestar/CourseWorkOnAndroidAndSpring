@@ -46,7 +46,7 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
 
         binding.swipeRefresh.setOnRefreshListener { postViewModel.loadPosts() }
         binding.swipeRefresh.setOnChildScrollUpCallback { _, _ ->
-            !currentTab.isFeed() || binding.postsScroll.canScrollVertically(-1)
+            !(currentTab.isFeed() && !binding.postsScroll.canScrollVertically(-1))
         }
 
         binding.postsScroll.setOnScrollChangeListener { _, _, scrollY, _, _ ->
@@ -71,6 +71,7 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
             EXTRA_TAB_ARTICLES -> R.id.menu_articles
             else -> DEFAULT_TAB_ID
         }
+        applySelection(binding.bottomNavigation.selectedItemId)
 
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -215,7 +216,9 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
 
     private fun showFragment(tag: String, provider: () -> Fragment) {
         val transaction = supportFragmentManager.beginTransaction()
-        supportFragmentManager.fragments.filter { it.id == R.id.fragmentContainer }.forEach { transaction.hide(it) }
+        supportFragmentManager.fragments
+            .filter { it.tag == CREATE_TAG || it.tag == PROFILE_TAG }
+            .forEach { transaction.hide(it) }
         val fragment = supportFragmentManager.findFragmentByTag(tag) ?: provider()
         if (fragment.isAdded) {
             transaction.show(fragment)
@@ -234,12 +237,9 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
 
     private fun hideFragments() {
         val transaction = supportFragmentManager.beginTransaction()
-        var changed = false
-        supportFragmentManager.fragments.filter { it.id == R.id.fragmentContainer }.forEach {
-            transaction.hide(it)
-            changed = true
-        }
-        if (changed) transaction.commit()
+        val targets = supportFragmentManager.fragments.filter { it.tag == CREATE_TAG || it.tag == PROFILE_TAG }
+        targets.forEach { transaction.hide(it) }
+        if (targets.isNotEmpty()) transaction.commit()
     }
 
     private fun formatType(postType: String?): String =
@@ -325,7 +325,7 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
         private const val ARTICLE_POST_TYPE = "article"
         private const val CREATE_TAG = "create_tab_fragment"
         private const val PROFILE_TAG = "profile_tab_fragment"
-        private val DEFAULT_TAB_ID = R.id.menu_recipes
+        private const val DEFAULT_TAB_ID = R.id.menu_recipes
         const val EXTRA_TARGET_TAB = "extra_target_tab"
         const val EXTRA_TAB_RECIPES = "tab_recipes"
         const val EXTRA_TAB_ARTICLES = "tab_articles"
