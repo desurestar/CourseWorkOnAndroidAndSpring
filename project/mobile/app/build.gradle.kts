@@ -70,8 +70,8 @@ dependencies {
     implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
 
     // Hilt
-    implementation("com.google.dagger:hilt-android:2.47")
-    kapt("com.google.dagger:hilt-android-compiler:2.47")
+    implementation("com.google.dagger:hilt-android:2.48")
+    kapt("com.google.dagger:hilt-android-compiler:2.48")
 
     // Для совместимости с AGP 8.9.1
     kapt("org.jetbrains.kotlinx:kotlinx-metadata-jvm:0.7.0")
