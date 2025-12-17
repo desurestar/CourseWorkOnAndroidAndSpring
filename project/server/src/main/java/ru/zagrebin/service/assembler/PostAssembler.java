@@ -11,7 +11,6 @@ import ru.zagrebin.model.*;
 import ru.zagrebin.repository.IngredientRepository;
 import ru.zagrebin.repository.PostRepository;
 import ru.zagrebin.repository.TagRepository;
-import ru.zagrebin.repository.UserRepository;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -19,23 +18,20 @@ import java.util.stream.Collectors;
 @Component
 public class PostAssembler {
 
-    private final UserRepository userRepository;
     private final TagRepository tagRepository;
     private final IngredientRepository ingredientRepository;
     private final PostRepository postRepository;
 
-    public PostAssembler(UserRepository userRepository,
-                         TagRepository tagRepository,
+    public PostAssembler(TagRepository tagRepository,
                          IngredientRepository ingredientRepository,
                          PostRepository postRepository) {
-        this.userRepository = userRepository;
         this.tagRepository = tagRepository;
         this.ingredientRepository = ingredientRepository;
         this.postRepository = postRepository;
     }
 
     @Transactional
-    public Post createFromDto(PostCreateDto dto) {
+    public Post createFromDto(PostCreateDto dto, User author) {
         Post post = new Post();
         post.setPostType(dto.getPostType());
         post.setStatus(dto.getStatus());
@@ -46,12 +42,6 @@ public class PostAssembler {
         post.setCookingTimeMinutes(dto.getCookingTimeMinutes());
         post.setCalories(dto.getCalories());
 
-        // author
-        if (dto.getAuthorId() == null) {
-            throw new IllegalArgumentException("authorId is required for create");
-        }
-        User author = userRepository.findById(dto.getAuthorId())
-                .orElseThrow(() -> new EntityNotFoundException("Author not found: " + dto.getAuthorId()));
         post.setAuthor(author);
 
         // tags

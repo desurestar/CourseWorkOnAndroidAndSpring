@@ -15,9 +15,13 @@ public interface PostService {
 
     PostFullDto getFullPost(Long postId, Long currentUserId);
 
-    PostCardDto create(PostCreateDto dto);
+    PostCardDto create(PostCreateDto dto, Long currentUserId);
+
+    default PostCardDto create(PostCreateDto dto) {
+        return create(dto, null);
+    }
 
     PostFullDto update(Long postId, PostUpdateDto dto, Long currentUserId);
 
-    void delete(Long postId);
+    void delete(Long postId, Long currentUserId);
 }
