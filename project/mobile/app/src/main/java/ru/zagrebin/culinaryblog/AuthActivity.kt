@@ -9,7 +9,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.google.android.material.tabs.TabLayout
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import ru.zagrebin.culinaryblog.databinding.ActivityAuthBinding
 import ru.zagrebin.culinaryblog.viewmodel.AuthViewModel
@@ -64,8 +64,8 @@ class AuthActivity : AppCompatActivity() {
     private fun observeState() {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
-                launch { viewModel.loginState.collect { renderLogin(it) } }
-                launch { viewModel.registerState.collect { renderRegister(it) } }
+                launch { viewModel.loginState.collectLatest { renderLogin(it) } }
+                launch { viewModel.registerState.collectLatest { renderRegister(it) } }
             }
         }
     }

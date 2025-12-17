@@ -13,7 +13,7 @@ import androidx.lifecycle.lifecycleScope
 import coil.load
 import com.google.android.material.chip.Chip
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import ru.zagrebin.culinaryblog.R
 import ru.zagrebin.culinaryblog.AuthActivity
@@ -262,7 +262,7 @@ class PostDetailActivity : AppCompatActivity() {
 
     private fun collectComments(postId: Long) {
         lifecycleScope.launch {
-            commentRepository.getComments(postId).collect { renderComments(it) }
+            commentRepository.getComments(postId).collectLatest { renderComments(it) }
         }
     }
 

@@ -12,7 +12,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.google.android.material.tabs.TabLayout
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import ru.zagrebin.culinaryblog.AuthActivity
 import ru.zagrebin.culinaryblog.R
@@ -83,7 +83,7 @@ class ProfileActivity : AppCompatActivity() {
     private fun observePosts() {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
-                postViewModel.uiState.collect { renderPosts(it) }
+                postViewModel.uiState.collectLatest { renderPosts(it) }
             }
         }
     }
