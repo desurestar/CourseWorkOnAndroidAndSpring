@@ -113,6 +113,7 @@
     <string name="profile_username">Имя пользователя</string>
     <string name="profile_email_label">Email</string>
     <string name="profile_save">Сохранить</string>
+    <string name="profile_edit">Редактировать профиль</string>
     <string name="profile_avatar_content_description">Текущий аватар</string>
     <string name="profile_avatar_read_error">Не удалось прочитать выбранное изображение</string>
 </resources>

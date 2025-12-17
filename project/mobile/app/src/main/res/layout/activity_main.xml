@@ -25,70 +25,76 @@
         android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
         android:textColor="#5C5C5C" />
 
-    <FrameLayout
+    <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+        android:id="@+id/swipeRefresh"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1">
 
-        <LinearLayout
-            android:id="@+id/postsContent"
+        <FrameLayout
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:orientation="vertical">
+            android:layout_height="match_parent">
 
-            <ProgressBar
-                android:id="@+id/progressBar"
-                style="?android:attr/progressBarStyle"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center_horizontal"
-                android:visibility="gone" />
-
-            <TextView
-                android:id="@+id/errorText"
+            <LinearLayout
+                android:id="@+id/postsContent"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:text="@string/error_loading"
-                android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
-                android:textColor="#B00020"
-                android:visibility="gone" />
+                android:layout_height="match_parent"
+                android:orientation="vertical">
 
-            <TextView
-                android:id="@+id/emptyText"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:text="@string/empty_posts"
-                android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
-                android:textColor="#8A7A66"
-                android:visibility="gone" />
+                <ProgressBar
+                    android:id="@+id/progressBar"
+                    style="?android:attr/progressBarStyle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_horizontal"
+                    android:visibility="gone" />
 
-            <ScrollView
-                android:id="@+id/postsScroll"
-                android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_weight="1"
-                android:paddingTop="8dp"
-                android:clipToPadding="false">
-
-                <LinearLayout
-                    android:id="@+id/postsContainer"
+                <TextView
+                    android:id="@+id/errorText"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical" />
-            </ScrollView>
-        </LinearLayout>
+                    android:layout_marginTop="8dp"
+                    android:text="@string/error_loading"
+                    android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
+                    android:textColor="#B00020"
+                    android:visibility="gone" />
 
-        <TextView
-            android:id="@+id/stubText"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:gravity="center"
-            android:text="@string/view_stub_message"
-            android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"
-            android:visibility="gone" />
-    </FrameLayout>
+                <TextView
+                    android:id="@+id/emptyText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/empty_posts"
+                    android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
+                    android:textColor="#8A7A66"
+                    android:visibility="gone" />
+
+                <ScrollView
+                    android:id="@+id/postsScroll"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="1"
+                    android:paddingTop="8dp"
+                    android:clipToPadding="false">
+
+                    <LinearLayout
+                        android:id="@+id/postsContainer"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical" />
+                </ScrollView>
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/stubText"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:text="@string/view_stub_message"
+                android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"
+                android:visibility="gone" />
+        </FrameLayout>
+    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottomNavigation"
