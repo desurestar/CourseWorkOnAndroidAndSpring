@@ -3,6 +3,10 @@
     <style name="RoundedBottomNav" parent="Widget.MaterialComponents.BottomNavigationView">
         <item name="backgroundTint">@android:color/white</item>
         <item name="shapeAppearanceOverlay">@style/ShapeAppearanceOverlay.App.Rounded</item>
+        <item name="itemIconTint">@color/recipe_primary</item>
+        <item name="itemTextColor">@color/recipe_primary</item>
+        <item name="itemRippleColor">@color/recipe_primary_light</item>
+        <item name="elevation">6dp</item>
     </style>
 
     <style name="ShapeAppearanceOverlay.App.Rounded" parent="">

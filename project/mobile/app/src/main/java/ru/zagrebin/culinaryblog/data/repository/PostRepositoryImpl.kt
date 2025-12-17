@@ -105,4 +105,22 @@ class PostRepositoryImpl @Inject constructor(
             Result.failure(e)
         }
     }
+
+    override suspend fun like(postId: Long): Result<Unit> {
+        return try {
+            val resp = api.like(postId)
+            if (resp.isSuccessful) Result.success(Unit) else Result.failure(RuntimeException("Server error: ${resp.code()}"))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun unlike(postId: Long): Result<Unit> {
+        return try {
+            val resp = api.unlike(postId)
+            if (resp.isSuccessful) Result.success(Unit) else Result.failure(RuntimeException("Server error: ${resp.code()}"))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }

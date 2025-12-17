@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/recipe_background">
@@ -237,6 +238,14 @@
             </LinearLayout>
         </LinearLayout>
 
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/buttonLike"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/action_like" />
+
         <LinearLayout
             android:id="@+id/commentsSection"
             android:layout_width="match_parent"
@@ -260,6 +269,54 @@
                 android:text="@string/comments_stub"
                 android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
                 android:textColor="#6A6A6A" />
+
+            <LinearLayout
+                android:id="@+id/commentsList"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:orientation="vertical" />
+
+            <LinearLayout
+                android:id="@+id/replyRow"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:visibility="gone">
+
+                <TextView
+                    android:id="@+id/replyLabel"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
+                    android:textColor="@color/recipe_primary"
+                    tools:text="@string/comments_replying" />
+
+                <Button
+                    android:id="@+id/buttonCancelReply"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/comments_cancel_reply" />
+            </LinearLayout>
+
+            <EditText
+                android:id="@+id/inputComment"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:hint="@string/comments_hint"
+                android:minHeight="56dp"
+                android:padding="10dp" />
+
+            <Button
+                android:id="@+id/buttonSendComment"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:text="@string/comments_send" />
         </LinearLayout>
     </LinearLayout>
 </ScrollView>
