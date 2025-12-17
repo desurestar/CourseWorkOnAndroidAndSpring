@@ -19,6 +19,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import javax.inject.Inject
 import ru.zagrebin.culinaryblog.R
 import ru.zagrebin.culinaryblog.data.storage.TokenStorage
 import ru.zagrebin.culinaryblog.databinding.ActivityCreatePostBinding
@@ -36,7 +37,7 @@ class CreatePostActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityCreatePostBinding
     private val viewModel: CreatePostViewModel by viewModels()
-    private val tokenStorage by lazy { TokenStorage(this) }
+    @Inject lateinit var tokenStorage: TokenStorage
 
     private val ingredientRows = mutableListOf<ItemIngredientRowBinding>()
     private val stepRows = mutableListOf<ItemStepRowBinding>()
@@ -82,13 +83,14 @@ class CreatePostActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        binding = ActivityCreatePostBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+
         if (tokenStorage.getToken().isNullOrBlank()) {
             Toast.makeText(this, getString(R.string.create_login_required), Toast.LENGTH_LONG).show()
             finish()
             return
         }
-        binding = ActivityCreatePostBinding.inflate(layoutInflater)
-        setContentView(binding.root)
 
         val passedAuthorId = intent.getLongExtra(EXTRA_AUTHOR_ID, viewModel.authorId)
         viewModel.setAuthorId(passedAuthorId)

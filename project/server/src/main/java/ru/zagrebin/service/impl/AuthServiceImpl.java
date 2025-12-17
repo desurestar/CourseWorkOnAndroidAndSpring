@@ -11,6 +11,7 @@ import ru.zagrebin.dto.RegisterRequest;
 import ru.zagrebin.dto.UserDto;
 import ru.zagrebin.model.User;
 import ru.zagrebin.repository.UserRepository;
+import ru.zagrebin.security.Roles;
 import ru.zagrebin.security.JwtService;
 import ru.zagrebin.service.AuthService;
 
@@ -43,14 +44,15 @@ public class AuthServiceImpl implements AuthService {
                 .username(request.getUsername())
                 .email(request.getEmail())
                 .passwordHash(passwordEncoder.encode(request.getPassword()))
-                .role("user")
+                .role(Roles.USER)
                 .dateJoined(OffsetDateTime.now())
                 .build();
         User saved = userRepository.save(user);
         String token = jwtService.generateToken(saved);
         return AuthResponse.builder()
                 .accessToken(token)
-                .expiresIn(null)
+                .refreshToken(null)
+                .expiresIn(jwtService.getExpirationMs())
                 .build();
     }
 
@@ -67,7 +69,8 @@ public class AuthServiceImpl implements AuthService {
         String token = jwtService.generateToken(user);
         return AuthResponse.builder()
                 .accessToken(token)
-                .expiresIn(null)
+                .refreshToken(null)
+                .expiresIn(jwtService.getExpirationMs())
                 .build();
     }
 

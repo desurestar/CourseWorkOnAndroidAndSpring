@@ -6,6 +6,7 @@ import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 import ru.zagrebin.model.User;
 
 import java.time.Instant;
@@ -21,9 +22,12 @@ public class JwtService {
     private final long expirationMs;
 
     public JwtService(
-            @Value("${jwt.secret:dev-secret-key-please-change}") String secret,
+            @Value("${jwt.secret}") String secret,
             @Value("${jwt.expiration-ms:86400000}") long expirationMs
     ) {
+        if (!StringUtils.hasText(secret)) {
+            throw new IllegalStateException("JWT secret must be provided via configuration");
+        }
         this.signingKey = Keys.hmacShaKeyFor(Decoders.BASE64.decode(ensureBase64(secret)));
         this.expirationMs = expirationMs;
     }
@@ -56,6 +60,10 @@ public class JwtService {
         return resolver.apply(claims);
     }
 
+    public long getExpirationMs() {
+        return expirationMs;
+    }
+
     public Claims extractAllClaims(String token) {
         return Jwts.parser()
                 .verifyWith(signingKey)
@@ -65,12 +73,11 @@ public class JwtService {
     }
 
     private String ensureBase64(String secret) {
-        // allow using plain text secrets by base64-encoding when needed
         try {
             Decoders.BASE64.decode(secret);
             return secret;
         } catch (IllegalArgumentException ex) {
-            return java.util.Base64.getEncoder().encodeToString(secret.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            throw new IllegalArgumentException("JWT secret must be base64 encoded");
         }
     }
 }

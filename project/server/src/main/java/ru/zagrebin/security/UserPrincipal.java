@@ -4,6 +4,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import ru.zagrebin.model.User;
+import ru.zagrebin.security.Roles;
 
 import java.util.Collection;
 import java.util.List;
@@ -18,7 +19,7 @@ public class UserPrincipal implements UserDetails {
         this.id = user.getId();
         this.username = user.getUsername();
         this.password = user.getPasswordHash();
-        this.role = user.getRole() == null ? "user" : user.getRole();
+        this.role = user.getRole() == null ? Roles.USER : user.getRole();
     }
 
     public Long getId() {

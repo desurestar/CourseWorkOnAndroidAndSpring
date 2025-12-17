@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.zagrebin.dto.PostCardDto;
@@ -14,8 +15,10 @@ import ru.zagrebin.dto.PostUpdateDto;
 import ru.zagrebin.mapper.PostMapper;
 import ru.zagrebin.model.Post;
 import ru.zagrebin.model.RecipeStep;
+import ru.zagrebin.model.User;
 import ru.zagrebin.repository.PostRepository;
 import ru.zagrebin.repository.UserRepository;
+import ru.zagrebin.security.Roles;
 import ru.zagrebin.service.FileStorageService;
 import ru.zagrebin.service.LikeService;
 import ru.zagrebin.service.PostService;
@@ -115,7 +118,7 @@ public class PostServiceImpl implements PostService {
     @Transactional
     public PostCardDto create(PostCreateDto dto, Long currentUserId) {
         if (currentUserId == null) {
-            throw new org.springframework.security.access.AccessDeniedException("Требуется авторизация");
+            throw new AccessDeniedException("Требуется авторизация");
         }
         var author = userRepository.findById(currentUserId)
                 .orElseThrow(() -> new EntityNotFoundException("User not found: " + currentUserId));
@@ -134,13 +137,13 @@ public class PostServiceImpl implements PostService {
 
         // Проверка авторства (пример)
         if (currentUserId == null) {
-            throw new org.springframework.security.access.AccessDeniedException("Требуется авторизация");
+            throw new AccessDeniedException("Требуется авторизация");
         }
         var currentUser = userRepository.findById(currentUserId)
                 .orElseThrow(() -> new EntityNotFoundException("User not found: " + currentUserId));
-        boolean isAdmin = "admin".equalsIgnoreCase(currentUser.getRole());
+        boolean isAdmin = isAdmin(currentUser);
         if (existing.getAuthor() != null && !existing.getAuthor().getId().equals(currentUserId) && !isAdmin) {
-            throw new org.springframework.security.access.AccessDeniedException("Недостаточно прав для изменения поста");
+            throw new AccessDeniedException("Недостаточно прав для изменения поста");
         }
 
         Post updated = postAssembler.updateFromDto(postId, dto);
@@ -165,16 +168,16 @@ public class PostServiceImpl implements PostService {
         }
 
         if (currentUserId == null) {
-            throw new org.springframework.security.access.AccessDeniedException("Требуется авторизация");
+            throw new AccessDeniedException("Требуется авторизация");
         }
 
         Post post = postRepository.findByIdWithAllRelations(postId).orElse(null);
         if (post != null) {
             var currentUser = userRepository.findById(currentUserId)
                     .orElseThrow(() -> new EntityNotFoundException("User not found: " + currentUserId));
-            boolean isAdmin = "admin".equalsIgnoreCase(currentUser.getRole());
+            boolean isAdmin = isAdmin(currentUser);
             if (post.getAuthor() != null && !post.getAuthor().getId().equals(currentUserId) && !isAdmin) {
-                throw new org.springframework.security.access.AccessDeniedException("Недостаточно прав для удаления поста");
+                throw new AccessDeniedException("Недостаточно прав для удаления поста");
             }
             if (post.getCoverUrl() != null) {
                 try { fileStorageService.delete(post.getCoverUrl()); } catch (Exception ex) { log.warn("Failed to delete cover: {}", ex.getMessage()); }
@@ -187,6 +190,10 @@ public class PostServiceImpl implements PostService {
         }
 
         postRepository.deleteById(postId);
+    }
+
+    private boolean isAdmin(User user) {
+        return user != null && Roles.ADMIN.equalsIgnoreCase(user.getRole());
     }
 
     // Дополнительные утилитарные методы (например, для лайков) можно добавить здесь.

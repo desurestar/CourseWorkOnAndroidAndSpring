@@ -1,6 +1,7 @@
 package ru.zagrebin.controller;
 
 import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -94,7 +95,10 @@ public class PostController {
     @PostMapping("/{id}/like")
     public ResponseEntity<Void> like(@PathVariable Long id,
                                      @AuthenticationPrincipal UserPrincipal principal) {
-        boolean ok = principal != null && likeService.like(id, principal.getId());
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        boolean ok = likeService.like(id, principal.getId());
         return ok ? ResponseEntity.ok().build() : ResponseEntity.status(409).build();
     }
 
@@ -105,7 +109,10 @@ public class PostController {
     @DeleteMapping("/{id}/like")
     public ResponseEntity<Void> unlike(@PathVariable Long id,
                                        @AuthenticationPrincipal UserPrincipal principal) {
-        boolean ok = principal != null && likeService.unlike(id, principal.getId());
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        boolean ok = likeService.unlike(id, principal.getId());
         return ok ? ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
     }
 }
