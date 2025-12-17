@@ -8,12 +8,12 @@ plugins {
 
 android {
     namespace = "ru.zagrebin.culinaryblog"
-    compileSdk = 34
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "ru.zagrebin.culinaryblog"
         minSdk = 30
-        targetSdk = 34
+        targetSdk = 36
         versionCode = 1
         versionName = "1.0"
 
@@ -29,21 +29,29 @@ android {
             )
         }
     }
+
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
     }
+
     kotlinOptions {
-        jvmTarget = "11"
+        jvmTarget = "21"
     }
+
     buildFeatures {
         viewBinding = true
         buildConfig = true
     }
 }
 
-dependencies {
+// ВАЖНО: добавьте этот блок
+kotlin {
+    jvmToolchain(21)
+}
 
+dependencies {
+    // Оставьте зависимости как есть
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.lifecycle.viewmodel.ktx)
@@ -61,9 +69,12 @@ dependencies {
     implementation(libs.coroutines.android)
     implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
 
-    // Hilt (DI) — опционально, но рекомендую
+    // Hilt
     implementation("com.google.dagger:hilt-android:2.47")
     kapt("com.google.dagger:hilt-android-compiler:2.47")
+
+    // Для совместимости с AGP 8.9.1
+    kapt("org.jetbrains.kotlinx:kotlinx-metadata-jvm:0.7.0")
 
     // EncryptedSharedPreferences
     implementation("androidx.security:security-crypto:1.1.0-alpha03")
