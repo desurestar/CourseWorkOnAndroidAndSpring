@@ -20,6 +20,7 @@ import ru.zagrebin.culinaryblog.R
 import ru.zagrebin.culinaryblog.AuthActivity
 import ru.zagrebin.culinaryblog.data.repository.CommentRepository
 import ru.zagrebin.culinaryblog.data.repository.PostRepository
+import ru.zagrebin.culinaryblog.data.repository.ProfileRepository
 import ru.zagrebin.culinaryblog.data.storage.TokenStorage
 import ru.zagrebin.culinaryblog.databinding.ActivityPostDetailBinding
 import ru.zagrebin.culinaryblog.formatDisplayDate
@@ -35,6 +36,7 @@ class PostDetailActivity : AppCompatActivity() {
     private lateinit var binding: ActivityPostDetailBinding
     @Inject lateinit var postRepository: PostRepository
     @Inject lateinit var commentRepository: CommentRepository
+    @Inject lateinit var profileRepository: ProfileRepository
     @Inject lateinit var tokenStorage: TokenStorage
 
     private var currentPostId: Long = -1
@@ -375,10 +377,19 @@ class PostDetailActivity : AppCompatActivity() {
             return
         }
 
-        val author = "Вы"
-        commentRepository.addComment(currentPostId, author, text, replyTo?.id)
-        binding.inputComment.text?.clear()
-        clearReplyTarget()
+        lifecycleScope.launch {
+            val author = resolveAuthorName()
+            commentRepository.addComment(currentPostId, author, text, replyTo?.id)
+            binding.inputComment.text?.clear()
+            clearReplyTarget()
+        }
+    }
+
+    private suspend fun resolveAuthorName(): String {
+        val profile = profileRepository.getProfile().getOrNull()
+        return profile?.displayName?.takeIf { it.isNotBlank() }
+            ?: profile?.username?.takeIf { it.isNotBlank() }
+            ?: "Вы"
     }
 
     private fun openAuth() {
