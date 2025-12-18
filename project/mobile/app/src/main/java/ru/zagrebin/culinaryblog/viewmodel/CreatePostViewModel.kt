@@ -12,6 +12,7 @@ import ru.zagrebin.culinaryblog.data.repository.PostRepository
 import ru.zagrebin.culinaryblog.model.IngredientItem
 import ru.zagrebin.culinaryblog.model.PostCard
 import ru.zagrebin.culinaryblog.model.PostCreateRequest
+import ru.zagrebin.culinaryblog.model.PostDraft
 import ru.zagrebin.culinaryblog.model.TagItem
 
 data class CreateFormState(
@@ -21,7 +22,8 @@ data class CreateFormState(
     val loadingIngredients: Boolean = false,
     val submitting: Boolean = false,
     val error: String? = null,
-    val created: PostCard? = null
+    val created: PostCard? = null,
+    val draftSaved: PostDraft? = null
 )
 
 @HiltViewModel
@@ -86,15 +88,17 @@ class CreatePostViewModel @Inject constructor(
 
     fun createPost(request: PostCreateRequest) {
         viewModelScope.launch {
-            _state.update { it.copy(submitting = true, error = null, created = null) }
+            _state.update { it.copy(submitting = true, error = null, created = null, draftSaved = null) }
             val res = repository.createPost(request)
             _state.update {
                 if (res.isSuccess) {
                     it.copy(submitting = false, created = res.getOrNull())
                 } else {
+                    val draft = repository.saveDraft(request).getOrNull()
                     it.copy(
                         submitting = false,
-                        error = res.exceptionOrNull()?.message ?: GENERIC_ERROR_KEY
+                        error = res.exceptionOrNull()?.message ?: GENERIC_ERROR_KEY,
+                        draftSaved = draft
                     )
                 }
             }

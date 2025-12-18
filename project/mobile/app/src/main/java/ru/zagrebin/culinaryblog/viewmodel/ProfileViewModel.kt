@@ -51,7 +51,7 @@ class ProfileViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isLoading = false,
-                            error = e.message ?: "Не удалось загрузить профиль"
+                            error = e.message ?: "Нет подключения. Проверьте интернет и попробуйте снова."
                         )
                     }
                 }

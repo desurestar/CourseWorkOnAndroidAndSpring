@@ -51,6 +51,7 @@ class CreatePostFragment : Fragment() {
     private val ingredientRows = mutableListOf<ItemIngredientRowBinding>()
     private val stepRows = mutableListOf<ItemStepRowBinding>()
     private val selectedTags = mutableSetOf<Long>()
+    private var lastShownDraftKey: Pair<Long, Long>? = null
 
     private var tags: List<TagItem> = emptyList()
     private var ingredients: List<IngredientItem> = emptyList()
@@ -138,6 +139,7 @@ class CreatePostFragment : Fragment() {
         ingredientRows.clear()
         stepRows.clear()
         selectedTags.clear()
+        lastShownDraftKey = null
     }
 
     private fun setupStatusSpinner() {
@@ -219,6 +221,17 @@ class CreatePostFragment : Fragment() {
                             if (activity !is MainActivity) {
                                 activity?.finish()
                             }
+                        }
+                    }
+                    state.draftSaved?.let { draft ->
+                        val draftKey = draft.id to draft.updatedAt
+                        if (lastShownDraftKey != draftKey) {
+                            lastShownDraftKey = draftKey
+                            Toast.makeText(
+                                requireContext(),
+                                getString(R.string.create_draft_saved_offline),
+                                Toast.LENGTH_LONG
+                            ).show()
                         }
                     }
                 }

@@ -349,8 +349,8 @@ class ProfileFragment : Fragment() {
 
     private fun renderPosts(state: PostsUiState) {
         val posts = state.posts
-        val liked = posts.filter { it.likesCount > 0 }
-        val drafts = posts.take(1)
+        val liked = posts.filter { state.likedIds.contains(it.id) }
+        val drafts = state.drafts.map { it.toCard() }
         renderPostList(binding.postsList, posts)
         renderPostList(binding.likedList, liked)
         renderPostList(binding.draftsList, drafts)

@@ -52,6 +52,15 @@
                     android:textColor="@color/text_error"
                     android:visibility="gone" />
 
+                <Button
+                    android:id="@+id/buttonRetry"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:layout_gravity="end"
+                    android:text="@string/action_retry"
+                    android:visibility="gone" />
+
                 <TextView
                     android:id="@+id/emptyText"
                     android:layout_width="match_parent"
