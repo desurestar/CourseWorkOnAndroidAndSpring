@@ -17,6 +17,7 @@
     <string name="recipes_subtitle">Свежие рецепты и подборки прямо из базы данных.</string>
     <string name="articles_subtitle">Новые статьи и посты из базы данных.</string>
     <string name="error_loading">Не удалось загрузить ленту. Проверьте сервер.</string>
+    <string name="error_posting_comment">Не удалось отправить комментарий. Попробуйте ещё раз.</string>
     <string name="empty_posts">Публикаций пока нет.</string>
     <string name="post_type_recipe">Рецепт</string>
     <string name="post_type_article">Пост</string>

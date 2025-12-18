@@ -384,28 +384,32 @@ class PostDetailActivity : AppCompatActivity() {
                 binding.inputComment.text?.clear()
                 clearReplyTarget()
             } catch (e: Exception) {
-                Toast.makeText(this@PostDetailActivity, R.string.error_loading, Toast.LENGTH_SHORT).show()
+                Toast.makeText(this@PostDetailActivity, R.string.error_posting_comment, Toast.LENGTH_SHORT).show()
             }
         }
     }
 
-    private var cachedAuthorName: String? = null
-    private var cachedAuthorToken: String? = null
+    private data class AuthorCache(val token: String?, val name: String)
+
+    private var authorCache: AuthorCache? = null
+    private var lastAuthorFetchFailedAt: Long = 0L
 
     private suspend fun resolveAuthorName(): String {
         val currentToken = tokenStorage.getToken()
-        if (cachedAuthorToken != currentToken) {
-            cachedAuthorName = null
-            cachedAuthorToken = currentToken
-        }
-        cachedAuthorName?.let { return it }
+        authorCache?.takeIf { it.token == currentToken }?.let { return it.name }
+
+        val now = System.currentTimeMillis()
+        if (now - lastAuthorFetchFailedAt < 5_000) return "Вы"
+
         val profile = profileRepository.getProfile().getOrNull()
         val resolved = profile?.displayName?.takeIf { it.isNotBlank() }
             ?: profile?.username?.takeIf { it.isNotBlank() }
         if (resolved != null) {
-            cachedAuthorName = resolved
-            return resolved
+            authorCache = AuthorCache(currentToken, resolved)
+            lastAuthorFetchFailedAt = 0L
+            return authorCache!!.name
         }
+        lastAuthorFetchFailedAt = now
         return "Вы"
     }
 
