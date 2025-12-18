@@ -3,6 +3,7 @@ package ru.zagrebin.culinaryblog.ui
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
+import android.text.Layout
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
@@ -191,6 +192,9 @@ class PostDetailActivity : AppCompatActivity() {
                 setTextAppearance(com.google.android.material.R.style.TextAppearance_MaterialComponents_Body2)
                 setTextColor(ContextCompat.getColor(this@PostDetailActivity, R.color.recipe_primary))
                 textSize = 16f
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    justificationMode = Layout.JUSTIFICATION_MODE_INTER_WORD
+                }
             }
             container.addView(textView)
 

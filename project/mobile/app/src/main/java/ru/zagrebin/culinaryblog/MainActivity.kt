@@ -3,6 +3,7 @@ package ru.zagrebin.culinaryblog
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
+import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
@@ -20,6 +21,7 @@ import kotlinx.coroutines.launch
 import java.util.EnumMap
 import ru.zagrebin.culinaryblog.AuthActivity
 import ru.zagrebin.culinaryblog.databinding.ActivityMainBinding
+import ru.zagrebin.culinaryblog.data.repository.PostRepository
 import ru.zagrebin.culinaryblog.model.PostCard
 import ru.zagrebin.culinaryblog.data.storage.TokenStorage
 import ru.zagrebin.culinaryblog.ui.CreatePostFragment
@@ -36,18 +38,25 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
     private val postViewModel: PostViewModel by viewModels()
     private var latestState: PostsUiState = PostsUiState(isLoading = true)
     @Inject lateinit var tokenStorage: TokenStorage
+    @Inject lateinit var postRepository: PostRepository
 
     private var currentTab: ContentTab = ContentTab.RECIPES
     private val feedScrollPositions = EnumMap<ContentTab, Int>(ContentTab::class.java)
     private var restoreFeedScroll = false
     private var scrollRestoreScheduled = false
     private var lastFeedTabId: Int = DEFAULT_TAB_ID
+    private val likedPostIds = mutableSetOf<Long>()
     private val scrollTopThresholdPx by lazy { (resources.displayMetrics.density * 200).toInt() }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        savedInstanceState?.getLongArray(STATE_LIKED_POSTS)?.let { saved ->
+            likedPostIds.clear()
+            likedPostIds.addAll(saved.toList())
+        }
 
         binding.swipeRefresh.setOnRefreshListener { postViewModel.loadPosts() }
         binding.swipeRefresh.setOnChildScrollUpCallback { _, _ ->
@@ -117,6 +126,12 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
             restoreFeedScroll = true
         }
 
+        if (currentTab.isFeed()) {
+            updateFeedTitle()
+        } else {
+            binding.feedTitle.isVisible = false
+        }
+
         when (currentTab) {
             ContentTab.RECIPES, ContentTab.ARTICLES -> showFeed()
             ContentTab.CREATE -> {
@@ -135,6 +150,7 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
                 binding.swipeRefresh.isEnabled = false
                 binding.swipeRefresh.isRefreshing = false
                 binding.buttonScrollTop.isVisible = false
+                binding.feedTitle.isVisible = false
                 binding.stubText.text = when (itemId) {
                     R.id.menu_messenger -> getString(R.string.messenger_stub_message)
                     else -> getString(R.string.view_stub_message)
@@ -211,7 +227,10 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
             }
             cardBinding.viewsText.text =
                 getString(R.string.views_format, post.viewsCount ?: 0L)
-            cardBinding.likesText.text = getString(R.string.likes_format, post.likesCount)
+            val likedPreviously = likedPostIds.contains(post.id)
+            var currentLikes = post.likesCount
+            var hasLiked = likedPreviously
+            cardBinding.likesText.text = getString(R.string.likes_format, currentLikes)
 
             val coverUrl = post.coverUrl?.takeIf { it.isNotBlank() }
             cardBinding.postCover.isVisible = coverUrl != null
@@ -220,6 +239,39 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
                     placeholder(R.drawable.bg_image_placeholder)
                     error(R.drawable.bg_image_placeholder)
                     crossfade(true)
+                }
+            }
+
+            cardBinding.buttonLike.apply {
+                text = if (hasLiked) getString(R.string.action_liked) else getString(R.string.action_like)
+                isEnabled = !hasLiked
+                setOnClickListener {
+                    if (hasLiked) return@setOnClickListener
+                    if (tokenStorage.getToken().isNullOrBlank()) {
+                        startActivity(Intent(this@MainActivity, AuthActivity::class.java))
+                        return@setOnClickListener
+                    }
+                    isEnabled = false
+                    lifecycleScope.launch {
+                        val result = postRepository.like(post.id)
+                        if (result.isSuccess) {
+                            currentLikes += 1
+                            hasLiked = true
+                            likedPostIds.add(post.id)
+                            cardBinding.likesText.text = getString(R.string.likes_format, currentLikes)
+                            text = getString(R.string.action_liked)
+                        } else {
+                            hasLiked = false
+                            text = getString(R.string.action_like)
+                            Toast.makeText(
+                                this@MainActivity,
+                                R.string.error_like_failed,
+                                Toast.LENGTH_SHORT
+                            ).show()
+                            isEnabled = true
+                        }
+                        isEnabled = !hasLiked
+                    }
                 }
             }
 
@@ -238,9 +290,17 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
         binding.swipeRefresh.isRefreshing = latestState.isLoading
         binding.buttonScrollTop.isVisible = binding.postsScroll.scrollY > scrollTopThresholdPx
 
+        updateFeedTitle()
 
 
         renderState(latestState)
+    }
+
+    private fun updateFeedTitle() {
+        binding.feedTitle.text = getString(
+            if (currentTab == ContentTab.ARTICLES) R.string.nav_articles else R.string.nav_recipes
+        )
+        binding.feedTitle.isVisible = currentTab.isFeed()
     }
 
     private fun showFragment(tag: String, provider: () -> Fragment) {
@@ -312,6 +372,13 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
         startActivity(intent)
     }
 
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        if (likedPostIds.isNotEmpty()) {
+            outState.putLongArray(STATE_LIKED_POSTS, likedPostIds.toLongArray())
+        }
+    }
+
     private fun ContentTab.isFeed(): Boolean = this == ContentTab.RECIPES || this == ContentTab.ARTICLES
 
     override fun onPostCreated(post: PostCard) {
@@ -358,6 +425,7 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
         const val EXTRA_TARGET_TAB = "extra_target_tab"
         const val EXTRA_TAB_RECIPES = "tab_recipes"
         const val EXTRA_TAB_ARTICLES = "tab_articles"
+        private const val STATE_LIKED_POSTS = "state_liked_posts"
         private const val TAG = "MainActivity"
     }
 

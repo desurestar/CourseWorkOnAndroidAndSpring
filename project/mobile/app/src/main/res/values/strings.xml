@@ -13,6 +13,7 @@
     <string name="create_stub_message">Раздел создания записей появится здесь. Используйте Views для ввода данных.</string>
     <string name="messenger_stub_message">Мессенджер будет перенесён на стандартные элементы интерфейса.</string>
     <string name="profile_stub_message">Здесь будет ваш профиль. Экран готов для реализации на обычных Views.</string>
+    <string name="error_like_failed">Не удалось поставить лайк.</string>
     <string name="recipes_subtitle">Свежие рецепты и подборки прямо из базы данных.</string>
     <string name="articles_subtitle">Новые статьи и посты из базы данных.</string>
     <string name="error_loading">Не удалось загрузить ленту. Проверьте сервер.</string>
@@ -84,6 +85,7 @@
     <string name="create_loading_submit">Отправка рецепта</string>
     <string name="action_like">Поставить лайк</string>
     <string name="action_unlike">Убрать лайк</string>
+    <string name="action_liked">Лайк поставлен</string>
     <string name="comments_replying">Ответ на выбранный комментарий</string>
     <string name="comments_cancel_reply">Отмена</string>
     <string name="comments_hint">Добавьте комментарий…</string>

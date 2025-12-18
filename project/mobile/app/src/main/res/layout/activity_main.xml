@@ -22,6 +22,18 @@
                 android:layout_height="match_parent"
                 android:orientation="vertical">
 
+                <TextView
+                    android:id="@+id/feedTitle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:paddingVertical="8dp"
+                    android:text="@string/nav_recipes"
+                    android:textAlignment="center"
+                    android:textAppearance="@style/TextAppearance.MaterialComponents.Headline6"
+                    android:textColor="@color/recipe_primary"
+                    android:textStyle="bold" />
+
                 <ProgressBar
                     android:id="@+id/progressBar"
                     style="?android:attr/progressBarStyle"
