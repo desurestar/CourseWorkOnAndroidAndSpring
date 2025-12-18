@@ -378,18 +378,28 @@ class PostDetailActivity : AppCompatActivity() {
         }
 
         lifecycleScope.launch {
-            val author = resolveAuthorName()
-            commentRepository.addComment(currentPostId, author, text, replyTo?.id)
-            binding.inputComment.text?.clear()
-            clearReplyTarget()
+            try {
+                val author = resolveAuthorName()
+                commentRepository.addComment(currentPostId, author, text, replyTo?.id)
+                binding.inputComment.text?.clear()
+                clearReplyTarget()
+            } catch (e: Exception) {
+                Toast.makeText(this@PostDetailActivity, R.string.error_loading, Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
     private var cachedAuthorName: String? = null
+    private var cachedAuthorToken: String? = null
 
     private suspend fun resolveAuthorName(): String {
+        val currentToken = tokenStorage.getToken()
+        if (cachedAuthorToken != currentToken) {
+            cachedAuthorName = null
+            cachedAuthorToken = currentToken
+        }
         cachedAuthorName?.let { return it }
-        val profile = runCatching { profileRepository.getProfile().getOrNull() }.getOrNull()
+        val profile = profileRepository.getProfile().getOrNull()
         val resolved = profile?.displayName?.takeIf { it.isNotBlank() }
             ?: profile?.username?.takeIf { it.isNotBlank() }
         if (resolved != null) {
