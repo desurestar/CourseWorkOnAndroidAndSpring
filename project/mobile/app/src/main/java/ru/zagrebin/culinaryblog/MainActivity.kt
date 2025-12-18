@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
+import android.view.View
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
@@ -29,6 +30,7 @@ import ru.zagrebin.culinaryblog.data.storage.TokenStorage
 import ru.zagrebin.culinaryblog.ui.CreatePostFragment
 import ru.zagrebin.culinaryblog.ui.PostDetailActivity
 import ru.zagrebin.culinaryblog.ui.ProfileFragment
+import ru.zagrebin.culinaryblog.ui.PublicProfileFragment
 import ru.zagrebin.culinaryblog.viewmodel.PostViewModel
 import ru.zagrebin.culinaryblog.viewmodel.PostsUiState
 import ru.zagrebin.culinaryblog.data.repository.OFFLINE_LIKE_CACHED
@@ -36,7 +38,7 @@ import ru.zagrebin.culinaryblog.data.repository.OFFLINE_UNLIKE_CACHED
 import javax.inject.Inject
 
 @AndroidEntryPoint
-class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragment.Host {
+class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragment.Host, PublicProfileFragment.Host {
 
     private lateinit var binding: ActivityMainBinding
     private val postViewModel: PostViewModel by viewModels()
@@ -123,6 +125,14 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
             else -> DEFAULT_TAB_ID
         }
         applySelection(binding.bottomNavigation.selectedItemId)
+        val targetUserId = intent.getLongExtra(EXTRA_TARGET_USER_ID, -1L)
+        if (targetUserId > 0) {
+            openPublicProfile(
+                targetUserId,
+                intent.getStringExtra(EXTRA_TARGET_USER_NAME),
+                intent.getBooleanExtra(EXTRA_TARGET_USER_SUBSCRIBED, false)
+            )
+        }
 
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -244,6 +254,9 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
                 post.authorName?.ifBlank { getString(R.string.author_unknown) }
                     ?: getString(R.string.author_unknown)
             cardBinding.avatarInitial.text = post.authorName?.firstOrNull()?.uppercase() ?: "?"
+            val openAuthor = View.OnClickListener { openAuthorProfile(post) }
+            cardBinding.authorName.setOnClickListener(openAuthor)
+            cardBinding.avatarInitial.setOnClickListener(openAuthor)
             cardBinding.publishedAt.text =
                 formatDisplayDate(post.publishedAt) ?: getString(R.string.published_unknown)
             cardBinding.postTitle.text = post.title.ifBlank { getString(R.string.card_title_placeholder) }
@@ -358,7 +371,7 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
     private fun showFragment(tag: String, provider: () -> Fragment) {
         val transaction = supportFragmentManager.beginTransaction()
         supportFragmentManager.fragments
-            .filter { it.tag == CREATE_TAG || it.tag == PROFILE_TAG }
+            .filter { it.tag == CREATE_TAG || it.tag == PROFILE_TAG || it.tag == PUBLIC_PROFILE_TAG }
             .forEach { transaction.hide(it) }
         val fragment = supportFragmentManager.findFragmentByTag(tag) ?: provider()
         if (fragment.isAdded) {
@@ -378,9 +391,24 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
 
     private fun hideFragments() {
         val transaction = supportFragmentManager.beginTransaction()
-        val targets = supportFragmentManager.fragments.filter { it.tag == CREATE_TAG || it.tag == PROFILE_TAG }
+        val targets = supportFragmentManager.fragments.filter { it.tag == CREATE_TAG || it.tag == PROFILE_TAG || it.tag == PUBLIC_PROFILE_TAG }
         targets.forEach { transaction.hide(it) }
         if (targets.isNotEmpty()) transaction.commit()
+    }
+
+    private fun openPublicProfile(userId: Long, displayName: String?, subscribed: Boolean?) {
+        showFragment(PUBLIC_PROFILE_TAG) { PublicProfileFragment.newInstance(userId, displayName, subscribed) }
+    }
+
+    override fun onPublicProfileClose() {
+        closePublicProfile()
+    }
+
+    private fun closePublicProfile() {
+        supportFragmentManager.findFragmentByTag(PUBLIC_PROFILE_TAG)?.let {
+            supportFragmentManager.commit { remove(it) }
+        }
+        showFeed()
     }
 
     private fun formatType(postType: String?): String =
@@ -416,6 +444,11 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
         CREATE,
         PROFILE,
         OTHER
+    }
+
+    private fun openAuthorProfile(post: PostCard) {
+        val authorId = post.authorId ?: return
+        openPublicProfile(authorId, post.authorName, null)
     }
 
     private fun openPost(post: PostCard) {
@@ -473,10 +506,14 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
         private const val ARTICLE_POST_TYPE = "article"
         private const val CREATE_TAG = "create_tab_fragment"
         private const val PROFILE_TAG = "profile_tab_fragment"
+        private const val PUBLIC_PROFILE_TAG = "public_profile_fragment"
         private val DEFAULT_TAB_ID = R.id.menu_recipes
         const val EXTRA_TARGET_TAB = "extra_target_tab"
         const val EXTRA_TAB_RECIPES = "tab_recipes"
         const val EXTRA_TAB_ARTICLES = "tab_articles"
+        const val EXTRA_TARGET_USER_ID = "extra_target_user_id"
+        const val EXTRA_TARGET_USER_NAME = "extra_target_user_name"
+        const val EXTRA_TARGET_USER_SUBSCRIBED = "extra_target_user_subscribed"
         private const val STATE_LIKED_POSTS = "state_liked_posts"
         private const val TAG = "MainActivity"
         private val OFFLINE_CACHE_MESSAGES = setOf(OFFLINE_LIKE_CACHED, OFFLINE_UNLIKE_CACHED)

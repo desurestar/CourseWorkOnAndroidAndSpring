@@ -125,4 +125,8 @@
     <string name="offline_feed_message">Нет подключения. Показаны сохранённые данные.</string>
     <string name="action_retry">Повторить</string>
     <string name="profile_offline_message">Профиль показан из кеша, проверьте подключение для обновления.</string>
+    <string name="profile_subscribe">Подписаться</string>
+    <string name="profile_unsubscribe">Отписаться</string>
+    <string name="profile_subscription_updated">Статус подписки изменён</string>
+    <string name="profile_back">Назад</string>
 </resources>
