@@ -10,6 +10,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
@@ -375,10 +376,16 @@ class ProfileFragment : Fragment() {
             view.findViewById<TextView>(R.id.miniPostLikes).text =
                 getString(R.string.likes_format, post.likesCount)
             val coverUrl = post.coverUrl?.takeIf { it.isNotBlank() }
-            view.findViewById<android.widget.ImageView>(R.id.miniPostCover).load(coverUrl) {
-                placeholder(R.drawable.bg_image_placeholder)
-                error(R.drawable.bg_image_placeholder)
-                crossfade(true)
+            val coverView = view.findViewById<ImageView>(R.id.miniPostCover)
+            coverView.isVisible = coverUrl != null
+            if (coverUrl != null) {
+                coverView.load(coverUrl) {
+                    placeholder(R.drawable.bg_image_placeholder)
+                    error(R.drawable.bg_image_placeholder)
+                    crossfade(true)
+                }
+            } else {
+                coverView.setImageDrawable(null)
             }
             view.setOnClickListener { openPost(post) }
             container.addView(view)
