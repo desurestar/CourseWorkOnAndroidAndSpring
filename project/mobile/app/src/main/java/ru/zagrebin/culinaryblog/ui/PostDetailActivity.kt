@@ -409,6 +409,10 @@ class PostDetailActivity : AppCompatActivity() {
         startActivity(Intent(this, AuthActivity::class.java))
     }
 
+    override fun onBackPressed() {
+        finish()
+    }
+
     override fun finish() {
         if (likeStateChanged && currentPostId > 0) {
             setResult(Activity.RESULT_OK, Intent().apply {
