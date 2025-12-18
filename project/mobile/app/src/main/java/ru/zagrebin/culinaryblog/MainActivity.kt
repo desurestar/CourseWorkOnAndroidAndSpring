@@ -285,24 +285,26 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
             cardBinding.likesText.apply {
                 isEnabled = true
                 setOnClickListener {
-                    if (hasLiked) return@setOnClickListener
                     if (tokenStorage.getToken().isNullOrBlank()) {
                         startActivity(Intent(this@MainActivity, AuthActivity::class.java))
                         return@setOnClickListener
                     }
                     isEnabled = false
                     lifecycleScope.launch {
-                        val result = postRepository.like(post.id)
-                        val offlineLike = result.exceptionOrNull()?.message == OFFLINE_LIKE_CACHED
-                        if (result.isSuccess || offlineLike) {
-                            currentLikes += 1
-                            hasLiked = true
-                            likedPostIds.add(post.id)
+                        val result = if (hasLiked) postRepository.unlike(post.id) else postRepository.like(post.id)
+                        val offlineHandled = result.exceptionOrNull()?.message in OFFLINE_CACHE_MESSAGES
+                        if (result.isSuccess || offlineHandled) {
+                            hasLiked = !hasLiked
+                            currentLikes = (currentLikes + if (hasLiked) 1 else -1).coerceAtLeast(0)
+                            if (hasLiked) likedPostIds.add(post.id) else likedPostIds.remove(post.id)
                             cardBinding.likesText.text = getString(R.string.likes_format, currentLikes)
                             cardBinding.likesText.setTextColor(
-                                ContextCompat.getColor(this@MainActivity, R.color.recipe_primary)
+                                ContextCompat.getColor(
+                                    this@MainActivity,
+                                    if (hasLiked) R.color.recipe_primary else R.color.text_muted
+                                )
                             )
-                            if (offlineLike) {
+                            if (offlineHandled) {
                                 Toast.makeText(
                                     this@MainActivity,
                                     R.string.offline_feed_message,
@@ -317,9 +319,8 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
                                 R.string.error_like_failed,
                                 Toast.LENGTH_SHORT
                             ).show()
-                            isEnabled = true
                         }
-                        isEnabled = !hasLiked
+                        isEnabled = true
                     }
                 }
             }
@@ -478,6 +479,7 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
         private const val TAG = "MainActivity"
         private const val OFFLINE_LIKE_CACHED = "OFFLINE_LIKE_CACHED"
         private const val OFFLINE_UNLIKE_CACHED = "OFFLINE_UNLIKE_CACHED"
+        private val OFFLINE_CACHE_MESSAGES = setOf(OFFLINE_LIKE_CACHED, OFFLINE_UNLIKE_CACHED)
     }
 
     private fun normalizePostType(postType: String?): String =
