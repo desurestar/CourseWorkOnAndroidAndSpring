@@ -193,7 +193,7 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
                     ?: getString(R.string.author_unknown)
             cardBinding.avatarInitial.text = post.authorName?.firstOrNull()?.uppercase() ?: "?"
             cardBinding.publishedAt.text =
-                post.publishedAt ?: getString(R.string.published_unknown)
+                formatDisplayDate(post.publishedAt) ?: getString(R.string.published_unknown)
             cardBinding.postTitle.text = post.title.ifBlank { getString(R.string.card_title_placeholder) }
             cardBinding.postExcerpt.text = post.excerpt.ifBlank { getString(R.string.card_excerpt_placeholder) }
             bindTags(cardBinding.tagsGroup, post.tags)

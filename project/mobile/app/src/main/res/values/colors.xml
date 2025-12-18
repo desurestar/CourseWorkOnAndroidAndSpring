@@ -12,4 +12,9 @@
     <color name="recipe_primary_light">#DFEEE0</color>
     <color name="recipe_card">#FFF6D9</color>
     <color name="recipe_button">#F5C16C</color>
+    <color name="text_secondary">#4A4034</color>
+    <color name="text_caption">#6A6A6A</color>
+    <color name="text_muted">#4D4D4D</color>
+    <color name="text_error">#B00020</color>
+    <color name="text_empty">#8A7A66</color>
 </resources>

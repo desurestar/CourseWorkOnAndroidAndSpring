@@ -65,7 +65,7 @@
                 android:gravity="end"
                 android:text="@string/published_unknown"
                 android:textAppearance="@style/TextAppearance.MaterialComponents.Caption"
-                android:textColor="#6A6A6A" />
+                android:textColor="@color/text_caption" />
         </LinearLayout>
 
         <ImageView
@@ -94,7 +94,7 @@
             android:layout_marginTop="6dp"
             android:text="@string/card_excerpt_placeholder"
             android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"
-            android:textColor="#4A4034"
+            android:textColor="@color/text_secondary"
             android:textStyle="italic" />
 
         <TextView
@@ -114,7 +114,7 @@
             android:layout_marginTop="4dp"
             android:text="@string/content_stub"
             android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"
-            android:textColor="#4A4034" />
+            android:textColor="@color/text_secondary" />
 
         <LinearLayout
             android:id="@+id/ingredientsSection"
@@ -140,14 +140,14 @@
                 app:chipSpacingVertical="4dp"
                 app:singleLine="false" />
 
-            <TextView
-                android:id="@+id/ingredientsStub"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:text="@string/ingredients_stub"
-                android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
-                android:textColor="#6A6A6A" />
+                <TextView
+                    android:id="@+id/ingredientsStub"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="@string/ingredients_stub"
+                    android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
+                    android:textColor="@color/text_caption" />
         </LinearLayout>
 
         <LinearLayout
@@ -172,14 +172,14 @@
                 android:layout_marginTop="6dp"
                 android:orientation="vertical" />
 
-            <TextView
-                android:id="@+id/stepsStub"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:text="@string/steps_stub"
-                android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
-                android:textColor="#6A6A6A" />
+                <TextView
+                    android:id="@+id/stepsStub"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="@string/steps_stub"
+                    android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
+                    android:textColor="@color/text_caption" />
         </LinearLayout>
 
         <LinearLayout
@@ -225,7 +225,7 @@
                     android:layout_height="wrap_content"
                     android:text="@string/views_placeholder"
                     android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
-                    android:textColor="#4D4D4D" />
+                    android:textColor="@color/text_muted" />
 
                 <TextView
                     android:id="@+id/likesText"
@@ -234,7 +234,7 @@
                     android:layout_marginTop="2dp"
                     android:text="@string/likes_placeholder"
                     android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
-                    android:textColor="#4D4D4D" />
+                    android:textColor="@color/text_muted" />
             </LinearLayout>
         </LinearLayout>
 
@@ -268,7 +268,7 @@
                 android:layout_marginTop="6dp"
                 android:text="@string/comments_stub"
                 android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
-                android:textColor="#6A6A6A" />
+                android:textColor="@color/text_caption" />
 
             <LinearLayout
                 android:id="@+id/commentsList"
