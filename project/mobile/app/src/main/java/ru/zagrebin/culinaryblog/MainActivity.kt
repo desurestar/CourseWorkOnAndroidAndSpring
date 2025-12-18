@@ -1,9 +1,11 @@
 package ru.zagrebin.culinaryblog
 
+import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
@@ -39,6 +41,14 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
     private var latestState: PostsUiState = PostsUiState(isLoading = true)
     @Inject lateinit var tokenStorage: TokenStorage
     @Inject lateinit var postRepository: PostRepository
+    private val postDetailLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val postId = result.data?.getLongExtra(PostDetailActivity.EXTRA_RESULT_POST_ID, -1L) ?: -1L
+            if (postId > 0 && currentTab.isFeed()) {
+                postViewModel.loadPosts()
+            }
+        }
+    }
 
     private var currentTab: ContentTab = ContentTab.RECIPES
     private val feedScrollPositions = EnumMap<ContentTab, Int>(ContentTab::class.java)
@@ -104,13 +114,6 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
                     renderState(state)
                 }
             }
-        }
-    }
-
-    override fun onResume() {
-        super.onResume()
-        if (currentTab.isFeed()) {
-            postViewModel.loadPosts()
         }
     }
 
@@ -400,7 +403,7 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
     private fun openPost(post: PostCard) {
         val intent = Intent(this, PostDetailActivity::class.java)
         intent.putExtra(PostDetailActivity.EXTRA_POST, post)
-        startActivity(intent)
+        postDetailLauncher.launch(intent)
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
