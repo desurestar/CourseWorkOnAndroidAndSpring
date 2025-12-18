@@ -11,6 +11,9 @@ import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import ru.zagrebin.culinaryblog.BuildConfig
+import ru.zagrebin.culinaryblog.data.local.dao.DraftDao
+import ru.zagrebin.culinaryblog.data.local.dao.PostDao
+import ru.zagrebin.culinaryblog.data.local.dao.UserProfileDao
 import ru.zagrebin.culinaryblog.data.remote.api.AuthApi
 import ru.zagrebin.culinaryblog.data.remote.api.PostApi
 import ru.zagrebin.culinaryblog.data.repository.ProfileRepository
@@ -38,7 +41,7 @@ object NetworkModule {
     }
 
     @Provides
-    fun provideAuthInreceptor(tokenStorage: TokenStorage): Interceptor = Interceptor { chain ->
+    fun provideAuthInterceptor(tokenStorage: TokenStorage): Interceptor = Interceptor { chain ->
         val req = chain.request()
         val token = tokenStorage.getToken() // синхронно возвращаем строку или null
         val newReq = token?.let {
@@ -80,12 +83,18 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun providePostRepository(api: PostApi): PostRepository = PostRepositoryImpl(api)
+    fun providePostRepository(
+        api: PostApi,
+        postDao: PostDao,
+        draftDao: DraftDao,
+        gson: Gson
+    ): PostRepository = PostRepositoryImpl(api, postDao, draftDao, gson)
 
     @Provides
     @Singleton
     fun provideProfileRepository(
         authApi: AuthApi,
-        postRepository: PostRepository
-    ): ProfileRepository = ProfileRepositoryImpl(authApi, postRepository)
+        postRepository: PostRepository,
+        userProfileDao: UserProfileDao
+    ): ProfileRepository = ProfileRepositoryImpl(authApi, postRepository, userProfileDao)
 }

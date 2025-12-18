@@ -77,6 +77,7 @@
     <string name="create_upload_success">Изображение добавлено</string>
     <string name="create_success">Пост сохранён</string>
     <string name="create_login_required">Необходимо войти, чтобы создавать посты</string>
+    <string name="create_draft_saved_offline">Черновик сохранён на устройстве. Отправьте его, когда будет интернет.</string>
     <string name="create_error_generic">Ошибка создания поста</string>
     <string name="status_draft">Черновик</string>
     <string name="status_published">Опубликован</string>
@@ -119,4 +120,7 @@
     <string name="profile_edit">Редактировать профиль</string>
     <string name="profile_avatar_content_description">Текущий аватар</string>
     <string name="profile_avatar_read_error">Не удалось прочитать выбранное изображение</string>
+    <string name="offline_feed_message">Нет подключения. Показаны сохранённые данные.</string>
+    <string name="action_retry">Повторить</string>
+    <string name="profile_offline_message">Профиль показан из кеша, проверьте подключение для обновления.</string>
 </resources>

@@ -285,10 +285,18 @@ class PostDetailActivity : AppCompatActivity() {
 
         lifecycleScope.launch {
             val result = if (isLiked) postRepository.unlike(currentPostId) else postRepository.like(currentPostId)
-            if (result.isSuccess) {
+            val offlineHandled = result.exceptionOrNull()?.message in setOf(OFFLINE_LIKE_CACHED, OFFLINE_UNLIKE_CACHED)
+            if (result.isSuccess || offlineHandled) {
                 isLiked = !isLiked
                 likesCount = (likesCount + if (isLiked) 1 else -1).coerceAtLeast(0)
                 updateLikeUi()
+                if (offlineHandled) {
+                    Toast.makeText(
+                        this@PostDetailActivity,
+                        R.string.offline_feed_message,
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
             } else {
                 Toast.makeText(
                     this@PostDetailActivity,
@@ -380,5 +388,7 @@ class PostDetailActivity : AppCompatActivity() {
         const val EXTRA_POST = "extra_post"
         private const val RECIPE_POST_TYPE = "recipe"
         private const val ARTICLE_POST_TYPE = "article"
+        private const val OFFLINE_LIKE_CACHED = "OFFLINE_LIKE_CACHED"
+        private const val OFFLINE_UNLIKE_CACHED = "OFFLINE_UNLIKE_CACHED"
     }
 }

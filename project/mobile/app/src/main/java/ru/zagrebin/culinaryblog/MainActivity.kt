@@ -62,6 +62,7 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
         binding.swipeRefresh.setOnChildScrollUpCallback { _, _ ->
             !(currentTab.isFeed() && !binding.postsScroll.canScrollVertically(-1))
         }
+        binding.buttonRetry.setOnClickListener { postViewModel.loadPosts() }
 
         binding.postsScroll.setOnScrollChangeListener { v, _, scrollY, _, _ ->
             binding.buttonScrollTop.isVisible = currentTab.isFeed() && scrollY > scrollTopThresholdPx
@@ -162,9 +163,17 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
     private fun renderState(state: PostsUiState) {
         if (!currentTab.isFeed()) return
 
+        likedPostIds.clear()
+        likedPostIds.addAll(state.likedIds)
+
         binding.progressBar.isVisible = state.isLoading
-        binding.errorText.isVisible = state.error != null
-        binding.errorText.text = state.error ?: ""
+        val errorText = when {
+            state.offline -> getString(R.string.offline_feed_message)
+            else -> state.error
+        }
+        binding.errorText.isVisible = errorText != null
+        binding.errorText.text = errorText ?: ""
+        binding.buttonRetry.isVisible = errorText != null
         binding.swipeRefresh.isRefreshing = state.isLoading && currentTab.isFeed()
 
         val filteredPosts = filterPosts(state.posts)
@@ -254,12 +263,20 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
                     isEnabled = false
                     lifecycleScope.launch {
                         val result = postRepository.like(post.id)
-                        if (result.isSuccess) {
+                        val offlineLike = result.exceptionOrNull()?.message == OFFLINE_LIKE_CACHED
+                        if (result.isSuccess || offlineLike) {
                             currentLikes += 1
                             hasLiked = true
                             likedPostIds.add(post.id)
                             cardBinding.likesText.text = getString(R.string.likes_format, currentLikes)
                             text = getString(R.string.action_liked)
+                            if (offlineLike) {
+                                Toast.makeText(
+                                    this@MainActivity,
+                                    R.string.offline_feed_message,
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
                         } else {
                             hasLiked = false
                             text = getString(R.string.action_like)
@@ -427,6 +444,8 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
         const val EXTRA_TAB_ARTICLES = "tab_articles"
         private const val STATE_LIKED_POSTS = "state_liked_posts"
         private const val TAG = "MainActivity"
+        private const val OFFLINE_LIKE_CACHED = "OFFLINE_LIKE_CACHED"
+        private const val OFFLINE_UNLIKE_CACHED = "OFFLINE_UNLIKE_CACHED"
     }
 
     private fun normalizePostType(postType: String?): String =
