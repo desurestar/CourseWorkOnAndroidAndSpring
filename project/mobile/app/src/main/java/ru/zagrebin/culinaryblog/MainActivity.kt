@@ -36,6 +36,8 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
     @Inject lateinit var tokenStorage: TokenStorage
 
     private var currentTab: ContentTab = ContentTab.RECIPES
+    private val feedScrollPositions = mutableMapOf<ContentTab, Int>()
+    private var restoreFeedScroll = false
     private var lastFeedTabId: Int = DEFAULT_TAB_ID
     private val scrollTopThresholdPx by lazy { (resources.displayMetrics.density * 200).toInt() }
 
@@ -93,6 +95,11 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
     }
 
     private fun applySelection(itemId: Int) {
+        val previousTab = currentTab
+        if (previousTab.isFeed()) {
+            feedScrollPositions[previousTab] = binding.postsScroll.scrollY
+        }
+
         currentTab = when (itemId) {
             R.id.menu_recipes -> ContentTab.RECIPES
             R.id.menu_articles -> ContentTab.ARTICLES
@@ -102,6 +109,7 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
         }
         if (currentTab.isFeed()) {
             lastFeedTabId = itemId
+            restoreFeedScroll = true
         }
 
         when (currentTab) {
@@ -143,6 +151,13 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
             !state.isLoading && !state.isAppending && state.error == null && filteredPosts.isEmpty()
 
         renderPosts(filteredPosts)
+        if (restoreFeedScroll) {
+            val targetScrollY = feedScrollPositions[currentTab] ?: 0
+            binding.postsScroll.post {
+                binding.postsScroll.scrollTo(0, targetScrollY)
+            }
+            restoreFeedScroll = false
+        }
     }
 
     private fun filterPosts(posts: List<PostCard>): List<PostCard> = when (currentTab) {
@@ -186,10 +201,15 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
             cardBinding.likesText.text = getString(R.string.likes_format, post.likesCount)
 
             val coverUrl = post.coverUrl?.takeIf { it.isNotBlank() }
-            cardBinding.postCover.load(coverUrl) {
-                placeholder(R.drawable.bg_image_placeholder)
-                error(R.drawable.bg_image_placeholder)
-                crossfade(true)
+            if (coverUrl == null) {
+                cardBinding.postCover.isVisible = false
+            } else {
+                cardBinding.postCover.isVisible = true
+                cardBinding.postCover.load(coverUrl) {
+                    placeholder(R.drawable.bg_image_placeholder)
+                    error(R.drawable.bg_image_placeholder)
+                    crossfade(true)
+                }
             }
 
             cardBinding.root.setOnClickListener { openPost(post) }
