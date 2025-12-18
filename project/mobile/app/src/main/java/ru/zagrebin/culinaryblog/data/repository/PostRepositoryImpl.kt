@@ -230,8 +230,4 @@ class PostRepositoryImpl @Inject constructor(
         cookingTimeMinutes = card.cookingTimeMinutes
     )
 
-    companion object {
-        const val OFFLINE_LIKE_CACHED = "OFFLINE_LIKE_CACHED"
-        const val OFFLINE_UNLIKE_CACHED = "OFFLINE_UNLIKE_CACHED"
-    }
 }

@@ -25,6 +25,8 @@ import ru.zagrebin.culinaryblog.AuthActivity
 import ru.zagrebin.culinaryblog.data.repository.CommentRepository
 import ru.zagrebin.culinaryblog.data.repository.PostRepository
 import ru.zagrebin.culinaryblog.data.repository.ProfileRepository
+import ru.zagrebin.culinaryblog.data.repository.OFFLINE_LIKE_CACHED
+import ru.zagrebin.culinaryblog.data.repository.OFFLINE_UNLIKE_CACHED
 import ru.zagrebin.culinaryblog.data.storage.TokenStorage
 import ru.zagrebin.culinaryblog.databinding.ActivityPostDetailBinding
 import ru.zagrebin.culinaryblog.formatDisplayDate
@@ -437,8 +439,6 @@ class PostDetailActivity : AppCompatActivity() {
         const val EXTRA_RESULT_LIKES_COUNT = "extra_result_likes_count"
         private const val RECIPE_POST_TYPE = "recipe"
         private const val ARTICLE_POST_TYPE = "article"
-        private const val OFFLINE_LIKE_CACHED = "OFFLINE_LIKE_CACHED"
-        private const val OFFLINE_UNLIKE_CACHED = "OFFLINE_UNLIKE_CACHED"
         private const val TAG = "PostDetailActivity"
     }
 }
