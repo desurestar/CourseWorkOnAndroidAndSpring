@@ -17,8 +17,6 @@ import com.google.android.material.chip.Chip
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
-import java.util.concurrent.atomic.AtomicLong
-import java.util.concurrent.atomic.AtomicReference
 import ru.zagrebin.culinaryblog.R
 import ru.zagrebin.culinaryblog.AuthActivity
 import ru.zagrebin.culinaryblog.data.repository.CommentRepository
@@ -46,10 +44,6 @@ class PostDetailActivity : AppCompatActivity() {
     private var isLiked: Boolean = false
     private var likesCount: Int = 0
     private var replyTo: Comment? = null
-
-    private data class AuthorCache(val token: String?, val name: String)
-    private val authorCache = AtomicReference<AuthorCache?>()
-    private val lastAuthorFetchFailedAt = AtomicLong(0L)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -397,12 +391,6 @@ class PostDetailActivity : AppCompatActivity() {
     }
 
     private suspend fun resolveAuthorName(): String {
-        val currentToken = tokenStorage.getToken()
-        authorCache.get()?.takeIf { it.token == currentToken }?.let { return it.name }
-
-        val now = System.currentTimeMillis()
-        if (now - lastAuthorFetchFailedAt.get() < AUTHOR_FETCH_BACKOFF_MS) return getString(R.string.comment_author_you)
-
         val profileResult = profileRepository.getProfile()
         profileResult.exceptionOrNull()?.let {
             Log.w(TAG, "Failed to fetch profile for comment author", it)
@@ -411,11 +399,8 @@ class PostDetailActivity : AppCompatActivity() {
         val resolved = profile?.displayName?.takeIf { it.isNotBlank() }
             ?: profile?.username?.takeIf { it.isNotBlank() }
         if (resolved != null) {
-            authorCache.set(AuthorCache(currentToken, resolved))
-            lastAuthorFetchFailedAt.set(0L)
             return resolved
         }
-        lastAuthorFetchFailedAt.set(now)
         return getString(R.string.comment_author_you)
     }
 
@@ -429,7 +414,6 @@ class PostDetailActivity : AppCompatActivity() {
         private const val ARTICLE_POST_TYPE = "article"
         private const val OFFLINE_LIKE_CACHED = "OFFLINE_LIKE_CACHED"
         private const val OFFLINE_UNLIKE_CACHED = "OFFLINE_UNLIKE_CACHED"
-        private const val AUTHOR_FETCH_BACKOFF_MS = 5_000L
         private const val TAG = "PostDetailActivity"
     }
 }
