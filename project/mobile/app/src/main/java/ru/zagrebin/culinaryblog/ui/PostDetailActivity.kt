@@ -385,6 +385,7 @@ class PostDetailActivity : AppCompatActivity() {
                 binding.inputComment.text?.clear()
                 clearReplyTarget()
             } catch (e: Exception) {
+                Log.e(TAG, "Failed to add comment", e)
                 Toast.makeText(this@PostDetailActivity, R.string.error_posting_comment, Toast.LENGTH_SHORT).show()
             }
         }
@@ -395,13 +396,10 @@ class PostDetailActivity : AppCompatActivity() {
         profileResult.exceptionOrNull()?.let {
             Log.w(TAG, "Failed to fetch profile for comment author", it)
         }
-        val profile = profileResult.getOrNull()
-        val resolved = profile?.displayName?.takeIf { it.isNotBlank() }
-            ?: profile?.username?.takeIf { it.isNotBlank() }
-        if (resolved != null) {
-            return resolved
-        }
-        return getString(R.string.comment_author_you)
+        val profile = profileResult.getOrNull() ?: return getString(R.string.comment_author_you)
+        return profile.displayName?.takeIf { it.isNotBlank() }
+            ?: profile.username?.takeIf { it.isNotBlank() }
+            ?: getString(R.string.comment_author_you)
     }
 
     private fun openAuth() {
