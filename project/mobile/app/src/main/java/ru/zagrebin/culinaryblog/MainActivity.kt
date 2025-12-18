@@ -108,20 +108,14 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
             ContentTab.RECIPES, ContentTab.ARTICLES -> showFeed()
             ContentTab.CREATE -> {
                 showFragment(CREATE_TAG) { CreatePostFragment.newInstance() }
-                binding.titleText.text = getString(R.string.nav_create)
-                binding.subtitleText.text = getString(R.string.create_stub_message)
             }
 
             ContentTab.PROFILE -> {
                 showFragment(PROFILE_TAG) { ProfileFragment() }
-                binding.titleText.text = getString(R.string.nav_profile)
-                binding.subtitleText.text = getString(R.string.profile_stub_message)
             }
 
             ContentTab.OTHER -> {
                 hideFragments()
-                binding.titleText.text = getString(R.string.view_stub_title)
-                binding.subtitleText.text = getString(R.string.view_stub_message)
                 binding.postsContent.isVisible = false
                 binding.stubText.isVisible = true
                 binding.fragmentContainer.isVisible = false
@@ -213,13 +207,7 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
         binding.swipeRefresh.isRefreshing = latestState.isLoading
         binding.buttonScrollTop.isVisible = binding.postsScroll.scrollY > scrollTopThresholdPx
 
-        if (currentTab == ContentTab.RECIPES) {
-            binding.titleText.text = getString(R.string.nav_recipes)
-            binding.subtitleText.text = getString(R.string.recipes_subtitle)
-        } else {
-            binding.titleText.text = getString(R.string.nav_articles)
-            binding.subtitleText.text = getString(R.string.articles_subtitle)
-        }
+
 
         renderState(latestState)
     }
