@@ -83,10 +83,15 @@ class PostDetailActivity : AppCompatActivity() {
         binding.postContent.text = getString(R.string.content_stub)
 
         val coverUrl = post.coverUrl?.takeIf { it.isNotBlank() }
-        binding.postCover.load(coverUrl) {
-            placeholder(R.drawable.bg_image_placeholder)
-            error(R.drawable.bg_image_placeholder)
-            crossfade(true)
+        binding.postCover.isVisible = coverUrl != null
+        if (coverUrl != null) {
+            binding.postCover.load(coverUrl) {
+                placeholder(R.drawable.bg_image_placeholder)
+                error(R.drawable.bg_image_placeholder)
+                crossfade(true)
+            }
+        } else {
+            binding.postCover.setImageDrawable(null)
         }
 
         bindIngredients(isRecipe, post.tags?.toList())
@@ -118,10 +123,15 @@ class PostDetailActivity : AppCompatActivity() {
                 ?: getString(R.string.content_stub)
 
         val coverUrl = post.coverUrl?.takeIf { it.isNotBlank() }
-        binding.postCover.load(coverUrl) {
-            placeholder(R.drawable.bg_image_placeholder)
-            error(R.drawable.bg_image_placeholder)
-            crossfade(true)
+        binding.postCover.isVisible = coverUrl != null
+        if (coverUrl != null) {
+            binding.postCover.load(coverUrl) {
+                placeholder(R.drawable.bg_image_placeholder)
+                error(R.drawable.bg_image_placeholder)
+                crossfade(true)
+            }
+        } else {
+            binding.postCover.setImageDrawable(null)
         }
 
         val ingredientLabels = post.ingredients.map { ingredient ->
