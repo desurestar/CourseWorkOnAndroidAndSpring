@@ -385,11 +385,18 @@ class PostDetailActivity : AppCompatActivity() {
         }
     }
 
+    private var cachedAuthorName: String? = null
+
     private suspend fun resolveAuthorName(): String {
-        val profile = profileRepository.getProfile().getOrNull()
-        return profile?.displayName?.takeIf { it.isNotBlank() }
+        cachedAuthorName?.let { return it }
+        val profile = runCatching { profileRepository.getProfile().getOrNull() }.getOrNull()
+        val resolved = profile?.displayName?.takeIf { it.isNotBlank() }
             ?: profile?.username?.takeIf { it.isNotBlank() }
-            ?: "Вы"
+        if (resolved != null) {
+            cachedAuthorName = resolved
+            return resolved
+        }
+        return "Вы"
     }
 
     private fun openAuth() {
