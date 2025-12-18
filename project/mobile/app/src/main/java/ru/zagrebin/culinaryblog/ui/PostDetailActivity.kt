@@ -32,6 +32,7 @@ import ru.zagrebin.culinaryblog.databinding.ActivityPostDetailBinding
 import ru.zagrebin.culinaryblog.formatDisplayDate
 import ru.zagrebin.culinaryblog.model.PostCard
 import ru.zagrebin.culinaryblog.model.PostFull
+import ru.zagrebin.culinaryblog.model.PostAuthor
 import ru.zagrebin.culinaryblog.model.PostStep
 import ru.zagrebin.culinaryblog.model.Comment
 import javax.inject.Inject
@@ -51,6 +52,7 @@ class PostDetailActivity : AppCompatActivity() {
     private var likeStateChanged: Boolean = false
     private var replyTo: Comment? = null
     private var backPressedCallback: OnBackPressedCallback? = null
+    private var author: PostAuthor? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -72,6 +74,7 @@ class PostDetailActivity : AppCompatActivity() {
     }
 
     private fun setupInteractions() {
+        binding.authorRow.setOnClickListener { openAuthorProfile() }
         binding.likesText.setOnClickListener { toggleLike() }
         binding.buttonSendComment.setOnClickListener { sendComment() }
         binding.buttonCancelReply.setOnClickListener { clearReplyTarget() }
@@ -86,6 +89,7 @@ class PostDetailActivity : AppCompatActivity() {
             post.authorName?.ifBlank { getString(R.string.author_unknown) }
                 ?: getString(R.string.author_unknown)
         binding.avatarInitial.text = post.authorName?.firstOrNull()?.uppercase() ?: "?"
+        author = PostAuthor(post.authorId, post.authorName, null, null)
         binding.postType.text = formatType(post.postType)
         binding.publishedAt.text = formatDisplayDate(post.publishedAt) ?: getString(R.string.published_unknown)
 
@@ -122,6 +126,7 @@ class PostDetailActivity : AppCompatActivity() {
             post.author?.displayName?.ifBlank { getString(R.string.author_unknown) }
                 ?: getString(R.string.author_unknown)
         binding.avatarInitial.text = post.author?.displayName?.firstOrNull()?.uppercase() ?: "?"
+        author = post.author
         binding.postType.text = formatType(post.postType)
         binding.publishedAt.text = formatDisplayDate(post.createdAt) ?: getString(R.string.published_unknown)
 
@@ -409,6 +414,18 @@ class PostDetailActivity : AppCompatActivity() {
         return profile.displayName?.takeIf { it.isNotBlank() }
             ?: profile.username?.takeIf { it.isNotBlank() }
             ?: getString(R.string.comment_author_you)
+    }
+
+    private fun openAuthorProfile() {
+        val target = author ?: return
+        val authorId = target.id ?: return
+        startActivity(
+            Intent(this, MainActivity::class.java)
+                .putExtra(MainActivity.EXTRA_TARGET_USER_ID, authorId)
+                .putExtra(MainActivity.EXTRA_TARGET_USER_NAME, target.displayName)
+                .putExtra(MainActivity.EXTRA_TARGET_USER_SUBSCRIBED, target.subscribed ?: false)
+        )
+        finish()
     }
 
     private fun openAuth() {
