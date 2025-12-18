@@ -16,6 +16,8 @@ import com.google.android.material.chip.Chip
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import java.util.concurrent.atomic.AtomicLong
+import java.util.concurrent.atomic.AtomicReference
 import ru.zagrebin.culinaryblog.R
 import ru.zagrebin.culinaryblog.AuthActivity
 import ru.zagrebin.culinaryblog.data.repository.CommentRepository
@@ -391,25 +393,25 @@ class PostDetailActivity : AppCompatActivity() {
 
     private data class AuthorCache(val token: String?, val name: String)
 
-    @kotlin.jvm.Volatile private var authorCache: AuthorCache? = null
-    @kotlin.jvm.Volatile private var lastAuthorFetchFailedAt: Long = 0L
+    private val authorCache = AtomicReference<AuthorCache?>()
+    private val lastAuthorFetchFailedAt = AtomicLong(0L)
 
     private suspend fun resolveAuthorName(): String {
         val currentToken = tokenStorage.getToken()
-        authorCache?.takeIf { it.token == currentToken }?.let { return it.name }
+        authorCache.get()?.takeIf { it.token == currentToken }?.let { return it.name }
 
         val now = System.currentTimeMillis()
-        if (now - lastAuthorFetchFailedAt < 5_000) return "Вы"
+        if (now - lastAuthorFetchFailedAt.get() < AUTHOR_FETCH_BACKOFF_MS) return "Вы"
 
         val profile = profileRepository.getProfile().getOrNull()
         val resolved = profile?.displayName?.takeIf { it.isNotBlank() }
             ?: profile?.username?.takeIf { it.isNotBlank() }
         if (resolved != null) {
-            authorCache = AuthorCache(currentToken, resolved)
-            lastAuthorFetchFailedAt = 0L
+            authorCache.set(AuthorCache(currentToken, resolved))
+            lastAuthorFetchFailedAt.set(0L)
             return resolved
         }
-        lastAuthorFetchFailedAt = now
+        lastAuthorFetchFailedAt.set(now)
         return "Вы"
     }
 
@@ -423,5 +425,6 @@ class PostDetailActivity : AppCompatActivity() {
         private const val ARTICLE_POST_TYPE = "article"
         private const val OFFLINE_LIKE_CACHED = "OFFLINE_LIKE_CACHED"
         private const val OFFLINE_UNLIKE_CACHED = "OFFLINE_UNLIKE_CACHED"
+        private const val AUTHOR_FETCH_BACKOFF_MS = 5_000L
     }
 }
