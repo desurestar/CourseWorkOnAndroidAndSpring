@@ -56,7 +56,7 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
         val likesCount = data.getIntExtra(PostDetailActivity.EXTRA_RESULT_LIKES_COUNT, -1)
         if (likesCount < 0) return@registerForActivityResult
         val updatedPosts = latestState.posts.map { post ->
-            if (post.id == postId && likesCount >= 0) post.copy(likesCount = likesCount) else post
+            if (post.id == postId) post.copy(likesCount = likesCount) else post
         }
         val updatedLikedIds = latestState.likedIds.toMutableSet().apply {
             if (liked) add(postId) else remove(postId)
