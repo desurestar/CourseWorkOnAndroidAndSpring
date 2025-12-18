@@ -180,14 +180,5 @@
                     android:textColor="@color/text_muted" />
             </LinearLayout>
         </LinearLayout>
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/buttonLike"
-            style="@style/Widget.MaterialComponents.Button.TextButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="end"
-            android:layout_marginTop="8dp"
-            android:text="@string/action_like" />
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>

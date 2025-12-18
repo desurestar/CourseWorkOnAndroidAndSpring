@@ -240,6 +240,12 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
             var currentLikes = post.likesCount
             var hasLiked = likedPreviously
             cardBinding.likesText.text = getString(R.string.likes_format, currentLikes)
+            cardBinding.likesText.setTextColor(
+                ContextCompat.getColor(
+                    this,
+                    if (hasLiked) R.color.recipe_primary else R.color.text_muted
+                )
+            )
 
             val coverUrl = post.coverUrl?.takeIf { it.isNotBlank() }
             cardBinding.postCover.isVisible = coverUrl != null
@@ -251,9 +257,8 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
                 }
             }
 
-            cardBinding.buttonLike.apply {
-                text = if (hasLiked) getString(R.string.action_liked) else getString(R.string.action_like)
-                isEnabled = !hasLiked
+            cardBinding.likesText.apply {
+                isEnabled = true
                 setOnClickListener {
                     if (hasLiked) return@setOnClickListener
                     if (tokenStorage.getToken().isNullOrBlank()) {
@@ -269,7 +274,9 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
                             hasLiked = true
                             likedPostIds.add(post.id)
                             cardBinding.likesText.text = getString(R.string.likes_format, currentLikes)
-                            text = getString(R.string.action_liked)
+                            cardBinding.likesText.setTextColor(
+                                ContextCompat.getColor(this@MainActivity, R.color.recipe_primary)
+                            )
                             if (offlineLike) {
                                 Toast.makeText(
                                     this@MainActivity,
@@ -279,7 +286,7 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
                             }
                         } else {
                             hasLiked = false
-                            text = getString(R.string.action_like)
+                            cardBinding.likesText.text = getString(R.string.likes_format, currentLikes)
                             Toast.makeText(
                                 this@MainActivity,
                                 R.string.error_like_failed,

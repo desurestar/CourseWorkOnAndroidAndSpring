@@ -244,14 +244,6 @@
             </LinearLayout>
         </LinearLayout>
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/buttonLike"
-            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="@string/action_like" />
-
         <LinearLayout
             android:id="@+id/commentsSection"
             android:layout_width="match_parent"
