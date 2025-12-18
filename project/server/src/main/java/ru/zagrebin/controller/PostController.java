@@ -1,18 +1,20 @@
 package ru.zagrebin.controller;
 
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.util.UriComponentsBuilder;
 import ru.zagrebin.dto.*;
 import ru.zagrebin.security.UserPrincipal;
 import ru.zagrebin.service.LikeService;
 import ru.zagrebin.service.PostService;
 
 import java.net.URI;
-import java.util.List;
-
 @RestController
 @RequestMapping("/api/posts")
 public class PostController {
@@ -30,9 +32,24 @@ public class PostController {
      * Возвращает карточки опубликованных постов
      */
     @GetMapping
-    public ResponseEntity<List<PostCardDto>> listPublished() {
-        List<PostCardDto> cards = postService.getAllPublishedPosts();
-        return ResponseEntity.ok(cards);
+    public ResponseEntity<PaginatedResponse<PostCardDto>> listPublished(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(name = "page_size", defaultValue = "6") int pageSize
+    ) {
+        int pageIndex = Math.max(page - 1, 0);
+        Pageable pageable = PageRequest.of(pageIndex, pageSize);
+        Page<PostCardDto> posts = postService.getPostsPageByStatus("published", pageable);
+
+        String next = null;
+        if (posts.hasNext()) {
+            next = UriComponentsBuilder.fromPath("/api/posts")
+                    .queryParam("page", page + 1)
+                    .queryParam("page_size", pageSize)
+                    .build()
+                    .toString();
+        }
+
+        return ResponseEntity.ok(new PaginatedResponse<>(posts.getContent(), next));
     }
 
     /**
