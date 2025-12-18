@@ -1,5 +1,6 @@
 package ru.zagrebin.culinaryblog.data.repository
 
+import android.net.Uri
 import javax.inject.Inject
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
@@ -7,6 +8,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import ru.zagrebin.culinaryblog.data.remote.api.PostApi
 import ru.zagrebin.culinaryblog.data.remote.dto.toModel
 import ru.zagrebin.culinaryblog.model.IngredientItem
+import ru.zagrebin.culinaryblog.model.PaginatedResult
 import ru.zagrebin.culinaryblog.model.PostCard
 import ru.zagrebin.culinaryblog.model.PostCreateRequest
 import ru.zagrebin.culinaryblog.model.PostFull
@@ -15,12 +17,14 @@ import ru.zagrebin.culinaryblog.model.TagItem
 class PostRepositoryImpl @Inject constructor(
     private val api: PostApi
 ): PostRepository {
-    override suspend fun getPublishedPosts(): Result<List<PostCard>> {
+    override suspend fun getPublishedPosts(page: Int, pageSize: Int): Result<PaginatedResult<PostCard>> {
         return try {
-            val resp = api.getPublishedPosts()
+            val resp = api.getPublishedPosts(page = page, pageSize = pageSize)
             if (resp.isSuccessful) {
-                val body = resp.body() ?: emptyList()
-                Result.success(body.map { it.toModel() })
+                val body = resp.body() ?: return Result.failure(RuntimeException("Empty body"))
+                val items = body.results?.map { it.toModel() } ?: emptyList()
+                val nextPage = body.next?.let { Uri.parse(it).getQueryParameter("page")?.toIntOrNull() }
+                Result.success(PaginatedResult(items, nextPage))
             } else {
                 Result.failure(RuntimeException("Server error: ${resp.code()}"))
             }

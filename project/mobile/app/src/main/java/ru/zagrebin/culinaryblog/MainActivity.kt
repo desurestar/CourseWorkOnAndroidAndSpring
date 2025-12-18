@@ -49,8 +49,17 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
             !(currentTab.isFeed() && !binding.postsScroll.canScrollVertically(-1))
         }
 
-        binding.postsScroll.setOnScrollChangeListener { _, _, scrollY, _, _ ->
+        binding.postsScroll.setOnScrollChangeListener { v, _, scrollY, _, _ ->
             binding.buttonScrollTop.isVisible = currentTab.isFeed() && scrollY > scrollTopThresholdPx
+            if (
+                currentTab.isFeed() &&
+                !latestState.isLoading &&
+                !latestState.isAppending &&
+                latestState.nextPage != null &&
+                !v.canScrollVertically(1)
+            ) {
+                postViewModel.loadNextPage()
+            }
         }
         binding.buttonScrollTop.setOnClickListener {
             binding.postsScroll.smoothScrollTo(0, 0)
@@ -136,7 +145,8 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
         binding.swipeRefresh.isRefreshing = state.isLoading && currentTab.isFeed()
 
         val filteredPosts = filterPosts(state.posts)
-        binding.emptyText.isVisible = !state.isLoading && state.error == null && filteredPosts.isEmpty()
+        binding.emptyText.isVisible =
+            !state.isLoading && !state.isAppending && state.error == null && filteredPosts.isEmpty()
 
         renderPosts(filteredPosts)
     }

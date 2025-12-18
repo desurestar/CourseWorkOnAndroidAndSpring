@@ -65,6 +65,7 @@ public class PostServiceImpl implements PostService {
      * Новая реализация: пагинация + двухэтапная загрузка (IDs -> fetch by entity graph).
      * Возвращает страницу PostCardDto, сохраняя порядок по createdAt desc (через ids).
      */
+    @Override
     @Transactional(readOnly = true)
     public Page<PostCardDto> getPostsPageByStatus(String status, Pageable pageable) {
         // 1) Получаем id'шники с учётом пагинации/сортировки

@@ -21,7 +21,10 @@ import ru.zagrebin.culinaryblog.model.PostCreateRequest
 
 interface PostApi {
     @GET("posts")
-    suspend fun getPublishedPosts(): Response<List<PostCardDto>>
+    suspend fun getPublishedPosts(
+        @Query("page") page: Int = 1,
+        @Query("page_size") pageSize: Int = 6
+    ): Response<PaginatedResponseDto<PostCardDto>>
 
     @GET("posts/{id}")
     suspend fun getPost(
