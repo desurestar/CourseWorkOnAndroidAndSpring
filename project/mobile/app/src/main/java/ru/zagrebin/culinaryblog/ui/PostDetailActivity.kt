@@ -9,6 +9,7 @@ import android.util.Log
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.addCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
@@ -51,6 +52,7 @@ class PostDetailActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityPostDetailBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        onBackPressedDispatcher.addCallback(this) { finishWithResult() }
 
         val post = readPostFromIntent()
         if (post == null) {
@@ -409,18 +411,26 @@ class PostDetailActivity : AppCompatActivity() {
         startActivity(Intent(this, AuthActivity::class.java))
     }
 
-    override fun finish() {
+    private fun finishWithResult() {
         if (likeStateChanged && currentPostId > 0) {
             setResult(Activity.RESULT_OK, Intent().apply {
                 putExtra(EXTRA_RESULT_POST_ID, currentPostId)
+                putExtra(EXTRA_RESULT_LIKED, isLiked)
+                putExtra(EXTRA_RESULT_LIKES_COUNT, likesCount)
             })
         }
         super.finish()
     }
 
+    override fun finish() {
+        finishWithResult()
+    }
+
     companion object {
         const val EXTRA_POST = "extra_post"
         const val EXTRA_RESULT_POST_ID = "extra_result_post_id"
+        const val EXTRA_RESULT_LIKED = "extra_result_liked"
+        const val EXTRA_RESULT_LIKES_COUNT = "extra_result_likes_count"
         private const val RECIPE_POST_TYPE = "recipe"
         private const val ARTICLE_POST_TYPE = "article"
         private const val OFFLINE_LIKE_CACHED = "OFFLINE_LIKE_CACHED"

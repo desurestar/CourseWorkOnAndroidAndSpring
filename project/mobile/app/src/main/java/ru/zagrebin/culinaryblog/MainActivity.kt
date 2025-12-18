@@ -42,12 +42,21 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
     @Inject lateinit var tokenStorage: TokenStorage
     @Inject lateinit var postRepository: PostRepository
     private val postDetailLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            val postId = result.data?.getLongExtra(PostDetailActivity.EXTRA_RESULT_POST_ID, -1L) ?: -1L
-            if (postId > 0 && currentTab.isFeed()) {
-                postViewModel.loadPosts()
-            }
+        if (result.resultCode != Activity.RESULT_OK) return@registerForActivityResult
+        val data = result.data ?: return@registerForActivityResult
+        val postId = data.getLongExtra(PostDetailActivity.EXTRA_RESULT_POST_ID, -1L)
+        if (postId <= 0 || !currentTab.isFeed()) return@registerForActivityResult
+
+        val liked = data.getBooleanExtra(PostDetailActivity.EXTRA_RESULT_LIKED, latestState.likedIds.contains(postId))
+        val likesCount = data.getIntExtra(PostDetailActivity.EXTRA_RESULT_LIKES_COUNT, -1)
+        val updatedPosts = latestState.posts.map { post ->
+            if (post.id == postId && likesCount >= 0) post.copy(likesCount = likesCount) else post
         }
+        val updatedLikedIds = latestState.likedIds.toMutableSet().apply {
+            if (liked) add(postId) else remove(postId)
+        }
+        latestState = latestState.copy(posts = updatedPosts, likedIds = updatedLikedIds)
+        renderState(latestState)
     }
 
     private var currentTab: ContentTab = ContentTab.RECIPES
