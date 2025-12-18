@@ -10,6 +10,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.activity.addCallback
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
@@ -51,6 +52,7 @@ class PostDetailActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityPostDetailBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        onBackPressedDispatcher.addCallback(this) { finish() }
 
         val post = readPostFromIntent()
         if (post == null) {
@@ -407,10 +409,6 @@ class PostDetailActivity : AppCompatActivity() {
 
     private fun openAuth() {
         startActivity(Intent(this, AuthActivity::class.java))
-    }
-
-    override fun onBackPressed() {
-        finish()
     }
 
     override fun finish() {
