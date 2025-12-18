@@ -58,7 +58,7 @@ class PostDetailActivity : AppCompatActivity() {
 
         val post = readPostFromIntent()
         if (post == null) {
-            finishWithResult()
+            finish()
             return
         }
         currentPostId = post.id
@@ -414,7 +414,7 @@ class PostDetailActivity : AppCompatActivity() {
     }
 
     private fun finishWithResult() {
-        if (likeStateChanged && currentPostId > 0) {
+        if (likeStateChanged && currentPostId != -1L) {
             setResult(Activity.RESULT_OK, Intent().apply {
                 putExtra(EXTRA_RESULT_POST_ID, currentPostId)
                 putExtra(EXTRA_RESULT_LIKED, isLiked)
