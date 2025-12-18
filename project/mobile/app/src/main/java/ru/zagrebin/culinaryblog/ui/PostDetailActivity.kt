@@ -10,6 +10,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.addCallback
+import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
@@ -47,16 +48,17 @@ class PostDetailActivity : AppCompatActivity() {
     private var likesCount: Int = 0
     private var likeStateChanged: Boolean = false
     private var replyTo: Comment? = null
+    private var backPressedCallback: OnBackPressedCallback? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityPostDetailBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        onBackPressedDispatcher.addCallback(this) { finishWithResult() }
+        backPressedCallback = onBackPressedDispatcher.addCallback(this) { finishWithResult() }
 
         val post = readPostFromIntent()
         if (post == null) {
-            finish()
+            finishWithResult()
             return
         }
         currentPostId = post.id
@@ -422,8 +424,10 @@ class PostDetailActivity : AppCompatActivity() {
         super.finish()
     }
 
-    override fun finish() {
-        finishWithResult()
+    override fun onDestroy() {
+        backPressedCallback?.remove()
+        backPressedCallback = null
+        super.onDestroy()
     }
 
     companion object {

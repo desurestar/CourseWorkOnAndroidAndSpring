@@ -45,10 +45,16 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
         if (result.resultCode != Activity.RESULT_OK) return@registerForActivityResult
         val data = result.data ?: return@registerForActivityResult
         val postId = data.getLongExtra(PostDetailActivity.EXTRA_RESULT_POST_ID, -1L)
-        if (postId <= 0 || !currentTab.isFeed()) return@registerForActivityResult
+        if (
+            postId <= 0 ||
+            !currentTab.isFeed() ||
+            !data.hasExtra(PostDetailActivity.EXTRA_RESULT_LIKED) ||
+            !data.hasExtra(PostDetailActivity.EXTRA_RESULT_LIKES_COUNT)
+        ) return@registerForActivityResult
 
-        val liked = data.getBooleanExtra(PostDetailActivity.EXTRA_RESULT_LIKED, latestState.likedIds.contains(postId))
+        val liked = data.getBooleanExtra(PostDetailActivity.EXTRA_RESULT_LIKED, false)
         val likesCount = data.getIntExtra(PostDetailActivity.EXTRA_RESULT_LIKES_COUNT, -1)
+        if (likesCount < 0) return@registerForActivityResult
         val updatedPosts = latestState.posts.map { post ->
             if (post.id == postId && likesCount >= 0) post.copy(likesCount = likesCount) else post
         }
