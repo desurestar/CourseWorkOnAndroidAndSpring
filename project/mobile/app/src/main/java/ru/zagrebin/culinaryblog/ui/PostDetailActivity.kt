@@ -29,7 +29,6 @@ import ru.zagrebin.culinaryblog.model.PostFull
 import ru.zagrebin.culinaryblog.model.PostStep
 import ru.zagrebin.culinaryblog.model.Comment
 import javax.inject.Inject
-import kotlin.jvm.Volatile
 
 @AndroidEntryPoint
 class PostDetailActivity : AppCompatActivity() {
@@ -392,8 +391,8 @@ class PostDetailActivity : AppCompatActivity() {
 
     private data class AuthorCache(val token: String?, val name: String)
 
-    @Volatile private var authorCache: AuthorCache? = null
-    @Volatile private var lastAuthorFetchFailedAt: Long = 0L
+    @kotlin.jvm.Volatile private var authorCache: AuthorCache? = null
+    @kotlin.jvm.Volatile private var lastAuthorFetchFailedAt: Long = 0L
 
     private suspend fun resolveAuthorName(): String {
         val currentToken = tokenStorage.getToken()
@@ -408,7 +407,7 @@ class PostDetailActivity : AppCompatActivity() {
         if (resolved != null) {
             authorCache = AuthorCache(currentToken, resolved)
             lastAuthorFetchFailedAt = 0L
-            return authorCache?.name ?: resolved
+            return resolved
         }
         lastAuthorFetchFailedAt = now
         return "Вы"
