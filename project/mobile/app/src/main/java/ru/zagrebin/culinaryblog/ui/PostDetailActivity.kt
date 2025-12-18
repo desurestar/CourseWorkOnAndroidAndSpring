@@ -1,5 +1,6 @@
 package ru.zagrebin.culinaryblog.ui
 
+import android.app.Activity
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
@@ -8,6 +9,8 @@ import android.util.Log
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.addCallback
+import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
@@ -43,12 +46,15 @@ class PostDetailActivity : AppCompatActivity() {
     private var currentPostId: Long = -1
     private var isLiked: Boolean = false
     private var likesCount: Int = 0
+    private var likeStateChanged: Boolean = false
     private var replyTo: Comment? = null
+    private var backPressedCallback: OnBackPressedCallback? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityPostDetailBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        backPressedCallback = onBackPressedDispatcher.addCallback(this) { finishWithResult() }
 
         val post = readPostFromIntent()
         if (post == null) {
@@ -292,6 +298,7 @@ class PostDetailActivity : AppCompatActivity() {
             if (result.isSuccess || offlineHandled) {
                 isLiked = !isLiked
                 likesCount = (likesCount + if (isLiked) 1 else -1).coerceAtLeast(0)
+                likeStateChanged = true
                 updateLikeUi()
                 if (offlineHandled) {
                     Toast.makeText(
@@ -406,8 +413,28 @@ class PostDetailActivity : AppCompatActivity() {
         startActivity(Intent(this, AuthActivity::class.java))
     }
 
+    private fun finishWithResult() {
+        if (likeStateChanged && currentPostId != -1L) {
+            setResult(Activity.RESULT_OK, Intent().apply {
+                putExtra(EXTRA_RESULT_POST_ID, currentPostId)
+                putExtra(EXTRA_RESULT_LIKED, isLiked)
+                putExtra(EXTRA_RESULT_LIKES_COUNT, likesCount)
+            })
+        }
+        super.finish()
+    }
+
+    override fun onDestroy() {
+        backPressedCallback?.remove()
+        backPressedCallback = null
+        super.onDestroy()
+    }
+
     companion object {
         const val EXTRA_POST = "extra_post"
+        const val EXTRA_RESULT_POST_ID = "extra_result_post_id"
+        const val EXTRA_RESULT_LIKED = "extra_result_liked"
+        const val EXTRA_RESULT_LIKES_COUNT = "extra_result_likes_count"
         private const val RECIPE_POST_TYPE = "recipe"
         private const val ARTICLE_POST_TYPE = "article"
         private const val OFFLINE_LIKE_CACHED = "OFFLINE_LIKE_CACHED"
