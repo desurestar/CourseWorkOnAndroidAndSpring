@@ -4,6 +4,7 @@ import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.text.Layout
+import android.util.Log
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
@@ -20,6 +21,7 @@ import ru.zagrebin.culinaryblog.R
 import ru.zagrebin.culinaryblog.AuthActivity
 import ru.zagrebin.culinaryblog.data.repository.CommentRepository
 import ru.zagrebin.culinaryblog.data.repository.PostRepository
+import ru.zagrebin.culinaryblog.data.repository.ProfileRepository
 import ru.zagrebin.culinaryblog.data.storage.TokenStorage
 import ru.zagrebin.culinaryblog.databinding.ActivityPostDetailBinding
 import ru.zagrebin.culinaryblog.formatDisplayDate
@@ -35,6 +37,7 @@ class PostDetailActivity : AppCompatActivity() {
     private lateinit var binding: ActivityPostDetailBinding
     @Inject lateinit var postRepository: PostRepository
     @Inject lateinit var commentRepository: CommentRepository
+    @Inject lateinit var profileRepository: ProfileRepository
     @Inject lateinit var tokenStorage: TokenStorage
 
     private var currentPostId: Long = -1
@@ -375,10 +378,28 @@ class PostDetailActivity : AppCompatActivity() {
             return
         }
 
-        val author = "Вы"
-        commentRepository.addComment(currentPostId, author, text, replyTo?.id)
-        binding.inputComment.text?.clear()
-        clearReplyTarget()
+        lifecycleScope.launch {
+            try {
+                val author = resolveAuthorName()
+                commentRepository.addComment(currentPostId, author, text, replyTo?.id)
+                binding.inputComment.text?.clear()
+                clearReplyTarget()
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to add comment", e)
+                Toast.makeText(this@PostDetailActivity, R.string.error_posting_comment, Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private suspend fun resolveAuthorName(): String {
+        val profileResult = profileRepository.getProfile()
+        profileResult.exceptionOrNull()?.let {
+            Log.w(TAG, "Failed to fetch profile for comment author", it)
+        }
+        val profile = profileResult.getOrNull() ?: return getString(R.string.comment_author_you)
+        return profile.displayName?.takeIf { it.isNotBlank() }
+            ?: profile.username?.takeIf { it.isNotBlank() }
+            ?: getString(R.string.comment_author_you)
     }
 
     private fun openAuth() {
@@ -391,5 +412,6 @@ class PostDetailActivity : AppCompatActivity() {
         private const val ARTICLE_POST_TYPE = "article"
         private const val OFFLINE_LIKE_CACHED = "OFFLINE_LIKE_CACHED"
         private const val OFFLINE_UNLIKE_CACHED = "OFFLINE_UNLIKE_CACHED"
+        private const val TAG = "PostDetailActivity"
     }
 }
