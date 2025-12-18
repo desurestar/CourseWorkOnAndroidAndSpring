@@ -31,6 +31,8 @@ import ru.zagrebin.culinaryblog.ui.PostDetailActivity
 import ru.zagrebin.culinaryblog.ui.ProfileFragment
 import ru.zagrebin.culinaryblog.viewmodel.PostViewModel
 import ru.zagrebin.culinaryblog.viewmodel.PostsUiState
+import ru.zagrebin.culinaryblog.data.repository.OFFLINE_LIKE_CACHED
+import ru.zagrebin.culinaryblog.data.repository.OFFLINE_UNLIKE_CACHED
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -477,8 +479,6 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
         const val EXTRA_TAB_ARTICLES = "tab_articles"
         private const val STATE_LIKED_POSTS = "state_liked_posts"
         private const val TAG = "MainActivity"
-        private const val OFFLINE_LIKE_CACHED = "OFFLINE_LIKE_CACHED"
-        private const val OFFLINE_UNLIKE_CACHED = "OFFLINE_UNLIKE_CACHED"
         private val OFFLINE_CACHE_MESSAGES = setOf(OFFLINE_LIKE_CACHED, OFFLINE_UNLIKE_CACHED)
     }
 
