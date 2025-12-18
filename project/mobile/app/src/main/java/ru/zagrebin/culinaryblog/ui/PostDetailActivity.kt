@@ -61,7 +61,7 @@ class PostDetailActivity : AppCompatActivity() {
     }
 
     private fun setupInteractions() {
-        binding.buttonLike.setOnClickListener { toggleLike() }
+        binding.likesText.setOnClickListener { toggleLike() }
         binding.buttonSendComment.setOnClickListener { sendComment() }
         binding.buttonCancelReply.setOnClickListener { clearReplyTarget() }
         updateLikeUi()
@@ -309,7 +309,8 @@ class PostDetailActivity : AppCompatActivity() {
 
     private fun updateLikeUi() {
         binding.likesText.text = getString(R.string.likes_format, likesCount)
-        binding.buttonLike.text = if (isLiked) getString(R.string.action_unlike) else getString(R.string.action_like)
+        val color = if (isLiked) R.color.recipe_primary else R.color.text_muted
+        binding.likesText.setTextColor(ContextCompat.getColor(this, color))
     }
 
     private fun collectComments(postId: Long) {

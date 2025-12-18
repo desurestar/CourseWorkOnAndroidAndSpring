@@ -1,5 +1,10 @@
 package ru.zagrebin.culinaryblog.data.repository
 
+import android.content.Context
+import androidx.core.content.edit
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
+import dagger.hilt.android.qualifiers.ApplicationContext
 import java.time.OffsetDateTime
 import java.util.concurrent.atomic.AtomicLong
 import javax.inject.Inject
@@ -9,10 +14,15 @@ import kotlinx.coroutines.flow.StateFlow
 import ru.zagrebin.culinaryblog.model.Comment
 
 @Singleton
-class CommentRepository @Inject constructor() {
+class CommentRepository @Inject constructor(
+    @ApplicationContext context: Context,
+    private val gson: Gson
+) {
 
+    private val prefs = context.getSharedPreferences("comments_storage", Context.MODE_PRIVATE)
     private val comments = mutableMapOf<Long, MutableStateFlow<List<Comment>>>()
     private val idGenerator = AtomicLong(1_000)
+    private val listType = object : TypeToken<List<Comment>>() {}.type
 
     fun getComments(postId: Long): StateFlow<List<Comment>> = getFlow(postId)
 
@@ -27,11 +37,33 @@ class CommentRepository @Inject constructor() {
             parentId = parentId
         )
         flow.value = flow.value + newComment
+        persist(postId, flow.value)
         return newComment
     }
 
     private fun getFlow(postId: Long): MutableStateFlow<List<Comment>> {
-        return comments.getOrPut(postId) { MutableStateFlow(seedComments(postId)) }
+        return comments.getOrPut(postId) {
+            val initial = loadComments(postId)
+            updateIdGenerator(initial)
+            MutableStateFlow(initial)
+        }
+    }
+
+    private fun loadComments(postId: Long): List<Comment> {
+        val raw = prefs.getString(key(postId), null) ?: return seedComments(postId)
+        return runCatching { gson.fromJson<List<Comment>>(raw, listType) }.getOrElse { seedComments(postId) }
+    }
+
+    private fun persist(postId: Long, items: List<Comment>) {
+        prefs.edit { putString(key(postId), gson.toJson(items, listType)) }
+        updateIdGenerator(items)
+    }
+
+    private fun key(postId: Long): String = "comments_$postId"
+
+    private fun updateIdGenerator(items: List<Comment>) {
+        val maxId = items.maxOfOrNull { it.id } ?: return
+        idGenerator.updateAndGet { current -> maxOf(current, maxId + 1) }
     }
 
     private fun seedComments(postId: Long): List<Comment> {

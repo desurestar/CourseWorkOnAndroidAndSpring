@@ -47,6 +47,15 @@ class PostViewModel @Inject constructor(
         viewModelScope.launch {
             val likedIds = repository.getLikedPostIds().getOrDefault(emptySet())
             val drafts = repository.getDrafts().getOrDefault(emptyList())
+            val cached = repository.getCachedPosts()
+            if (cached.isNotEmpty()) {
+                _uiState.value = _uiState.value.copy(
+                    posts = cached,
+                    likedIds = likedIds,
+                    drafts = drafts,
+                    offline = false
+                )
+            }
             val res = repository.getPublishedPosts()
             if (res.isSuccess) {
                 val page = res.getOrDefault(PaginatedResult(emptyList(), null))
@@ -60,14 +69,14 @@ class PostViewModel @Inject constructor(
                     offline = false
                 )
             } else {
-                val cached = when (val ex = res.exceptionOrNull()) {
+                val cachedFallback = when (val ex = res.exceptionOrNull()) {
                     is OfflineCacheException -> ex.cached
-                    else -> repository.getCachedPosts()
+                    else -> if (cached.isNotEmpty()) cached else repository.getCachedPosts()
                 }
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     isAppending = false,
-                    posts = cached,
+                    posts = cachedFallback,
                     nextPage = null,
                     error = res.exceptionOrNull()?.message ?: "Unknown",
                     likedIds = likedIds,
