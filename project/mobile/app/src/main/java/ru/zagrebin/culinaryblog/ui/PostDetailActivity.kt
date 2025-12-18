@@ -4,6 +4,7 @@ import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.text.Layout
+import android.util.Log
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
@@ -45,6 +46,10 @@ class PostDetailActivity : AppCompatActivity() {
     private var isLiked: Boolean = false
     private var likesCount: Int = 0
     private var replyTo: Comment? = null
+
+    private data class AuthorCache(val token: String?, val name: String)
+    private val authorCache = AtomicReference<AuthorCache?>()
+    private val lastAuthorFetchFailedAt = AtomicLong(0L)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -398,7 +403,11 @@ class PostDetailActivity : AppCompatActivity() {
         val now = System.currentTimeMillis()
         if (now - lastAuthorFetchFailedAt.get() < AUTHOR_FETCH_BACKOFF_MS) return getString(R.string.comment_author_you)
 
-        val profile = profileRepository.getProfile().getOrNull()
+        val profileResult = profileRepository.getProfile()
+        profileResult.exceptionOrNull()?.let {
+            Log.w(TAG, "Failed to fetch profile for comment author", it)
+        }
+        val profile = profileResult.getOrNull()
         val resolved = profile?.displayName?.takeIf { it.isNotBlank() }
             ?: profile?.username?.takeIf { it.isNotBlank() }
         if (resolved != null) {
@@ -421,8 +430,6 @@ class PostDetailActivity : AppCompatActivity() {
         private const val OFFLINE_LIKE_CACHED = "OFFLINE_LIKE_CACHED"
         private const val OFFLINE_UNLIKE_CACHED = "OFFLINE_UNLIKE_CACHED"
         private const val AUTHOR_FETCH_BACKOFF_MS = 5_000L
-        private data class AuthorCache(val token: String?, val name: String)
-        private val authorCache = AtomicReference<AuthorCache?>()
-        private val lastAuthorFetchFailedAt = AtomicLong(0L)
+        private const val TAG = "PostDetailActivity"
     }
 }
