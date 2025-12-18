@@ -391,17 +391,12 @@ class PostDetailActivity : AppCompatActivity() {
         }
     }
 
-    private data class AuthorCache(val token: String?, val name: String)
-
-    private val authorCache = AtomicReference<AuthorCache?>()
-    private val lastAuthorFetchFailedAt = AtomicLong(0L)
-
     private suspend fun resolveAuthorName(): String {
         val currentToken = tokenStorage.getToken()
         authorCache.get()?.takeIf { it.token == currentToken }?.let { return it.name }
 
         val now = System.currentTimeMillis()
-        if (now - lastAuthorFetchFailedAt.get() < AUTHOR_FETCH_BACKOFF_MS) return "Вы"
+        if (now - lastAuthorFetchFailedAt.get() < AUTHOR_FETCH_BACKOFF_MS) return getString(R.string.comment_author_you)
 
         val profile = profileRepository.getProfile().getOrNull()
         val resolved = profile?.displayName?.takeIf { it.isNotBlank() }
@@ -412,7 +407,7 @@ class PostDetailActivity : AppCompatActivity() {
             return resolved
         }
         lastAuthorFetchFailedAt.set(now)
-        return "Вы"
+        return getString(R.string.comment_author_you)
     }
 
     private fun openAuth() {
@@ -426,5 +421,8 @@ class PostDetailActivity : AppCompatActivity() {
         private const val OFFLINE_LIKE_CACHED = "OFFLINE_LIKE_CACHED"
         private const val OFFLINE_UNLIKE_CACHED = "OFFLINE_UNLIKE_CACHED"
         private const val AUTHOR_FETCH_BACKOFF_MS = 5_000L
+        private data class AuthorCache(val token: String?, val name: String)
+        private val authorCache = AtomicReference<AuthorCache?>()
+        private val lastAuthorFetchFailedAt = AtomicLong(0L)
     }
 }

@@ -37,6 +37,7 @@
     <string name="ingredients_title">Ингредиенты</string>
     <string name="steps_title">Шаги приготовления</string>
     <string name="comments_title">Комментарии</string>
+    <string name="comment_author_you">Вы</string>
     <string name="comments_stub">Здесь пока нет комментариев. Оставьте первый!</string>
     <string name="steps_stub">Шаги рецепта скоро появятся.</string>
     <string name="ingredients_stub">Список ингредиентов пока не указан.</string>
