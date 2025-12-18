@@ -107,6 +107,13 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        if (currentTab.isFeed()) {
+            postViewModel.loadPosts()
+        }
+    }
+
     private fun applySelection(itemId: Int) {
         val previousTab = currentTab
         val nextTab = when (itemId) {
