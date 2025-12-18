@@ -81,7 +81,7 @@
                     android:layout_height="wrap_content"
                     android:text="@string/profile_email_stub"
                     android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
-                    android:textColor="#6A6A6A" />
+                    android:textColor="@color/text_caption" />
             </LinearLayout>
 
             <Button
@@ -190,7 +190,7 @@
             app:tabIndicatorColor="@color/recipe_primary"
             app:tabRippleColor="@color/recipe_primary_light"
             app:tabSelectedTextColor="@color/recipe_primary"
-            app:tabTextColor="#6A6A6A" />
+            app:tabTextColor="@color/text_caption" />
 
         <LinearLayout
             android:id="@+id/sectionFollowers"
@@ -280,7 +280,7 @@
                 android:layout_marginTop="10dp"
                 android:text="@string/profile_empty"
                 android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
-                android:textColor="#6A6A6A"
+                android:textColor="@color/text_caption"
                 android:visibility="gone" />
         </LinearLayout>
     </ScrollView>

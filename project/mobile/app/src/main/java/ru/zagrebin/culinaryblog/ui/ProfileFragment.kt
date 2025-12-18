@@ -32,6 +32,7 @@ import kotlin.math.max
 import ru.zagrebin.culinaryblog.AuthActivity
 import ru.zagrebin.culinaryblog.MainActivity
 import ru.zagrebin.culinaryblog.R
+import ru.zagrebin.culinaryblog.formatDisplayDate
 import ru.zagrebin.culinaryblog.data.storage.TokenStorage
 import ru.zagrebin.culinaryblog.databinding.ActivityProfileBinding
 import ru.zagrebin.culinaryblog.model.PostCard
@@ -370,7 +371,7 @@ class ProfileFragment : Fragment() {
             view.findViewById<TextView>(R.id.miniPostExcerpt).text =
                 post.excerpt.ifBlank { getString(R.string.card_excerpt_placeholder) }
             view.findViewById<TextView>(R.id.miniPostMeta).text =
-                post.publishedAt ?: getString(R.string.published_unknown)
+                formatDisplayDate(post.publishedAt) ?: getString(R.string.published_unknown)
             view.findViewById<TextView>(R.id.miniPostLikes).text =
                 getString(R.string.likes_format, post.likesCount)
             val coverUrl = post.coverUrl?.takeIf { it.isNotBlank() }

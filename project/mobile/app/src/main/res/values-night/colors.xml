@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="recipe_background">#0F1410</color>
+    <color name="recipe_primary">#D9F2E0</color>
+    <color name="recipe_primary_light">#2C4132</color>
+    <color name="recipe_card">#1A241A</color>
+    <color name="recipe_button">#3E6C44</color>
+    <color name="text_secondary">#E8E2D6</color>
+    <color name="text_caption">#C9D1C7</color>
+    <color name="text_muted">#B4BCAF</color>
+    <color name="text_error">#FF8A80</color>
+    <color name="text_empty">#C9D1C7</color>
+</resources>

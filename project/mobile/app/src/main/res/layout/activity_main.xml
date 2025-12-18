@@ -37,7 +37,7 @@
                     android:layout_marginTop="8dp"
                     android:text="@string/error_loading"
                     android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
-                    android:textColor="#B00020"
+                    android:textColor="@color/text_error"
                     android:visibility="gone" />
 
                 <TextView
@@ -47,7 +47,7 @@
                     android:layout_marginTop="8dp"
                     android:text="@string/empty_posts"
                     android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
-                    android:textColor="#8A7A66"
+                    android:textColor="@color/text_empty"
                     android:visibility="gone" />
 
                 <ScrollView

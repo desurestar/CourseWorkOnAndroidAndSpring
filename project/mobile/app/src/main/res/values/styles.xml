@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <style name="RoundedBottomNav" parent="Widget.MaterialComponents.BottomNavigationView">
-        <item name="backgroundTint">@android:color/white</item>
+        <item name="backgroundTint">@color/recipe_card</item>
         <item name="shapeAppearanceOverlay">@style/ShapeAppearanceOverlay.App.Rounded</item>
         <item name="itemIconTint">@color/recipe_primary</item>
         <item name="itemTextColor">@color/recipe_primary</item>

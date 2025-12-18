@@ -21,6 +21,7 @@ import ru.zagrebin.culinaryblog.data.repository.CommentRepository
 import ru.zagrebin.culinaryblog.data.repository.PostRepository
 import ru.zagrebin.culinaryblog.data.storage.TokenStorage
 import ru.zagrebin.culinaryblog.databinding.ActivityPostDetailBinding
+import ru.zagrebin.culinaryblog.formatDisplayDate
 import ru.zagrebin.culinaryblog.model.PostCard
 import ru.zagrebin.culinaryblog.model.PostFull
 import ru.zagrebin.culinaryblog.model.PostStep
@@ -74,7 +75,7 @@ class PostDetailActivity : AppCompatActivity() {
                 ?: getString(R.string.author_unknown)
         binding.avatarInitial.text = post.authorName?.firstOrNull()?.uppercase() ?: "?"
         binding.postType.text = formatType(post.postType)
-        binding.publishedAt.text = post.publishedAt ?: getString(R.string.published_unknown)
+        binding.publishedAt.text = formatDisplayDate(post.publishedAt) ?: getString(R.string.published_unknown)
 
         binding.postTitle.text = post.title.ifBlank { getString(R.string.card_title_placeholder) }
         binding.postDescription.text =
@@ -105,7 +106,7 @@ class PostDetailActivity : AppCompatActivity() {
                 ?: getString(R.string.author_unknown)
         binding.avatarInitial.text = post.author?.displayName?.firstOrNull()?.uppercase() ?: "?"
         binding.postType.text = formatType(post.postType)
-        binding.publishedAt.text = post.createdAt ?: getString(R.string.published_unknown)
+        binding.publishedAt.text = formatDisplayDate(post.createdAt) ?: getString(R.string.published_unknown)
 
         binding.postTitle.text = post.title?.ifBlank { getString(R.string.card_title_placeholder) }
             ?: getString(R.string.card_title_placeholder)
@@ -305,13 +306,18 @@ class PostDetailActivity : AppCompatActivity() {
         fun renderLevel(parentId: Long?, depth: Int) {
             val level = byParent[parentId] ?: return
             level.forEach { comment ->
-                val view = layoutInflater.inflate(android.R.layout.simple_list_item_2, binding.commentsList, false)
-                val title = view.findViewById<TextView>(android.R.id.text1)
-                val body = view.findViewById<TextView>(android.R.id.text2)
-                val date = comment.createdAt.substringBefore("T")
-                title.text = "${comment.authorName} • $date"
-                body.text = comment.message
-                val paddingStart = (depth * 28) + view.paddingStart
+                val view = layoutInflater.inflate(R.layout.item_comment, binding.commentsList, false)
+                val avatar = view.findViewById<TextView>(R.id.commentAvatar)
+                val author = view.findViewById<TextView>(R.id.commentAuthor)
+                val date = view.findViewById<TextView>(R.id.commentDate)
+                val message = view.findViewById<TextView>(R.id.commentMessage)
+
+                avatar.text = comment.authorName.firstOrNull()?.uppercase() ?: "?"
+                author.text = comment.authorName
+                date.text = formatDisplayDate(comment.createdAt) ?: getString(R.string.published_unknown)
+                message.text = comment.message
+
+                val paddingStart = (depth * resources.getDimensionPixelSize(R.dimen.comment_indent)) + view.paddingStart
                 view.setPaddingRelative(paddingStart, view.paddingTop, view.paddingEnd, view.paddingBottom)
                 view.setOnClickListener { setReplyTarget(comment) }
                 binding.commentsList.addView(view)

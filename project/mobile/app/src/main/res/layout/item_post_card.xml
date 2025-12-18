@@ -69,7 +69,7 @@
                 android:gravity="end"
                 android:text="@string/published_unknown"
                 android:textAppearance="@style/TextAppearance.MaterialComponents.Caption"
-                android:textColor="#6A6A6A" />
+                android:textColor="@color/text_caption" />
         </LinearLayout>
 
         <ImageView
@@ -91,14 +91,14 @@
             android:textColor="@color/recipe_primary"
             android:textStyle="bold" />
 
-        <TextView
-            android:id="@+id/postExcerpt"
+            <TextView
+                android:id="@+id/postExcerpt"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
             android:text="@string/card_excerpt_placeholder"
             android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
-            android:textColor="#4A4034"
+            android:textColor="@color/text_secondary"
             android:textStyle="italic" />
 
         <com.google.android.material.chip.ChipGroup
@@ -154,7 +154,7 @@
                     android:layout_height="wrap_content"
                     android:text="@string/views_placeholder"
                     android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
-                    android:textColor="#4D4D4D" />
+                    android:textColor="@color/text_muted" />
 
                 <TextView
                     android:id="@+id/likesText"
@@ -163,7 +163,7 @@
                     android:layout_marginTop="2dp"
                     android:text="@string/likes_placeholder"
                     android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
-                    android:textColor="#4D4D4D" />
+                    android:textColor="@color/text_muted" />
             </LinearLayout>
         </LinearLayout>
     </LinearLayout>

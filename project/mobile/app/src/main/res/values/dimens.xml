@@ -4,4 +4,5 @@
     <dimen name="step_item_margin_bottom">8dp</dimen>
     <dimen name="step_item_image_height">180dp</dimen>
     <dimen name="step_item_image_margin_top">6dp</dimen>
+    <dimen name="comment_indent">24dp</dimen>
 </resources>

@@ -29,7 +29,7 @@
             app:tabIndicatorColor="@color/recipe_primary"
             app:tabRippleColor="@color/recipe_primary_light"
             app:tabSelectedTextColor="@color/recipe_primary"
-            app:tabTextColor="#6A6A6A" />
+            app:tabTextColor="@color/text_caption" />
 
         <LinearLayout
             android:id="@+id/loginForm"

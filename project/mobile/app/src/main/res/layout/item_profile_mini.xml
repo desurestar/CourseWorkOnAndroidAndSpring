@@ -50,7 +50,7 @@
                 android:layout_height="wrap_content"
                 android:text="@string/profile_email_stub"
                 android:textAppearance="@style/TextAppearance.MaterialComponents.Caption"
-                android:textColor="#6A6A6A" />
+                android:textColor="@color/text_caption" />
         </LinearLayout>
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>
