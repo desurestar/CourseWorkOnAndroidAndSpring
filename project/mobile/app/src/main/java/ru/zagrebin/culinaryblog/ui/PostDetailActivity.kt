@@ -2,6 +2,7 @@ package ru.zagrebin.culinaryblog.ui
 
 import android.app.Activity
 import android.content.Intent
+import android.graphics.text.LineBreaker
 import android.os.Build
 import android.os.Bundle
 import android.text.Layout
@@ -29,7 +30,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import ru.zagrebin.culinaryblog.R
 import ru.zagrebin.culinaryblog.AuthActivity
-import ru.zagrebin.culinaryblog.CreatePostActivity
+import ru.zagrebin.culinaryblog.ui.CreatePostActivity
 import ru.zagrebin.culinaryblog.MainActivity
 import ru.zagrebin.culinaryblog.data.repository.CommentRepository
 import ru.zagrebin.culinaryblog.data.repository.PostRepository
@@ -235,7 +236,7 @@ class PostDetailActivity : AppCompatActivity() {
                 setTextColor(ContextCompat.getColor(this@PostDetailActivity, R.color.recipe_primary))
                 textSize = 16f
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    justificationMode = Layout.JUSTIFICATION_MODE_INTER_WORD
+                    justificationMode = LineBreaker.JUSTIFICATION_MODE_INTER_WORD
                 }
             }
             container.addView(textView)
