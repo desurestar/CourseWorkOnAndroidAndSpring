@@ -8,12 +8,12 @@ plugins {
 
 android {
     namespace = "ru.zagrebin.culinaryblog"
-    compileSdk = 36
+    compileSdk = 34
 
     defaultConfig {
         applicationId = "ru.zagrebin.culinaryblog"
         minSdk = 30
-        targetSdk = 36
+        targetSdk = 34
         versionCode = 1
         versionName = "1.0"
 
