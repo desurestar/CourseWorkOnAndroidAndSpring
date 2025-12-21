@@ -24,6 +24,7 @@ import kotlinx.coroutines.launch
 import java.util.EnumMap
 import ru.zagrebin.culinaryblog.AuthActivity
 import ru.zagrebin.culinaryblog.databinding.ActivityMainBinding
+import ru.zagrebin.culinaryblog.databinding.ItemPostCardBinding
 import ru.zagrebin.culinaryblog.data.repository.PostRepository
 import ru.zagrebin.culinaryblog.model.PostCard
 import ru.zagrebin.culinaryblog.data.storage.TokenStorage
@@ -35,6 +36,7 @@ import ru.zagrebin.culinaryblog.viewmodel.PostViewModel
 import ru.zagrebin.culinaryblog.viewmodel.PostsUiState
 import ru.zagrebin.culinaryblog.data.repository.OFFLINE_LIKE_CACHED
 import ru.zagrebin.culinaryblog.data.repository.OFFLINE_UNLIKE_CACHED
+import ru.zagrebin.culinaryblog.util.renderAvatar
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -244,7 +246,7 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
     private fun renderPosts(posts: List<PostCard>) {
         binding.postsContainer.removeAllViews()
         posts.forEach { post ->
-            val cardBinding = ru.zagrebin.culinaryblog.databinding.ItemPostCardBinding.inflate(
+            val cardBinding = ItemPostCardBinding.inflate(
                 layoutInflater,
                 binding.postsContainer,
                 false
@@ -253,10 +255,17 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
             cardBinding.authorName.text =
                 post.authorName?.ifBlank { getString(R.string.author_unknown) }
                     ?: getString(R.string.author_unknown)
-            cardBinding.avatarInitial.text = post.authorName?.firstOrNull()?.uppercase() ?: "?"
             val openAuthor = View.OnClickListener { openAuthorProfile(post) }
             cardBinding.authorName.setOnClickListener(openAuthor)
-            cardBinding.avatarInitial.setOnClickListener(openAuthor)
+            val avatarUrl = post.authorAvatarUrl?.takeIf { it.isNotBlank() }
+            renderAvatar(cardBinding.avatarImage, cardBinding.avatarInitial, avatarUrl, post.authorName)
+            if (avatarUrl != null) {
+                cardBinding.avatarImage.setOnClickListener(openAuthor)
+                cardBinding.avatarInitial.setOnClickListener(null)
+            } else {
+                cardBinding.avatarImage.setOnClickListener(null)
+                cardBinding.avatarInitial.setOnClickListener(openAuthor)
+            }
             cardBinding.publishedAt.text =
                 formatDisplayDate(post.publishedAt) ?: getString(R.string.published_unknown)
             cardBinding.postTitle.text = post.title.ifBlank { getString(R.string.card_title_placeholder) }

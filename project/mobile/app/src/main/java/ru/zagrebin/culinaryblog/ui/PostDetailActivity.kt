@@ -38,6 +38,7 @@ import ru.zagrebin.culinaryblog.model.PostFull
 import ru.zagrebin.culinaryblog.model.PostAuthor
 import ru.zagrebin.culinaryblog.model.PostStep
 import ru.zagrebin.culinaryblog.model.Comment
+import ru.zagrebin.culinaryblog.util.renderAvatar
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -93,8 +94,8 @@ class PostDetailActivity : AppCompatActivity() {
         binding.authorName.text =
             post.authorName?.ifBlank { getString(R.string.author_unknown) }
                 ?: getString(R.string.author_unknown)
-        binding.avatarInitial.text = post.authorName?.firstOrNull()?.uppercase() ?: "?"
-        author = PostAuthor(post.authorId, post.authorName, null, null)
+        renderAvatar(binding.avatarImage, binding.avatarInitial, post.authorAvatarUrl, post.authorName)
+        author = PostAuthor(post.authorId, post.authorName, post.authorAvatarUrl, null)
         binding.postType.text = formatType(post.postType)
         binding.publishedAt.text = formatDisplayDate(post.publishedAt) ?: getString(R.string.published_unknown)
 
@@ -130,7 +131,7 @@ class PostDetailActivity : AppCompatActivity() {
         binding.authorName.text =
             post.author?.displayName?.ifBlank { getString(R.string.author_unknown) }
                 ?: getString(R.string.author_unknown)
-        binding.avatarInitial.text = post.author?.displayName?.firstOrNull()?.uppercase() ?: "?"
+        renderAvatar(binding.avatarImage, binding.avatarInitial, post.author?.avatarUrl, post.author?.displayName)
         author = post.author
         binding.postType.text = formatType(post.postType)
         binding.publishedAt.text = formatDisplayDate(post.createdAt) ?: getString(R.string.published_unknown)

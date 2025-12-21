@@ -104,4 +104,8 @@ class CreatePostViewModel @Inject constructor(
             }
         }
     }
+
+    fun clearCreated() {
+        _state.update { it.copy(created = null) }
+    }
 }

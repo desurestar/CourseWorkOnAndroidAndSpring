@@ -15,6 +15,7 @@ data class PostCard(
     val cookingTimeMinutes: Int?,
     val calories: Int?,
     val authorName: String?,
+    val authorAvatarUrl: String? = null,
     val publishedAt: String?,
     val tags: Set<String>?,
     val viewsCount: Long?

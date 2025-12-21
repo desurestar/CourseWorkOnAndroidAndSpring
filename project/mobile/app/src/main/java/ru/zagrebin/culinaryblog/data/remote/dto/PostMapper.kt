@@ -19,6 +19,7 @@ fun PostCardDto.toModel(): PostCard = PostCard(
     cookingTimeMinutes = cookingTimeMinutes,
     calories = calories,
     authorName = authorName,
+    authorAvatarUrl = resolveUrl(authorAvatarUrl),
     publishedAt = publishedAt,
     tags = tags ?: emptySet(),
     viewsCount = viewsCount
