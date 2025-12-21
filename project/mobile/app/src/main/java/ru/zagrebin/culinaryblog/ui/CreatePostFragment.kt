@@ -63,7 +63,7 @@ class CreatePostFragment : Fragment() {
     private var pendingImageTarget: ImageTarget? = null
     private val amountFormatter = DecimalFormat("#.##")
 
-    private val statusValues = listOf("draft", "published")
+    private val statusValues = listOf(DRAFT_STATUS, "published")
     private val statusLabels by lazy {
         listOf(getString(R.string.status_draft), getString(R.string.status_published))
     }
@@ -435,7 +435,8 @@ class CreatePostFragment : Fragment() {
         val title = binding.inputTitle.text.toString().trim()
         val excerpt = binding.inputExcerpt.text.toString().trim()
         val content = binding.inputContent.text.toString().trim()
-        if (title.isBlank() || excerpt.isBlank() || content.isBlank()) {
+        val status = statusValues.getOrNull(binding.statusSpinner.selectedItemPosition) ?: DRAFT_STATUS
+        if (status == DRAFT_STATUS && (title.isBlank() || excerpt.isBlank() || content.isBlank())) {
             binding.textError.isVisible = true
             binding.textError.text = getString(R.string.create_fill_required)
             return
@@ -496,7 +497,7 @@ class CreatePostFragment : Fragment() {
 
         val request = PostCreateRequest(
             postType = selectedPostType,
-            status = statusValues.getOrNull(binding.statusSpinner.selectedItemPosition) ?: "draft",
+            status = status,
             title = title,
             excerpt = excerpt,
             content = content,
@@ -652,6 +653,7 @@ class CreatePostFragment : Fragment() {
     companion object {
         private const val POST_TYPE_RECIPE = "recipe"
         private const val POST_TYPE_ARTICLE = "article"
+        private const val DRAFT_STATUS = "draft"
         private const val MIN_POSITIVE_AMOUNT = 0.01
         private const val INVALID_DRAFT_ID = -1L
         private const val ARG_AUTHOR_ID = "arg_author_id"
