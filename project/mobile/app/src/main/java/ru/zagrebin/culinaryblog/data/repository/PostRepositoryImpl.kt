@@ -188,8 +188,8 @@ class PostRepositoryImpl @Inject constructor(
 
     override suspend fun updateDraft(id: Long, request: PostCreateRequest): Result<PostDraft> = withContext(Dispatchers.IO) {
         try {
-            draftDao.upsert(request.toDraftEntity(gson, draftId = id))
-            val saved = draftDao.getById(id) ?: return@withContext Result.failure(
+            val persistedId = draftDao.upsert(request.toDraftEntity(gson, draftId = id))
+            val saved = draftDao.getById(persistedId) ?: return@withContext Result.failure(
                 RuntimeException("Draft not found after update")
             )
             Result.success(saved.toDraft(gson))

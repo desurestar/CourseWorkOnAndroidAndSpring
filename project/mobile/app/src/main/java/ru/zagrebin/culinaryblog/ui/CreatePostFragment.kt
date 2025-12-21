@@ -135,7 +135,7 @@ class CreatePostFragment : Fragment() {
             setupBottomNavigation()
         }
         setupStatusSpinner()
-        binding.statusSpinner.setSelection(0, false)
+        binding.statusSpinner.setSelection(statusValues.indexOf(DRAFT_STATUS), false)
         setupPostTypeSelector()
         setupClicks()
         updateDraftActionsVisibility()
@@ -554,11 +554,19 @@ class CreatePostFragment : Fragment() {
     }
 
     private fun saveDraftChanges() {
-        val request = buildCreateRequest(forceDraftStatus = true) ?: return
-        val targetDraftId = draftId ?: restoredDraftId ?: return
+        val request = buildCreateRequest(forceDraftStatus = true) ?: run {
+            val message = binding.textError.text?.takeIf { binding.textError.isVisible && it.isNotBlank() }
+                ?: getString(R.string.draft_save_error)
+            Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
+            return
+        }
+        val targetDraftId = draftId ?: run {
+            Toast.makeText(requireContext(), R.string.draft_save_error, Toast.LENGTH_SHORT).show()
+            return
+        }
         binding.progressSubmit.isVisible = true
         viewLifecycleOwner.lifecycleScope.launch {
-            val result = viewModel.saveDraft(request.copy(status = DRAFT_STATUS), targetDraftId)
+            val result = viewModel.saveDraft(request, targetDraftId)
             binding.progressSubmit.isVisible = false
             if (result.isSuccess) {
                 Toast.makeText(requireContext(), R.string.create_draft_saved_offline, Toast.LENGTH_LONG).show()
@@ -571,7 +579,10 @@ class CreatePostFragment : Fragment() {
     }
 
     private fun deleteDraft() {
-        val targetDraftId = draftId ?: restoredDraftId ?: return
+        val targetDraftId = draftId ?: run {
+            Toast.makeText(requireContext(), R.string.draft_delete_error, Toast.LENGTH_SHORT).show()
+            return
+        }
         binding.progressSubmit.isVisible = true
         viewLifecycleOwner.lifecycleScope.launch {
             val result = viewModel.deleteDraft(targetDraftId)
@@ -591,7 +602,13 @@ class CreatePostFragment : Fragment() {
         val excerpt = binding.inputExcerpt.text.toString().trim()
         val content = binding.inputContent.text.toString().trim()
         val status = if (forceDraftStatus) DRAFT_STATUS else statusValues.getOrNull(binding.statusSpinner.selectedItemPosition) ?: DRAFT_STATUS
-        if (status == DRAFT_STATUS && (title.isBlank() || excerpt.isBlank() || content.isBlank())) {
+        if (forceDraftStatus) {
+            if (title.isBlank() && excerpt.isBlank() && content.isBlank()) {
+                binding.textError.isVisible = true
+                binding.textError.text = getString(R.string.create_fill_required)
+                return null
+            }
+        } else if (status == DRAFT_STATUS && (title.isBlank() || excerpt.isBlank() || content.isBlank())) {
             binding.textError.isVisible = true
             binding.textError.text = getString(R.string.create_fill_required)
             return null
