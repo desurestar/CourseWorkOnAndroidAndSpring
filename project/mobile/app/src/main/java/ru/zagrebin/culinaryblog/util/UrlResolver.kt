@@ -1,6 +1,6 @@
 package ru.zagrebin.culinaryblog.util
 
-import ru.zagrebin.culinaryblog.di.BASE_URL
+import ru.zagrebin.culinaryblog.di.NetworkModule.BASE_URL
 import java.net.URI
 
 private val baseOrigin: String by lazy {
