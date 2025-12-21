@@ -5,7 +5,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import ru.zagrebin.service.FileStorageService;
-import ru.zagrebin.util.UrlHelper;
 
 import java.util.Map;
 
@@ -20,7 +19,7 @@ public class UploadController {
     }
 
     /**
-     * POST /api/v1/uploads/{type}
+     * POST /api/uploads/{type}
      * type: cover | step | avatar
      * returns JSON { "url": "/media/..." }
      */
@@ -37,6 +36,6 @@ public class UploadController {
             default -> subdir = "misc";
         }
         String url = fileStorageService.store(file, subdir);
-        return ResponseEntity.ok(Map.of("url", UrlHelper.toAbsolute(url)));
+        return ResponseEntity.ok(Map.of("url", url));
     }
 }
