@@ -31,20 +31,22 @@ class CommentRepository @Inject constructor(
         author: String,
         message: String,
         parentId: Long? = null
-    ): Comment = addComment(postId, author, message, parentId, null)
+    ): Comment = addComment(postId, author, message, parentId, null, null)
 
     fun addComment(
         postId: Long,
         author: String,
         message: String,
         parentId: Long? = null,
-        avatarUrl: String? = null
+        avatarUrl: String? = null,
+        authorId: Long? = null
     ): Comment {
         val flow = getFlow(postId)
         val newComment = Comment(
             id = idGenerator.getAndIncrement(),
             postId = postId,
             authorName = author,
+            authorId = authorId,
             avatarUrl = avatarUrl,
             message = message,
             createdAt = OffsetDateTime.now().toString(),

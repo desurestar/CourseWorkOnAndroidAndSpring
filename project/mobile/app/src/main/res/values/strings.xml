@@ -101,8 +101,11 @@
     <string name="comment_edit_empty_error">Комментарий не может быть пустым</string>
     <string name="comment_edit_updated">Комментарий обновлён</string>
     <string name="comment_edit_failed">Не удалось обновить комментарий</string>
+    <string name="comment_modify_forbidden">Можно изменять только свои комментарии</string>
     <string name="comment_deleted">Комментарий удалён</string>
     <string name="comment_delete_error">Не удалось удалить комментарий</string>
+    <string name="comment_delete_confirm_title">Удалить комментарий?</string>
+    <string name="comment_delete_confirm_message">Это действие удалит комментарий и ответы на него.</string>
     <string name="auth_title">Вход или регистрация</string>
     <string name="auth_tab_login">Вход</string>
     <string name="auth_tab_register">Регистрация</string>

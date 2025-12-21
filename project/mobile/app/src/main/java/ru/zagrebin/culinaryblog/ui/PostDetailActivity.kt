@@ -63,11 +63,13 @@ class PostDetailActivity : AppCompatActivity() {
     private var author: PostAuthor? = null
     private var cachedCommentAuthor: CommentAuthor? = null
     private var cachedAuthorToken: String? = null
+    private var currentUserId: Long? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityPostDetailBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        binding.postActionsRow.isVisible = false
         backPressedCallback = onBackPressedDispatcher.addCallback(this) { finishWithResult() }
 
         val post = readPostFromIntent()
@@ -79,6 +81,7 @@ class PostDetailActivity : AppCompatActivity() {
         likesCount = post.likesCount
         renderPreview(post)
         setupInteractions()
+        prefetchAuthorInfo()
         collectComments(post.id)
         loadFull(post.id)
     }
@@ -102,6 +105,7 @@ class PostDetailActivity : AppCompatActivity() {
                 ?: getString(R.string.author_unknown)
         renderAvatar(binding.avatarImage, binding.avatarInitial, post.authorAvatarUrl, post.authorName)
         author = PostAuthor(post.authorId, post.authorName, post.authorAvatarUrl, null)
+        updatePostActionsVisibility()
         binding.postType.text = formatType(post.postType)
         binding.publishedAt.text = formatDisplayDate(post.publishedAt) ?: getString(R.string.published_unknown)
 
@@ -139,6 +143,7 @@ class PostDetailActivity : AppCompatActivity() {
                 ?: getString(R.string.author_unknown)
         renderAvatar(binding.avatarImage, binding.avatarInitial, post.author?.avatarUrl, post.author?.displayName)
         author = post.author
+        updatePostActionsVisibility()
         binding.postType.text = formatType(post.postType)
         binding.publishedAt.text = formatDisplayDate(post.createdAt) ?: getString(R.string.published_unknown)
 
@@ -384,6 +389,9 @@ class PostDetailActivity : AppCompatActivity() {
                 author.text = comment.authorName
                 date.text = formatDisplayDate(comment.createdAt) ?: getString(R.string.published_unknown)
                 message.text = comment.message
+                val canModify = canModifyComment(comment)
+                editButton.isVisible = canModify
+                deleteButton.isVisible = canModify
 
                 val paddingStart = (depth * resources.getDimensionPixelSize(R.dimen.comment_indent)) + view.paddingStart
                 view.setPaddingRelative(paddingStart, view.paddingTop, view.paddingEnd, view.paddingBottom)
@@ -409,6 +417,29 @@ class PostDetailActivity : AppCompatActivity() {
         binding.replyRow.isVisible = false
     }
 
+    private fun prefetchAuthorInfo() {
+        lifecycleScope.launch {
+            runCatching { resolveAuthor() }
+            if (currentPostId > 0) {
+                renderComments(commentRepository.getComments(currentPostId).value)
+            }
+        }
+    }
+
+    private fun updatePostActionsVisibility() {
+        val canModifyPost = currentUserId != null && author?.id != null && currentUserId == author?.id
+        binding.postActionsRow.isVisible = canModifyPost
+    }
+
+    private fun canModifyComment(comment: Comment, authorInfo: CommentAuthor? = cachedCommentAuthor): Boolean {
+        val currentId = authorInfo?.id ?: currentUserId
+        if (currentId != null && comment.authorId != null) {
+            return currentId == comment.authorId
+        }
+        val currentName = authorInfo?.name ?: return false
+        return currentName == comment.authorName
+    }
+
     private fun showPostActionHint(messageRes: Int) {
         Toast.makeText(this, messageRes, Toast.LENGTH_SHORT).show()
     }
@@ -429,7 +460,14 @@ class PostDetailActivity : AppCompatActivity() {
         lifecycleScope.launch {
             try {
                 val author = resolveAuthor()
-                commentRepository.addComment(currentPostId, author.name, text, replyTo?.id, author.avatarUrl)
+                commentRepository.addComment(
+                    currentPostId,
+                    author.name,
+                    text,
+                    replyTo?.id,
+                    author.avatarUrl,
+                    author.id
+                )
                 binding.inputComment.text?.clear()
                 clearReplyTarget()
             } catch (e: Exception) {
@@ -440,46 +478,65 @@ class PostDetailActivity : AppCompatActivity() {
     }
 
     private fun showEditCommentDialog(comment: Comment) {
-        val input = EditText(this).apply {
-            setText(comment.message)
-            setSelection(comment.message.length)
-        }
-        AlertDialog.Builder(this)
-            .setTitle(R.string.comment_edit_title)
-            .setView(input)
-            .setPositiveButton(R.string.action_save) { _, _ ->
-                val newText = input.text?.toString()?.trim().orEmpty()
-                if (newText.isBlank()) {
-                    Toast.makeText(this, R.string.comment_edit_empty_error, Toast.LENGTH_SHORT).show()
-                    return@setPositiveButton
-                }
-                lifecycleScope.launch {
-                    val updated = withContext(Dispatchers.Default) {
-                        commentRepository.updateComment(comment.postId, comment.id, newText)
-                    }
-                    if (updated) {
-                        Toast.makeText(this@PostDetailActivity, R.string.comment_edit_updated, Toast.LENGTH_SHORT).show()
-                        renderComments(commentRepository.getComments(comment.postId).value)
-                    } else {
-                        Toast.makeText(this@PostDetailActivity, R.string.comment_edit_failed, Toast.LENGTH_SHORT).show()
-                    }
-                }
+        lifecycleScope.launch {
+            val authorInfo = resolveAuthor()
+            if (!canModifyComment(comment, authorInfo)) {
+                Toast.makeText(this@PostDetailActivity, R.string.comment_modify_forbidden, Toast.LENGTH_SHORT).show()
+                return@launch
             }
-            .setNegativeButton(android.R.string.cancel, null)
-            .show()
+            val input = EditText(this@PostDetailActivity).apply {
+                setText(comment.message)
+                setSelection(comment.message.length)
+            }
+            AlertDialog.Builder(this@PostDetailActivity)
+                .setTitle(R.string.comment_edit_title)
+                .setView(input)
+                .setPositiveButton(R.string.action_save) { _, _ ->
+                    val newText = input.text?.toString()?.trim().orEmpty()
+                    if (newText.isBlank()) {
+                        Toast.makeText(this@PostDetailActivity, R.string.comment_edit_empty_error, Toast.LENGTH_SHORT).show()
+                        return@setPositiveButton
+                    }
+                    lifecycleScope.launch {
+                        val updated = withContext(Dispatchers.IO) {
+                            commentRepository.updateComment(comment.postId, comment.id, newText)
+                        }
+                        if (updated) {
+                            Toast.makeText(this@PostDetailActivity, R.string.comment_edit_updated, Toast.LENGTH_SHORT).show()
+                        } else {
+                            Toast.makeText(this@PostDetailActivity, R.string.comment_edit_failed, Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+                .setNegativeButton(android.R.string.cancel, null)
+                .show()
+        }
     }
 
     private fun deleteComment(comment: Comment) {
         lifecycleScope.launch {
-            val result = withContext(Dispatchers.Default) {
-                commentRepository.deleteComment(comment.postId, comment.id)
+            val authorInfo = resolveAuthor()
+            if (!canModifyComment(comment, authorInfo)) {
+                Toast.makeText(this@PostDetailActivity, R.string.comment_modify_forbidden, Toast.LENGTH_SHORT).show()
+                return@launch
             }
-            if (result) {
-                Toast.makeText(this@PostDetailActivity, R.string.comment_deleted, Toast.LENGTH_SHORT).show()
-                renderComments(commentRepository.getComments(comment.postId).value)
-            } else {
-                Toast.makeText(this@PostDetailActivity, R.string.comment_delete_error, Toast.LENGTH_SHORT).show()
-            }
+            AlertDialog.Builder(this@PostDetailActivity)
+                .setTitle(R.string.comment_delete_confirm_title)
+                .setMessage(R.string.comment_delete_confirm_message)
+                .setPositiveButton(R.string.action_delete) { _, _ ->
+                    lifecycleScope.launch {
+                        val result = withContext(Dispatchers.IO) {
+                            commentRepository.deleteComment(comment.postId, comment.id)
+                        }
+                        if (result) {
+                            Toast.makeText(this@PostDetailActivity, R.string.comment_deleted, Toast.LENGTH_SHORT).show()
+                        } else {
+                            Toast.makeText(this@PostDetailActivity, R.string.comment_delete_error, Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+                .setNegativeButton(android.R.string.cancel, null)
+                .show()
         }
     }
 
@@ -494,12 +551,15 @@ class PostDetailActivity : AppCompatActivity() {
             Log.w(TAG, "Failed to fetch profile for comment author", it)
         }
         val profile = profileResult.getOrNull()
+        currentUserId = profile?.id
+        updatePostActionsVisibility()
         val name = profile?.displayName?.takeIf { it.isNotBlank() }
             ?: profile?.username?.takeIf { it.isNotBlank() }
             ?: getString(R.string.comment_author_you)
         return CommentAuthor(
             name = name,
-            avatarUrl = profile?.avatarUrl
+            avatarUrl = profile?.avatarUrl,
+            id = profile?.id
         ).also {
             cachedCommentAuthor = it
             cachedAuthorToken = currentToken
@@ -541,7 +601,8 @@ class PostDetailActivity : AppCompatActivity() {
 
     private data class CommentAuthor(
         val name: String,
-        val avatarUrl: String?
+        val avatarUrl: String?,
+        val id: Long?
     )
 
     companion object {
