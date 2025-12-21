@@ -181,18 +181,8 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
                 closePublicProfile()
                 return@addCallback
             }
-            if (!currentTab.isFeed()) {
-                restoreFeedTab()
-                return@addCallback
-            }
-            isEnabled = false
-            onBackPressedDispatcher.onBackPressed()
+            restoreFeedTab()
         }
-        updateBackPressedHandling()
-    }
-
-    override fun onStart() {
-        super.onStart()
         updateBackPressedHandling()
     }
 
