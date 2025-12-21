@@ -39,6 +39,7 @@ import ru.zagrebin.culinaryblog.model.PostIngredientRequest
 import ru.zagrebin.culinaryblog.model.RecipeStepRequest
 import ru.zagrebin.culinaryblog.model.TagItem
 import ru.zagrebin.culinaryblog.viewmodel.CreatePostViewModel
+import java.text.DecimalFormat
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -50,6 +51,7 @@ class CreatePostFragment : Fragment() {
     @Inject lateinit var tokenStorage: TokenStorage
 
     private val ingredientRows = mutableListOf<ItemIngredientRowBinding>()
+    private val ingredientSelection = mutableMapOf<ItemIngredientRowBinding, Long?>()
     private val stepRows = mutableListOf<ItemStepRowBinding>()
     private val selectedTags = mutableSetOf<Long>()
     private var lastShownDraftKey: Pair<Long, Long>? = null
@@ -59,6 +61,7 @@ class CreatePostFragment : Fragment() {
     private var ingredients: List<IngredientItem> = emptyList()
     private var selectedPostType: String = POST_TYPE_RECIPE
     private var pendingImageTarget: ImageTarget? = null
+    private val amountFormatter = DecimalFormat("#.##")
 
     private val statusValues = listOf("draft", "published")
     private val statusLabels by lazy {
@@ -140,6 +143,7 @@ class CreatePostFragment : Fragment() {
         super.onDestroyView()
         _binding = null
         ingredientRows.clear()
+        ingredientSelection.clear()
         stepRows.clear()
         selectedTags.clear()
         lastShownDraftKey = null
@@ -275,7 +279,7 @@ class CreatePostFragment : Fragment() {
 
         ingredientRows.forEach { row ->
             row.spinnerIngredient.adapter = adapter
-            val currentId = row.spinnerIngredient.tag as? Long
+            val currentId = ingredientSelection[row]
             if (currentId != null) {
                 val idx = ingredients.indexOfFirst { it.id == currentId }
                 if (idx >= 0) {
@@ -293,7 +297,7 @@ class CreatePostFragment : Fragment() {
                     val selected = if (position > 0 && position - 1 < ingredients.size) {
                         ingredients[position - 1].id
                     } else null
-                    row.spinnerIngredient.tag = selected
+                    ingredientSelection[row] = selected
                 }
 
                 override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
@@ -301,18 +305,21 @@ class CreatePostFragment : Fragment() {
         }
     }
 
-    private fun addIngredientRow(prefill: PostIngredientRequest? = null) {
+    private fun formatAmount(value: Double?): String = value?.let { amountFormatter.format(it) } ?: ""
+
+    private fun addIngredientRow(prefill: PostIngredientRequest? = null, renderAdapters: Boolean = true) {
         val rowBinding = ItemIngredientRowBinding.inflate(layoutInflater, binding.ingredientsContainer, false)
         rowBinding.buttonRemoveIngredient.setOnClickListener {
             binding.ingredientsContainer.removeView(rowBinding.root)
             ingredientRows.remove(rowBinding)
+            ingredientSelection.remove(rowBinding)
         }
-        rowBinding.spinnerIngredient.tag = prefill?.ingredientId
-        rowBinding.inputAmount.setText(prefill?.quantityValue?.let { if (it == 0.0) "" else it.toString() } ?: "")
+        rowBinding.inputAmount.setText(formatAmount(prefill?.quantityValue))
         rowBinding.inputUnit.setText(prefill?.unit ?: "")
         ingredientRows.add(rowBinding)
         binding.ingredientsContainer.addView(rowBinding.root)
-        renderIngredientAdapters()
+        ingredientSelection[rowBinding] = prefill?.ingredientId
+        if (renderAdapters) renderIngredientAdapters()
     }
 
     private fun addStepRow(prefill: RecipeStepRequest? = null) {
@@ -366,6 +373,7 @@ class CreatePostFragment : Fragment() {
             if (stepRows.isEmpty()) addStepRow()
         } else {
             ingredientRows.clear()
+            ingredientSelection.clear()
             stepRows.clear()
             binding.ingredientsContainer.removeAllViews()
             binding.stepsContainer.removeAllViews()
@@ -373,7 +381,8 @@ class CreatePostFragment : Fragment() {
     }
 
     private fun restoreDraftIfNeeded() {
-        val draftId = arguments?.getLong(ARG_DRAFT_ID)?.takeIf { it > 0 } ?: return
+        val draftId = arguments?.getLong(ARG_DRAFT_ID, INVALID_DRAFT_ID) ?: return
+        if (draftId == INVALID_DRAFT_ID) return
         if (restoredDraftId == draftId) return
         viewLifecycleOwner.lifecycleScope.launch {
             val draft = viewModel.getDraft(draftId).getOrNull()
@@ -411,13 +420,14 @@ class CreatePostFragment : Fragment() {
         renderTags()
 
         ingredientRows.clear()
+        ingredientSelection.clear()
         binding.ingredientsContainer.removeAllViews()
-        request.ingredients.forEach { addIngredientRow(it) }
+        request.ingredients.forEach { addIngredientRow(it, renderAdapters = false) }
         renderIngredientAdapters()
 
         stepRows.clear()
         binding.stepsContainer.removeAllViews()
-        request.steps.sortedBy { it.order }.forEach { addStepRow(it) }
+        request.steps.forEach { addStepRow(it) }
         updateRecipeVisibility()
     }
 
@@ -437,7 +447,7 @@ class CreatePostFragment : Fragment() {
             val list = mutableListOf<PostIngredientRequest>()
             var invalidAmount = false
             ingredientRows.forEach { row ->
-                val selectedId = row.spinnerIngredient.tag as? Long
+                val selectedId = ingredientSelection[row]
                 val amount = row.inputAmount.text.toString().trim().toDoubleOrNull()
                 val unit = row.inputUnit.text.toString().trim().ifBlank { null }
                 if (selectedId != null) {
@@ -643,16 +653,19 @@ class CreatePostFragment : Fragment() {
         private const val POST_TYPE_RECIPE = "recipe"
         private const val POST_TYPE_ARTICLE = "article"
         private const val MIN_POSITIVE_AMOUNT = 0.01
+        private const val INVALID_DRAFT_ID = -1L
         private const val ARG_AUTHOR_ID = "arg_author_id"
         private const val ARG_DRAFT_ID = "arg_draft_id"
 
         fun newInstance(authorId: Long? = null, draftId: Long? = null): CreatePostFragment {
-            val fragment = CreatePostFragment()
-            val args = Bundle()
-            if (authorId != null) args.putLong(ARG_AUTHOR_ID, authorId)
-            if (draftId != null) args.putLong(ARG_DRAFT_ID, draftId)
-            if (!args.isEmpty) fragment.arguments = args
-            return fragment
+            return CreatePostFragment().apply {
+                if (authorId != null || draftId != null) {
+                    arguments = Bundle().apply {
+                        authorId?.let { putLong(ARG_AUTHOR_ID, it) }
+                        draftId?.let { putLong(ARG_DRAFT_ID, it) }
+                    }
+                }
+            }
         }
     }
 }
