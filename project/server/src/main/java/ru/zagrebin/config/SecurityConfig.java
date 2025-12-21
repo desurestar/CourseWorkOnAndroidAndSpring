@@ -31,7 +31,6 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/media/**").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/posts/**").permitAll()
-                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/users/**").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/tags/**", "/api/ingredients/**").permitAll()
                         .anyRequest().authenticated()
                 )

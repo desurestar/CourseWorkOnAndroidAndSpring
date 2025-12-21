@@ -1,5 +1,5 @@
 media:
-  # По умолчанию сохраняем медиафайлы в папку MEDIA рядом с приложением (можно переопределить переменной MEDIA_PATH)
+  # By default store media files in MEDIA folder next to the app (override with MEDIA_PATH)
   path: ${MEDIA_PATH:${user.dir}/MEDIA}
   public-url-prefix: ${MEDIA_PUBLIC_PREFIX:/media}
 

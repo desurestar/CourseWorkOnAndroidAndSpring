@@ -1,6 +1,8 @@
 package ru.zagrebin.controller;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -29,6 +31,7 @@ public class UserController {
         this.userRepository = userRepository;
     }
 
+    @PreAuthorize("permitAll()")
     @GetMapping("/{id}")
     public ResponseEntity<UserDto> getUser(
             @PathVariable("id") Long userId
@@ -39,39 +42,33 @@ public class UserController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
+    @PreAuthorize("isAuthenticated()")
     @PostMapping("/{id}/subscribe")
     public ResponseEntity<SubscriptionDto> subscribe(
             @PathVariable("id") Long userId,
             @AuthenticationPrincipal UserPrincipal principal
     ) {
-        if (principal == null) {
-            return ResponseEntity.status(401).build();
-        }
-        SubscriptionDto dto = subscriptionService.subscribe(principal.getId(), userId);
+        SubscriptionDto dto = subscriptionService.subscribe(requirePrincipal(principal), userId);
         return ResponseEntity.ok(dto);
     }
 
+    @PreAuthorize("isAuthenticated()")
     @DeleteMapping("/{id}/subscribe")
     public ResponseEntity<SubscriptionDto> unsubscribe(
             @PathVariable("id") Long userId,
             @AuthenticationPrincipal UserPrincipal principal
     ) {
-        if (principal == null) {
-            return ResponseEntity.status(401).build();
-        }
-        SubscriptionDto dto = subscriptionService.unsubscribe(principal.getId(), userId);
+        SubscriptionDto dto = subscriptionService.unsubscribe(requirePrincipal(principal), userId);
         return ResponseEntity.ok(dto);
     }
 
+    @PreAuthorize("isAuthenticated()")
     @GetMapping("/{id}/subscription")
     public ResponseEntity<SubscriptionDto> getStatus(
             @PathVariable("id") Long userId,
             @AuthenticationPrincipal UserPrincipal principal
     ) {
-        if (principal == null) {
-            return ResponseEntity.status(401).build();
-        }
-        SubscriptionDto dto = subscriptionService.getStatus(principal.getId(), userId);
+        SubscriptionDto dto = subscriptionService.getStatus(requirePrincipal(principal), userId);
         return ResponseEntity.ok(dto);
     }
 
@@ -84,5 +81,12 @@ public class UserController {
                 user.getRole(),
                 UrlHelper.toAbsolute(user.getAvatarUrl())
         );
+    }
+
+    private Long requirePrincipal(UserPrincipal principal) {
+        if (principal == null) {
+            throw new AccessDeniedException("Unauthorized");
+        }
+        return principal.getId();
     }
 }

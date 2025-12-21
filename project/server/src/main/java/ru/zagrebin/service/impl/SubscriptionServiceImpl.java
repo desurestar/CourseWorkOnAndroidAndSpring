@@ -9,6 +9,10 @@ import ru.zagrebin.model.User;
 import ru.zagrebin.repository.UserRepository;
 import ru.zagrebin.service.SubscriptionService;
 
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 @Service
 public class SubscriptionServiceImpl implements SubscriptionService {
 
@@ -22,9 +26,11 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     @Transactional
     public SubscriptionDto subscribe(Long currentUserId, Long targetUserId) {
         UserPair pair = loadUsers(currentUserId, targetUserId);
-        pair.current.getSubscriptions().add(pair.target);
-        pair.target.getSubscribers().add(pair.current);
-        userRepository.save(pair.current);
+        if (!isSubscribed(pair)) {
+            pair.current.getSubscriptions().add(pair.target);
+            pair.target.getSubscribers().add(pair.current);
+            userRepository.saveAll(List.of(pair.current, pair.target));
+        }
         return toDto(pair);
     }
 
@@ -32,9 +38,11 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     @Transactional
     public SubscriptionDto unsubscribe(Long currentUserId, Long targetUserId) {
         UserPair pair = loadUsers(currentUserId, targetUserId);
-        pair.current.getSubscriptions().remove(pair.target);
-        pair.target.getSubscribers().remove(pair.current);
-        userRepository.save(pair.current);
+        if (isSubscribed(pair)) {
+            pair.current.getSubscriptions().remove(pair.target);
+            pair.target.getSubscribers().remove(pair.current);
+            userRepository.saveAll(List.of(pair.current, pair.target));
+        }
         return toDto(pair);
     }
 
@@ -47,13 +55,13 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 
     private UserPair loadUsers(Long currentUserId, Long targetUserId) {
         if (currentUserId == null) {
-            throw new AccessDeniedException("Требуется авторизация");
+            throw new AccessDeniedException("Authentication required");
         }
         if (targetUserId == null) {
-            throw new IllegalArgumentException("Не указан пользователь");
+            throw new IllegalArgumentException("Target user is not specified");
         }
         if (currentUserId.equals(targetUserId)) {
-            throw new IllegalArgumentException("Нельзя подписаться на себя");
+            throw new IllegalArgumentException("Cannot subscribe to yourself");
         }
         User current = userRepository.findById(currentUserId)
                 .orElseThrow(() -> new EntityNotFoundException("User not found: " + currentUserId));
@@ -63,11 +71,18 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     }
 
     private SubscriptionDto toDto(UserPair pair) {
-        boolean subscribed = pair.current.getSubscriptions().stream()
-                .anyMatch(u -> u.getId().equals(pair.target.getId()));
-        int followersCount = pair.target.getSubscribers() != null ? pair.target.getSubscribers().size() : 0;
-        int followingCount = pair.target.getSubscriptions() != null ? pair.target.getSubscriptions().size() : 0;
+        Set<Long> subscriptionIds = pair.current.getSubscriptions().stream()
+                .map(User::getId)
+                .collect(Collectors.toSet());
+        boolean subscribed = subscriptionIds.contains(pair.target.getId());
+        int followersCount = pair.target.getSubscribers().size();
+        int followingCount = pair.target.getSubscriptions().size();
         return new SubscriptionDto(pair.target.getId(), subscribed, followersCount, followingCount);
+    }
+
+    private boolean isSubscribed(UserPair pair) {
+        return pair.current.getSubscriptions().stream()
+                .anyMatch(u -> u.getId().equals(pair.target.getId()));
     }
 
     private record UserPair(User current, User target) {}

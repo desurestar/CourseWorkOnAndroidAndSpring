@@ -30,6 +30,13 @@ class CommentRepository @Inject constructor(
         postId: Long,
         author: String,
         message: String,
+        parentId: Long? = null
+    ): Comment = addComment(postId, author, message, parentId, null)
+
+    fun addComment(
+        postId: Long,
+        author: String,
+        message: String,
         parentId: Long? = null,
         avatarUrl: String? = null
     ): Comment {

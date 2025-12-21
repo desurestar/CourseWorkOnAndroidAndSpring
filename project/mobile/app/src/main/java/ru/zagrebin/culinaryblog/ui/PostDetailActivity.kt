@@ -55,6 +55,8 @@ class PostDetailActivity : AppCompatActivity() {
     private var replyTo: Comment? = null
     private var backPressedCallback: OnBackPressedCallback? = null
     private var author: PostAuthor? = null
+    private var cachedCommentAuthor: CommentAuthor? = null
+    private var cachedAuthorToken: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -358,7 +360,6 @@ class PostDetailActivity : AppCompatActivity() {
                 val avatarUrl = comment.avatarUrl?.takeIf { it.isNotBlank() }
                 if (avatarUrl != null) {
                     avatarInitial.isVisible = false
-                    avatarInitial.text = ""
                     avatarImage.load(avatarUrl) {
                         placeholder(R.drawable.bg_avatar_placeholder)
                         error(R.drawable.bg_avatar_placeholder)
@@ -367,8 +368,7 @@ class PostDetailActivity : AppCompatActivity() {
                     }
                 } else {
                     avatarInitial.isVisible = true
-                    avatarImage.setImageDrawable(null)
-                    avatarImage.setBackgroundResource(R.drawable.bg_avatar_placeholder)
+                    avatarImage.setImageResource(R.drawable.bg_avatar_placeholder)
                     avatarInitial.text = comment.authorName.firstOrNull()?.uppercase() ?: "?"
                 }
                 author.text = comment.authorName
@@ -424,6 +424,11 @@ class PostDetailActivity : AppCompatActivity() {
     }
 
     private suspend fun resolveAuthor(): CommentAuthor {
+        val currentToken = tokenStorage.getToken()
+        if (cachedAuthorToken != null && cachedAuthorToken != currentToken) {
+            cachedCommentAuthor = null
+        }
+        cachedCommentAuthor?.let { return it }
         val profileResult = profileRepository.getProfile()
         profileResult.exceptionOrNull()?.let {
             Log.w(TAG, "Failed to fetch profile for comment author", it)
@@ -435,7 +440,10 @@ class PostDetailActivity : AppCompatActivity() {
         return CommentAuthor(
             name = name,
             avatarUrl = profile?.avatarUrl
-        )
+        ).also {
+            cachedCommentAuthor = it
+            cachedAuthorToken = currentToken
+        }
     }
 
     private fun openAuthorProfile() {

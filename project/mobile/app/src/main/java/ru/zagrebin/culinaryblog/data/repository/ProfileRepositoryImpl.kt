@@ -12,6 +12,7 @@ import ru.zagrebin.culinaryblog.data.remote.dto.UpdateProfileRequest
 import ru.zagrebin.culinaryblog.data.remote.dto.toModel
 import ru.zagrebin.culinaryblog.model.SubscriptionStatus
 import ru.zagrebin.culinaryblog.model.UserProfile
+import retrofit2.Response
 
 class ProfileRepositoryImpl @Inject constructor(
     private val api: AuthApi,
@@ -60,63 +61,44 @@ class ProfileRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getUserProfile(userId: Long): Result<UserProfile> = withContext(Dispatchers.IO) {
-        return@withContext try {
+        return@withContext runCatching {
             val resp = userApi.getUser(userId)
-            if (resp.isSuccessful) {
-                val body = resp.body() ?: return@withContext Result.failure(RuntimeException("Empty body"))
-                Result.success(body.toModel())
-            } else {
-                Result.failure(RuntimeException("Server error: ${resp.code()}"))
-            }
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
+            mapResponse(resp, "User profile response body is empty") { it.toModel() }
+        }.getOrElse { Result.failure(it) }
     }
 
     override suspend fun getSubscription(userId: Long): Result<SubscriptionStatus> = withContext(Dispatchers.IO) {
-        return@withContext try {
+        return@withContext runCatching {
             val resp = userApi.getSubscription(userId)
-            if (resp.isSuccessful) {
-                val body = resp.body() ?: return@withContext Result.failure(RuntimeException("Empty body"))
-                Result.success(body.toModel())
-            } else {
-                Result.failure(RuntimeException("Server error: ${resp.code()}"))
-            }
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
+            mapResponse(resp, "Subscription response body is empty") { it.toModel() }
+        }.getOrElse { Result.failure(it) }
     }
 
     override suspend fun subscribe(userId: Long): Result<SubscriptionStatus> = withContext(Dispatchers.IO) {
-        return@withContext try {
+        return@withContext runCatching {
             val resp = userApi.subscribe(userId)
-            if (resp.isSuccessful) {
-                val body = resp.body() ?: return@withContext Result.failure(RuntimeException("Empty body"))
-                Result.success(body.toModel())
-            } else {
-                Result.failure(RuntimeException("Server error: ${resp.code()}"))
-            }
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
+            mapResponse(resp, "Subscription response body is empty") { it.toModel() }
+        }.getOrElse { Result.failure(it) }
     }
 
     override suspend fun unsubscribe(userId: Long): Result<SubscriptionStatus> = withContext(Dispatchers.IO) {
-        return@withContext try {
+        return@withContext runCatching {
             val resp = userApi.unsubscribe(userId)
-            if (resp.isSuccessful) {
-                val body = resp.body() ?: return@withContext Result.failure(RuntimeException("Empty body"))
-                Result.success(body.toModel())
-            } else {
-                Result.failure(RuntimeException("Server error: ${resp.code()}"))
-            }
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
+            mapResponse(resp, "Subscription response body is empty") { it.toModel() }
+        }.getOrElse { Result.failure(it) }
     }
 
     private suspend fun loadCachedOrFail(message: String): Result<UserProfile> {
         val cached = userProfileDao.getProfile()?.toModel()
         return cached?.let { Result.success(it) } ?: Result.failure(RuntimeException(message))
+    }
+
+    private fun <T, R> mapResponse(resp: Response<T>, emptyMessage: String, mapper: (T) -> R): Result<R> {
+        return if (resp.isSuccessful) {
+            val body = resp.body() ?: return Result.failure(RuntimeException(emptyMessage))
+            Result.success(mapper(body))
+        } else {
+            Result.failure(RuntimeException("Server error: ${resp.code()}"))
+        }
     }
 }

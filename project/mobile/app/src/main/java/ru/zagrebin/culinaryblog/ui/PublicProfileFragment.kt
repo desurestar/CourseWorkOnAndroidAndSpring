@@ -233,16 +233,19 @@ class PublicProfileFragment : Fragment() {
             startActivity(Intent(requireContext(), AuthActivity::class.java))
             return
         }
-        binding.buttonSubscribe.isEnabled = false
         viewLifecycleOwner.lifecycleScope.launch {
-            val result = if (subscribed) profileRepository.unsubscribe(id) else profileRepository.subscribe(id)
-            binding.buttonSubscribe.isEnabled = true
-            result.onSuccess {
-                subscribed = it.subscribed
-                renderSubscription()
-                Toast.makeText(requireContext(), R.string.profile_subscription_updated, Toast.LENGTH_SHORT).show()
-            }.onFailure {
-                Toast.makeText(requireContext(), R.string.error_loading, Toast.LENGTH_SHORT).show()
+            binding.buttonSubscribe.isEnabled = false
+            try {
+                val result = if (subscribed) profileRepository.unsubscribe(id) else profileRepository.subscribe(id)
+                result.onSuccess {
+                    subscribed = it.subscribed
+                    renderSubscription()
+                    Toast.makeText(requireContext(), R.string.profile_subscription_updated, Toast.LENGTH_SHORT).show()
+                }.onFailure {
+                    Toast.makeText(requireContext(), R.string.error_loading, Toast.LENGTH_SHORT).show()
+                }
+            } finally {
+                binding.buttonSubscribe.isEnabled = true
             }
         }
     }
