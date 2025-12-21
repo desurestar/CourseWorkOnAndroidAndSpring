@@ -1,8 +1,8 @@
 package ru.zagrebin.culinaryblog.data.remote.dto
 
-import ru.zagrebin.culinaryblog.model.PostAuthor
 import ru.zagrebin.culinaryblog.model.PostCard
 import ru.zagrebin.culinaryblog.model.PostFull
+import ru.zagrebin.culinaryblog.model.PostAuthor
 import ru.zagrebin.culinaryblog.model.PostIngredientLine
 import ru.zagrebin.culinaryblog.model.PostStep
 import ru.zagrebin.culinaryblog.model.PostTag
