@@ -43,6 +43,8 @@ class PublicProfileFragment : Fragment() {
     private var userId: Long? = null
     private var displayName: String? = null
     private var subscribed: Boolean = false
+    private var followersCount: Int = 0
+    private var followingCount: Int = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -67,9 +69,10 @@ class PublicProfileFragment : Fragment() {
         renderHeader()
         setupTabs()
         renderSubscription()
-        renderFollowers(followersStub())
-        renderFollowing(followingStub())
+        renderFollowers(followersCount)
+        renderFollowing(followingCount)
         observePosts()
+        loadUserProfile()
         loadSubscriptionStatus()
 
         binding.buttonSubscribe.setOnClickListener { toggleSubscription() }
@@ -92,11 +95,14 @@ class PublicProfileFragment : Fragment() {
         if (_binding != null) {
             renderHeader()
             renderSubscription()
-            renderFollowers(followersStub())
-            renderFollowing(followingStub())
+            followersCount = 0
+            followingCount = 0
+            renderFollowers(followersCount)
+            renderFollowing(followingCount)
             renderPosts(postViewModel.uiState.value)
             binding.publicTabs.getTabAt(0)?.select()
             showSection(0)
+            loadUserProfile()
             loadSubscriptionStatus()
         }
     }
@@ -174,30 +180,19 @@ class PublicProfileFragment : Fragment() {
         }
     }
 
-    private fun renderFollowers(items: List<ProfileListItem>) {
-        renderSimpleList(binding.publicFollowersList, items, getString(R.string.profile_followers))
+    private fun renderFollowers(count: Int) {
+        renderSimpleList(binding.publicFollowersList, count, getString(R.string.profile_followers))
     }
 
-    private fun renderFollowing(items: List<ProfileListItem>) {
-        renderSimpleList(binding.publicFollowingList, items, getString(R.string.profile_following))
+    private fun renderFollowing(count: Int) {
+        renderSimpleList(binding.publicFollowingList, count, getString(R.string.profile_following))
     }
 
-    private fun renderSimpleList(container: LinearLayout, items: List<ProfileListItem>, meta: String) {
+    private fun renderSimpleList(container: LinearLayout, count: Int, meta: String) {
         container.removeAllViews()
-        if (items.isEmpty()) {
-            val stub = TextView(requireContext())
-            stub.text = getString(R.string.profile_empty)
-            container.addView(stub)
-            return
-        }
-        items.forEach { user ->
-            val view = layoutInflater.inflate(R.layout.item_profile_mini, container, false)
-            view.findViewById<TextView>(R.id.miniProfileName).text = user.name
-            view.findViewById<TextView>(R.id.miniProfileAvatar).text = user.name.firstOrNull()?.uppercase() ?: "?"
-            view.findViewById<TextView>(R.id.miniProfileMeta).text = meta
-            view.setOnClickListener { openUser(user) }
-            container.addView(view)
-        }
+        val stub = TextView(requireContext())
+        stub.text = "$meta: $count"
+        container.addView(stub)
     }
 
     private fun renderHeader() {
@@ -222,7 +217,28 @@ class PublicProfileFragment : Fragment() {
             val result = profileRepository.getSubscription(id)
             result.onSuccess {
                 subscribed = it.subscribed
+                followersCount = it.followersCount
+                followingCount = it.followingCount
+                renderFollowers(followersCount)
+                renderFollowing(followingCount)
                 renderSubscription()
+            }
+        }
+    }
+
+    private fun loadUserProfile() {
+        val id = userId ?: return
+        viewLifecycleOwner.lifecycleScope.launch {
+            val result = profileRepository.getUserProfile(id)
+            result.onSuccess { profile ->
+                followersCount = profile.followersCount
+                followingCount = profile.followingCount
+                if (!profile.displayName.isNullOrBlank()) {
+                    displayName = profile.displayName
+                }
+                renderHeader()
+                renderFollowers(followersCount)
+                renderFollowing(followingCount)
             }
         }
     }
@@ -239,6 +255,10 @@ class PublicProfileFragment : Fragment() {
                 val result = if (subscribed) profileRepository.unsubscribe(id) else profileRepository.subscribe(id)
                 result.onSuccess {
                     subscribed = it.subscribed
+                    followersCount = it.followersCount
+                    followingCount = it.followingCount
+                    renderFollowers(followersCount)
+                    renderFollowing(followingCount)
                     renderSubscription()
                     Toast.makeText(requireContext(), R.string.profile_subscription_updated, Toast.LENGTH_SHORT).show()
                 }.onFailure {
@@ -255,22 +275,6 @@ class PublicProfileFragment : Fragment() {
         intent.putExtra(PostDetailActivity.EXTRA_POST, post)
         startActivity(intent)
     }
-
-    private fun openUser(user: ProfileListItem) {
-        if (user.id <= 0) return
-        (activity as? Host)?.onOpenUserProfile(user.id, user.name, user.subscribed)
-    }
-
-    private fun followersStub(): List<ProfileListItem> = listOf(
-        ProfileListItem(2L, "Алексей"),
-        ProfileListItem(3L, "Мария"),
-        ProfileListItem(4L, "Владимир")
-    )
-
-    private fun followingStub(): List<ProfileListItem> = listOf(
-        ProfileListItem(5L, "Иван", subscribed = true),
-        ProfileListItem(6L, "Дарья", subscribed = true)
-    )
 
     interface Host {
         fun onPublicProfileClose()

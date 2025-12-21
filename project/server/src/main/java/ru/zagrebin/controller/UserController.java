@@ -79,7 +79,9 @@ public class UserController {
                 user.getEmail(),
                 user.getDisplayName(),
                 user.getRole(),
-                UrlHelper.toAbsolute(user.getAvatarUrl())
+                UrlHelper.toAbsolute(user.getAvatarUrl()),
+                user.getSubscribers().size(),
+                user.getSubscriptions().size()
         );
     }
 

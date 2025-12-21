@@ -14,4 +14,6 @@ public class UserDto {
     private String displayName;
     private String role;
     private String avatarUrl;
+    private int followersCount;
+    private int followingCount;
 }

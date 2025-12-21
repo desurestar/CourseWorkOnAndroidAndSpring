@@ -157,19 +157,8 @@ class ProfileFragment : Fragment() {
             binding.profileScroll.smoothScrollTo(0, binding.editDisplayName.top)
         }
         setupInputs()
-        renderFollowers(
-            listOf(
-                ProfileListItem(2L, "Алексей"),
-                ProfileListItem(3L, "Мария"),
-                ProfileListItem(4L, "Владимир")
-            )
-        )
-        renderFollowing(
-            listOf(
-                ProfileListItem(5L, "Иван", subscribed = true),
-                ProfileListItem(6L, "Дарья", subscribed = true)
-            )
-        )
+        renderFollowers(0)
+        renderFollowing(0)
     }
 
     private fun setEditingVisible(show: Boolean) {
@@ -217,6 +206,8 @@ class ProfileFragment : Fragment() {
             binding.editDisplayName.updateTextIfDifferent(profileViewModel.displayName.value)
             binding.editUsername.updateTextIfDifferent(profileViewModel.username.value)
             binding.editEmail.updateTextIfDifferent(profileViewModel.email.value)
+            renderFollowers(user.followersCount)
+            renderFollowing(user.followingCount)
             val avatar = profileViewModel.avatarUrl.value ?: user.avatarUrl
             if (!avatar.isNullOrBlank()) {
                 pendingAvatarBitmap = null
@@ -225,6 +216,8 @@ class ProfileFragment : Fragment() {
         } else {
             renderUserStub()
             renderAvatar(null, binding.profileName.text?.toString())
+            renderFollowers(0)
+            renderFollowing(0)
         }
     }
 
@@ -403,30 +396,19 @@ class ProfileFragment : Fragment() {
         }
     }
 
-    private fun renderFollowers(items: List<ProfileListItem>) {
-        renderSimpleList(binding.followersList, items, getString(R.string.profile_followers))
+    private fun renderFollowers(count: Int) {
+        renderSimpleList(binding.followersList, count, getString(R.string.profile_followers))
     }
 
-    private fun renderFollowing(items: List<ProfileListItem>) {
-        renderSimpleList(binding.followingList, items, getString(R.string.profile_following))
+    private fun renderFollowing(count: Int) {
+        renderSimpleList(binding.followingList, count, getString(R.string.profile_following))
     }
 
-    private fun renderSimpleList(container: LinearLayout, items: List<ProfileListItem>, meta: String) {
+    private fun renderSimpleList(container: LinearLayout, count: Int, meta: String) {
         container.removeAllViews()
-        if (items.isEmpty()) {
-            val stub = TextView(requireContext())
-            stub.text = getString(R.string.profile_empty)
-            container.addView(stub)
-            return
-        }
-        items.forEach { user ->
-            val view = layoutInflater.inflate(R.layout.item_profile_mini, container, false)
-            view.findViewById<TextView>(R.id.miniProfileName).text = user.name
-            view.findViewById<TextView>(R.id.miniProfileAvatar).text = user.name.firstOrNull()?.uppercase() ?: "?"
-            view.findViewById<TextView>(R.id.miniProfileMeta).text = meta
-            view.setOnClickListener { openUser(user) }
-            container.addView(view)
-        }
+        val stub = TextView(requireContext())
+        stub.text = "$meta: $count"
+        container.addView(stub)
     }
 
     private fun showSection(position: Int) {
