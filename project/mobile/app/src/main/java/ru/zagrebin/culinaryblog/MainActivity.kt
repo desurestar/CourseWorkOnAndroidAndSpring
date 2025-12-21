@@ -516,11 +516,6 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
         restoreFeedTab()
     }
 
-    override fun onProfileOpenDrafts(): Boolean {
-        binding.bottomNavigation.selectedItemId = R.id.menu_create
-        return true
-    }
-
     override fun onOpenUserProfile(userId: Long, displayName: String?, subscribed: Boolean?) {
         openPublicProfile(userId, displayName, subscribed)
     }

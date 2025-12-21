@@ -113,6 +113,11 @@ class ProfileFragment : Fragment() {
         observePosts()
     }
 
+    override fun onResume() {
+        super.onResume()
+        postViewModel.refreshDrafts()
+    }
+
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
@@ -143,12 +148,6 @@ class ProfileFragment : Fragment() {
         binding.buttonLogout.setOnClickListener {
             tokenStorage.clearToken()
             (activity as? Host)?.onProfileLogout() ?: activity?.finish()
-        }
-        binding.buttonOpenDrafts.setOnClickListener {
-            val handled = (activity as? Host)?.onProfileOpenDrafts() ?: false
-            if (!handled) {
-                startActivity(Intent(requireContext(), CreatePostActivity::class.java))
-            }
         }
         binding.buttonChangeAvatar.setOnClickListener {
             pickAvatarLauncher.launch("image/*")
@@ -546,7 +545,6 @@ class ProfileFragment : Fragment() {
     interface Host {
         fun onProfileRequiresAuth()
         fun onProfileLogout()
-        fun onProfileOpenDrafts(): Boolean
         fun onOpenUserProfile(userId: Long, displayName: String?, subscribed: Boolean?)
     }
 

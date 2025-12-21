@@ -120,4 +120,11 @@ class PostViewModel @Inject constructor(
             }
         }
     }
+
+    fun refreshDrafts() {
+        viewModelScope.launch {
+            val drafts = repository.getDrafts().getOrDefault(emptyList())
+            _uiState.update { it.copy(drafts = drafts) }
+        }
+    }
 }
