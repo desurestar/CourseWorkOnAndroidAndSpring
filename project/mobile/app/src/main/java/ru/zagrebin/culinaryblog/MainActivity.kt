@@ -2,15 +2,18 @@ package ru.zagrebin.culinaryblog
 
 import android.app.Activity
 import android.content.Intent
+import android.content.res.ColorStateList
 import android.os.Bundle
 import android.util.Log
 import android.view.View
 import android.widget.Toast
+import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
+import androidx.core.widget.TextViewCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.commit
 import androidx.lifecycle.Lifecycle
@@ -254,6 +257,28 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
 
     private fun renderPosts(posts: List<PostCard>) {
         binding.postsContainer.removeAllViews()
+        val iconPadding = resources.getDimensionPixelSize(R.dimen.create_horizontal_space)
+        val primaryIconColor = ContextCompat.getColor(this, R.color.recipe_primary)
+        fun applyMetaIcon(view: TextView, icon: Int) {
+            view.setCompoundDrawablesWithIntrinsicBounds(icon, 0, 0, 0)
+            view.compoundDrawablePadding = iconPadding
+            TextViewCompat.setCompoundDrawableTintList(view, ColorStateList.valueOf(primaryIconColor))
+        }
+        fun updateLikesView(view: TextView, liked: Boolean, count: Int, animate: Boolean = false) {
+            view.text = getString(R.string.likes_format, count)
+            val icon = if (liked) R.drawable.ic_favorite_border else R.drawable.ic_favorite
+            val tint = ContextCompat.getColor(this, if (liked) R.color.text_error else R.color.recipe_primary)
+            view.setCompoundDrawablesWithIntrinsicBounds(icon, 0, 0, 0)
+            view.compoundDrawablePadding = iconPadding
+            TextViewCompat.setCompoundDrawableTintList(view, ColorStateList.valueOf(tint))
+            view.setTextColor(
+                ContextCompat.getColor(
+                    this,
+                    if (liked) R.color.text_error else R.color.text_muted
+                )
+            )
+            if (animate) animateLike(view)
+        }
         posts.forEach { post ->
             val cardBinding = ItemPostCardBinding.inflate(
                 layoutInflater,
@@ -292,18 +317,15 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
             post.calories?.let {
                 cardBinding.calories.text = getString(R.string.calories_format, it)
             }
+            applyMetaIcon(cardBinding.cookingTime, R.drawable.ic_time_outline)
+            applyMetaIcon(cardBinding.calories, R.drawable.ic_fire)
             cardBinding.viewsText.text =
                 getString(R.string.views_format, post.viewsCount ?: 0L)
+            applyMetaIcon(cardBinding.viewsText, R.drawable.ic_visibility)
             val likedPreviously = likedPostIds.contains(post.id)
             var currentLikes = post.likesCount
             var hasLiked = likedPreviously
-            cardBinding.likesText.text = getString(R.string.likes_format, currentLikes)
-            cardBinding.likesText.setTextColor(
-                ContextCompat.getColor(
-                    this,
-                    if (hasLiked) R.color.recipe_primary else R.color.text_muted
-                )
-            )
+            updateLikesView(cardBinding.likesText, hasLiked, currentLikes)
 
             val coverUrl = post.coverUrl?.takeIf { it.isNotBlank() }
             cardBinding.postCover.isVisible = coverUrl != null
@@ -330,13 +352,7 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
                             hasLiked = !hasLiked
                             currentLikes = (currentLikes + if (hasLiked) 1 else -1).coerceAtLeast(0)
                             if (hasLiked) likedPostIds.add(post.id) else likedPostIds.remove(post.id)
-                            cardBinding.likesText.text = getString(R.string.likes_format, currentLikes)
-                            cardBinding.likesText.setTextColor(
-                                ContextCompat.getColor(
-                                    this@MainActivity,
-                                    if (hasLiked) R.color.recipe_primary else R.color.text_muted
-                                )
-                            )
+                            updateLikesView(cardBinding.likesText, hasLiked, currentLikes, true)
                             if (offlineHandled) {
                                 Toast.makeText(
                                     this@MainActivity,
@@ -346,7 +362,7 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
                             }
                         } else {
                             hasLiked = false
-                            cardBinding.likesText.text = getString(R.string.likes_format, currentLikes)
+                            updateLikesView(cardBinding.likesText, hasLiked, currentLikes)
                             Toast.makeText(
                                 this@MainActivity,
                                 R.string.error_like_failed,
@@ -437,6 +453,20 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
         } else {
             getString(R.string.post_type_recipe)
         }
+
+    private fun animateLike(target: TextView) {
+        target.animate().cancel()
+        target.scaleX = 1f
+        target.scaleY = 1f
+        target.animate()
+            .scaleX(1.1f)
+            .scaleY(1.1f)
+            .setDuration(120)
+            .withEndAction {
+                target.animate().scaleX(1f).scaleY(1f).setDuration(120).start()
+            }
+            .start()
+    }
 
     private fun bindTags(group: ChipGroup, tags: Set<String>?) {
         group.removeAllViews()
