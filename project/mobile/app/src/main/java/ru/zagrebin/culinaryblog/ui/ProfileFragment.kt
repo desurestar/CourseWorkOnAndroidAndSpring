@@ -49,6 +49,8 @@ import java.io.ByteArrayOutputStream
 @AndroidEntryPoint
 class ProfileFragment : Fragment() {
 
+    private enum class PostsSubTab { PUBLISHED, DRAFTS }
+
     private var _binding: ActivityProfileBinding? = null
     private val binding get() = _binding!!
     private val postViewModel: PostViewModel by viewModels()
@@ -57,6 +59,7 @@ class ProfileFragment : Fragment() {
     private var pendingAvatarUri: Uri? = null
     private var followersCount: Int = 0
     private var followingCount: Int = 0
+    private var postsSubTab: PostsSubTab = PostsSubTab.PUBLISHED
     private val pickAvatarLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         if (uri != null) {
             pendingAvatarUri = uri
@@ -105,6 +108,7 @@ class ProfileFragment : Fragment() {
             setupBottomNavigation()
         }
         setupTabs()
+        setupPostsSubTabs()
         setupActions()
         setEditingVisible(false)
         observeProfile()
@@ -131,7 +135,6 @@ class ProfileFragment : Fragment() {
         tabs.addTab(tabs.newTab().setText(R.string.profile_following))
         tabs.addTab(tabs.newTab().setText(R.string.profile_posts))
         tabs.addTab(tabs.newTab().setText(R.string.profile_liked))
-        tabs.addTab(tabs.newTab().setText(R.string.profile_drafts))
 
         tabs.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
             override fun onTabSelected(tab: TabLayout.Tab) {
@@ -142,6 +145,24 @@ class ProfileFragment : Fragment() {
             override fun onTabReselected(tab: TabLayout.Tab) {}
         })
         tabs.getTabAt(2)?.select()
+    }
+
+    private fun setupPostsSubTabs() {
+        selectPostsSubTab(postsSubTab, rerender = false)
+        binding.buttonPostsPublished.setOnClickListener { selectPostsSubTab(PostsSubTab.PUBLISHED) }
+        binding.buttonPostsDrafts.setOnClickListener { selectPostsSubTab(PostsSubTab.DRAFTS) }
+    }
+
+    private fun selectPostsSubTab(target: PostsSubTab, rerender: Boolean = true) {
+        postsSubTab = target
+        binding.buttonPostsPublished.isEnabled = target != PostsSubTab.PUBLISHED
+        binding.buttonPostsDrafts.isEnabled = target != PostsSubTab.DRAFTS
+        val showingPostsTab = binding.profileTabs.selectedTabPosition == 2
+        binding.sectionPosts.isVisible = showingPostsTab && target == PostsSubTab.PUBLISHED
+        binding.sectionDrafts.isVisible = showingPostsTab && target == PostsSubTab.DRAFTS
+        if (rerender) {
+            renderPosts(postViewModel.uiState.value)
+        }
     }
 
     private fun setupActions() {
@@ -382,7 +403,11 @@ class ProfileFragment : Fragment() {
         renderPostList(binding.postsList, posts, ::openPost)
         renderPostList(binding.likedList, liked, ::openPost)
         renderDraftList(binding.draftsList, state.drafts)
-        binding.profileEmpty.isVisible = posts.isEmpty()
+        val showingPostsTab = binding.profileTabs.selectedTabPosition == 2
+        binding.profileEmpty.isVisible = showingPostsTab && when (postsSubTab) {
+            PostsSubTab.PUBLISHED -> posts.isEmpty()
+            PostsSubTab.DRAFTS -> state.drafts.isEmpty()
+        }
     }
 
     private fun renderPostList(container: LinearLayout, posts: List<PostCard>, onClick: (PostCard) -> Unit) {
@@ -473,9 +498,15 @@ class ProfileFragment : Fragment() {
     private fun showSection(position: Int) {
         binding.sectionFollowers.isVisible = position == 0
         binding.sectionFollowing.isVisible = position == 1
-        binding.sectionPosts.isVisible = position == 2
+        val showingPostsTab = position == 2
+        binding.sectionPosts.isVisible = showingPostsTab && postsSubTab == PostsSubTab.PUBLISHED
+        binding.sectionDrafts.isVisible = showingPostsTab && postsSubTab == PostsSubTab.DRAFTS
         binding.sectionLiked.isVisible = position == 3
-        binding.sectionDrafts.isVisible = position == 4
+        if (showingPostsTab) {
+            renderPosts(postViewModel.uiState.value)
+        } else {
+            binding.profileEmpty.isVisible = false
+        }
     }
 
     private fun renderUserStub() {

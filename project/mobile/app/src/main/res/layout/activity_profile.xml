@@ -221,13 +221,38 @@
                 android:orientation="vertical" />
         </LinearLayout>
 
-        <LinearLayout
-            android:id="@+id/sectionPosts"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:orientation="vertical"
-            android:visibility="gone">
+    <LinearLayout
+        android:id="@+id/sectionPosts"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:orientation="vertical"
+        android:visibility="gone">
+
+            <LinearLayout
+                android:id="@+id/postsSubTabs"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_horizontal"
+                android:orientation="horizontal"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp">
+
+                <Button
+                    android:id="@+id/buttonPostsPublished"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="8dp"
+                    android:layout_weight="1"
+                    android:text="@string/status_published" />
+
+                <Button
+                    android:id="@+id/buttonPostsDrafts"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/status_draft" />
+            </LinearLayout>
 
             <LinearLayout
                 android:id="@+id/postsList"
