@@ -176,7 +176,7 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
             }
         }
 
-        backPressedCallback = onBackPressedDispatcher.addCallback(this) {
+        backPressedCallback = onBackPressedDispatcher.addCallback(this, false) {
             val publicProfileVisible =
                 supportFragmentManager.findFragmentByTag(PUBLIC_PROFILE_TAG)?.isVisible == true
             if (publicProfileVisible) {
@@ -187,14 +187,20 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
                 restoreFeedTab()
                 return@addCallback
             }
-            finish()
+            isEnabled = false
+            onBackPressedDispatcher.onBackPressed()
         }
+        updateBackPressedHandling()
     }
 
-    override fun onDestroy() {
-        backPressedCallback?.remove()
-        backPressedCallback = null
-        super.onDestroy()
+    override fun onStart() {
+        super.onStart()
+        updateBackPressedHandling()
+    }
+
+    override fun onStop() {
+        backPressedCallback?.isEnabled = false
+        super.onStop()
     }
 
     private fun applySelection(itemId: Int) {
@@ -248,6 +254,13 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
                 }
             }
         }
+        updateBackPressedHandling()
+    }
+
+    private fun updateBackPressedHandling() {
+        val publicProfileVisible =
+            supportFragmentManager.findFragmentByTag(PUBLIC_PROFILE_TAG)?.isVisible == true
+        backPressedCallback?.isEnabled = publicProfileVisible || !currentTab.isFeed()
     }
 
     private fun renderState(state: PostsUiState) {
@@ -474,6 +487,7 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
         val existing = supportFragmentManager.findFragmentByTag(PUBLIC_PROFILE_TAG) as? PublicProfileFragment
         existing?.updateUser(userId, displayName, subscribed)
         showFragment(PUBLIC_PROFILE_TAG) { PublicProfileFragment.newInstance(userId, displayName, subscribed) }
+        updateBackPressedHandling()
     }
 
     override fun onPublicProfileClose() {
@@ -485,6 +499,7 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
             supportFragmentManager.commit { remove(it) }
         }
         showFeed()
+        updateBackPressedHandling()
     }
 
     private fun formatType(postType: String?): String =
