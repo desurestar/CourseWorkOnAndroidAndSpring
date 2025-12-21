@@ -12,4 +12,6 @@ interface ProfileRepository {
     suspend fun getSubscription(userId: Long): Result<SubscriptionStatus>
     suspend fun subscribe(userId: Long): Result<SubscriptionStatus>
     suspend fun unsubscribe(userId: Long): Result<SubscriptionStatus>
+    suspend fun getFollowers(userId: Long): Result<List<UserProfile>>
+    suspend fun getFollowing(userId: Long): Result<List<UserProfile>>
 }

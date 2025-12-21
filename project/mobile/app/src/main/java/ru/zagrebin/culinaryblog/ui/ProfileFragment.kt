@@ -37,6 +37,7 @@ import ru.zagrebin.culinaryblog.formatDisplayDate
 import ru.zagrebin.culinaryblog.data.storage.TokenStorage
 import ru.zagrebin.culinaryblog.databinding.ActivityProfileBinding
 import ru.zagrebin.culinaryblog.model.PostCard
+import ru.zagrebin.culinaryblog.model.UserProfile
 import ru.zagrebin.culinaryblog.viewmodel.PostViewModel
 import ru.zagrebin.culinaryblog.viewmodel.PostsUiState
 import ru.zagrebin.culinaryblog.viewmodel.ProfileUiState
@@ -53,6 +54,8 @@ class ProfileFragment : Fragment() {
     private val profileViewModel: ProfileViewModel by viewModels()
     private var pendingAvatarBitmap: Bitmap? = null
     private var pendingAvatarUri: Uri? = null
+    private var followersCount: Int = 0
+    private var followingCount: Int = 0
     private val pickAvatarLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         if (uri != null) {
             pendingAvatarUri = uri
@@ -104,6 +107,7 @@ class ProfileFragment : Fragment() {
         setupActions()
         setEditingVisible(false)
         observeProfile()
+        observeRelations()
         renderUserStub()
         observePosts()
     }
@@ -131,7 +135,7 @@ class ProfileFragment : Fragment() {
             override fun onTabUnselected(tab: TabLayout.Tab) {}
             override fun onTabReselected(tab: TabLayout.Tab) {}
         })
-        tabs.getTabAt(0)?.select()
+        tabs.getTabAt(2)?.select()
     }
 
     private fun setupActions() {
@@ -157,8 +161,8 @@ class ProfileFragment : Fragment() {
             binding.profileScroll.smoothScrollTo(0, binding.editDisplayName.top)
         }
         setupInputs()
-        renderFollowers(0)
-        renderFollowing(0)
+        renderFollowers(emptyList())
+        renderFollowing(emptyList())
     }
 
     private fun setEditingVisible(show: Boolean) {
@@ -185,6 +189,19 @@ class ProfileFragment : Fragment() {
         }
     }
 
+    private fun observeRelations() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                profileViewModel.followers.collectLatest { renderFollowers(it) }
+            }
+        }
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                profileViewModel.following.collectLatest { renderFollowing(it) }
+            }
+        }
+    }
+
     private fun renderProfile(state: ProfileUiState) {
         binding.profileProgress.isVisible = state.isLoading || state.isSaving
         binding.buttonSaveProfile.isEnabled = !state.isLoading && !state.isSaving
@@ -197,6 +214,8 @@ class ProfileFragment : Fragment() {
 
         val user = state.user
         if (user != null) {
+            followersCount = user.followersCount
+            followingCount = user.followingCount
             val displayName = user.displayName?.takeIf { it.isNotBlank() }
                 ?: user.username
                 ?: getString(R.string.profile_user_stub)
@@ -206,18 +225,21 @@ class ProfileFragment : Fragment() {
             binding.editDisplayName.updateTextIfDifferent(profileViewModel.displayName.value)
             binding.editUsername.updateTextIfDifferent(profileViewModel.username.value)
             binding.editEmail.updateTextIfDifferent(profileViewModel.email.value)
-            renderFollowers(user.followersCount)
-            renderFollowing(user.followingCount)
             val avatar = profileViewModel.avatarUrl.value ?: user.avatarUrl
             if (!avatar.isNullOrBlank()) {
                 pendingAvatarBitmap = null
             }
             renderAvatar(avatar, displayName)
+            user.id?.let { profileViewModel.loadRelations(it) }
+            renderFollowers(profileViewModel.followers.value)
+            renderFollowing(profileViewModel.following.value)
         } else {
             renderUserStub()
             renderAvatar(null, binding.profileName.text?.toString())
-            renderFollowers(0)
-            renderFollowing(0)
+            followersCount = 0
+            followingCount = 0
+            renderFollowers(emptyList())
+            renderFollowing(emptyList())
         }
     }
 
@@ -352,8 +374,11 @@ class ProfileFragment : Fragment() {
     }
 
     private fun renderPosts(state: PostsUiState) {
-        val posts = state.posts
-        val liked = posts.filter { state.likedIds.contains(it.id) }
+        val currentUserId = profileViewModel.uiState.value.user?.id
+        val posts = state.posts.filter { post ->
+            currentUserId?.let { post.authorId == it } ?: true
+        }
+        val liked = state.posts.filter { state.likedIds.contains(it.id) }
         val drafts = state.drafts.map { it.toCard() }
         renderPostList(binding.postsList, posts)
         renderPostList(binding.likedList, liked)
@@ -396,19 +421,37 @@ class ProfileFragment : Fragment() {
         }
     }
 
-    private fun renderFollowers(count: Int) {
-        renderSimpleList(binding.followersList, count, getString(R.string.profile_followers))
+    private fun renderFollowers(users: List<UserProfile>) {
+        renderUserList(binding.followersList, users, followersCount, getString(R.string.profile_followers))
     }
 
-    private fun renderFollowing(count: Int) {
-        renderSimpleList(binding.followingList, count, getString(R.string.profile_following))
+    private fun renderFollowing(users: List<UserProfile>) {
+        renderUserList(binding.followingList, users, followingCount, getString(R.string.profile_following))
     }
 
-    private fun renderSimpleList(container: LinearLayout, count: Int, meta: String) {
+    private fun renderUserList(container: LinearLayout, users: List<UserProfile>, count: Int, meta: String) {
         container.removeAllViews()
-        val stub = TextView(requireContext())
-        stub.text = "$meta: $count"
-        container.addView(stub)
+        if (users.isEmpty()) {
+            val stub = TextView(requireContext())
+            val suffix = if (count > 0) " ($count)" else ""
+            stub.text = "$meta: ${getString(R.string.profile_empty)}$suffix"
+            container.addView(stub)
+            return
+        }
+        users.forEach { user ->
+            val view = layoutInflater.inflate(R.layout.item_profile_mini, container, false)
+            val name = user.displayName?.takeIf { it.isNotBlank() }
+                ?: user.username
+                ?: getString(R.string.profile_user_stub)
+            val metaText = user.email?.takeIf { it.isNotBlank() }
+                ?: user.username
+                ?: getString(R.string.profile_email_stub)
+            view.findViewById<TextView>(R.id.miniProfileName).text = name
+            view.findViewById<TextView>(R.id.miniProfileMeta).text = metaText
+            view.findViewById<TextView>(R.id.miniProfileAvatar).text = name.firstOrNull()?.uppercase() ?: "U"
+            view.setOnClickListener { openUser(user) }
+            container.addView(view)
+        }
     }
 
     private fun showSection(position: Int) {
@@ -483,14 +526,8 @@ class ProfileFragment : Fragment() {
         fun onOpenUserProfile(userId: Long, displayName: String?, subscribed: Boolean?)
     }
 
-    private fun openUser(user: ProfileListItem) {
-        if (user.id <= 0) return
-        (activity as? Host)?.onOpenUserProfile(user.id, user.name, user.subscribed)
+    private fun openUser(user: UserProfile) {
+        val id = user.id ?: return
+        (activity as? Host)?.onOpenUserProfile(id, user.displayName ?: user.username, null)
     }
 }
-
-data class ProfileListItem(
-    val id: Long,
-    val name: String,
-    val subscribed: Boolean = false
-)

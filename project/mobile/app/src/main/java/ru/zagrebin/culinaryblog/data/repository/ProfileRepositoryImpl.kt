@@ -88,6 +88,20 @@ class ProfileRepositoryImpl @Inject constructor(
         }.getOrElse { Result.failure(it) }
     }
 
+    override suspend fun getFollowers(userId: Long): Result<List<UserProfile>> = withContext(Dispatchers.IO) {
+        return@withContext runCatching {
+            val resp = userApi.getFollowers(userId)
+            mapResponse(resp, "Followers response body is empty") { list -> list.map { it.toModel() } }
+        }.getOrElse { Result.failure(it) }
+    }
+
+    override suspend fun getFollowing(userId: Long): Result<List<UserProfile>> = withContext(Dispatchers.IO) {
+        return@withContext runCatching {
+            val resp = userApi.getFollowing(userId)
+            mapResponse(resp, "Following response body is empty") { list -> list.map { it.toModel() } }
+        }.getOrElse { Result.failure(it) }
+    }
+
     private suspend fun loadCachedOrFail(message: String): Result<UserProfile> {
         val cached = userProfileDao.getProfile()?.toModel()
         return cached?.let { Result.success(it) } ?: Result.failure(RuntimeException(message))
