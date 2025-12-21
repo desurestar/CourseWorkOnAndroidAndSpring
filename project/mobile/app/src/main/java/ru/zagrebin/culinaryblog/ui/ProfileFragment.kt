@@ -133,7 +133,6 @@ class ProfileFragment : Fragment() {
         val tabs = binding.profileTabs
         tabs.addTab(tabs.newTab().setText(R.string.profile_followers))
         tabs.addTab(tabs.newTab().setText(R.string.profile_following))
-        tabs.addTab(tabs.newTab().setText(R.string.profile_posts))
         tabs.addTab(tabs.newTab().setText(R.string.profile_liked))
 
         tabs.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
@@ -144,23 +143,21 @@ class ProfileFragment : Fragment() {
             override fun onTabUnselected(tab: TabLayout.Tab) {}
             override fun onTabReselected(tab: TabLayout.Tab) {}
         })
-        tabs.getTabAt(POSTS_TAB_POSITION)?.select()
+        tabs.getTabAt(FOLLOWERS_TAB_POSITION)?.select()
     }
 
     private fun setupPostsSubTabs() {
-        selectPostsSubTab(postsSubTab, rerender = false)
+        selectPostsSubTab(postsSubTab)
         binding.buttonPostsPublished.setOnClickListener { selectPostsSubTab(PostsSubTab.PUBLISHED) }
         binding.buttonPostsDrafts.setOnClickListener { selectPostsSubTab(PostsSubTab.DRAFTS) }
     }
 
-    private fun selectPostsSubTab(target: PostsSubTab, rerender: Boolean = true) {
+    private fun selectPostsSubTab(target: PostsSubTab) {
         postsSubTab = target
         binding.buttonPostsPublished.isSelected = target == PostsSubTab.PUBLISHED
         binding.buttonPostsDrafts.isSelected = target == PostsSubTab.DRAFTS
-        updatePostsSectionsVisibility(isPostsTab())
-        if (rerender && isPostsTab()) {
-            renderPosts(postViewModel.uiState.value)
-        }
+        updatePostsSectionsVisibility()
+        renderPosts(postViewModel.uiState.value)
     }
 
     private fun setupActions() {
@@ -393,19 +390,12 @@ class ProfileFragment : Fragment() {
     }
 
     private fun renderPosts(state: PostsUiState) {
-        val currentUserId = profileViewModel.uiState.value.user?.id
-        val posts = state.posts.filter { post ->
-            currentUserId?.let { post.authorId == it } ?: true
-        }
+        val posts = filterCurrentUserPosts(state)
         val liked = state.posts.filter { state.likedIds.contains(it.id) }
         renderPostList(binding.postsList, posts, ::openPost)
         renderPostList(binding.likedList, liked, ::openPost)
         renderDraftList(binding.draftsList, state.drafts)
-        val showingPostsTab = isPostsTab()
-        binding.profileEmpty.isVisible = showingPostsTab && when (postsSubTab) {
-            PostsSubTab.PUBLISHED -> posts.isEmpty()
-            PostsSubTab.DRAFTS -> state.drafts.isEmpty()
-        }
+        updatePostsEmptyState(posts, state)
     }
 
     private fun renderPostList(container: LinearLayout, posts: List<PostCard>, onClick: (PostCard) -> Unit) {
@@ -484,25 +474,28 @@ class ProfileFragment : Fragment() {
     }
 
     private fun showSection(position: Int) {
-        binding.sectionFollowers.isVisible = position == 0
-        binding.sectionFollowing.isVisible = position == 1
-        val showingPostsTab = isPostsTab(position)
-        updatePostsSectionsVisibility(showingPostsTab)
+        binding.sectionFollowers.isVisible = position == FOLLOWERS_TAB_POSITION
+        binding.sectionFollowing.isVisible = position == FOLLOWING_TAB_POSITION
         binding.sectionLiked.isVisible = position == LIKED_TAB_POSITION
-        if (showingPostsTab) {
-            renderPosts(postViewModel.uiState.value)
-        } else {
-            binding.profileEmpty.isVisible = false
+    }
+
+    private fun updatePostsSectionsVisibility() {
+        binding.postsList.isVisible = postsSubTab == PostsSubTab.PUBLISHED
+        binding.sectionDrafts.isVisible = postsSubTab == PostsSubTab.DRAFTS
+    }
+
+    private fun filterCurrentUserPosts(state: PostsUiState): List<PostCard> {
+        val currentUserId = profileViewModel.uiState.value.user?.id
+        return state.posts.filter { post ->
+            currentUserId?.let { post.authorId == it } ?: true
         }
     }
 
-    private fun isPostsTab(position: Int = binding.profileTabs.selectedTabPosition): Boolean =
-        position == POSTS_TAB_POSITION
-
-    private fun updatePostsSectionsVisibility(showingPostsTab: Boolean) {
-        binding.sectionPosts.isVisible = showingPostsTab
-        binding.postsList.isVisible = showingPostsTab && postsSubTab == PostsSubTab.PUBLISHED
-        binding.sectionDrafts.isVisible = showingPostsTab && postsSubTab == PostsSubTab.DRAFTS
+    private fun updatePostsEmptyState(posts: List<PostCard>, state: PostsUiState) {
+        binding.profileEmpty.isVisible = when (postsSubTab) {
+            PostsSubTab.PUBLISHED -> posts.isEmpty()
+            PostsSubTab.DRAFTS -> state.drafts.isEmpty()
+        }
     }
 
     private fun renderUserStub() {
@@ -567,8 +560,10 @@ class ProfileFragment : Fragment() {
         private const val CROP_ASPECT = 1
         private const val CROP_OUTPUT = 512
         private const val JPEG_QUALITY = 90
-        private const val POSTS_TAB_POSITION = 2
-        private const val LIKED_TAB_POSITION = 3 // followers, following, posts, liked
+        // Tab order: followers (0), following (1), liked (2)
+        private const val FOLLOWERS_TAB_POSITION = 0
+        private const val FOLLOWING_TAB_POSITION = 1
+        private const val LIKED_TAB_POSITION = 2
     }
 
     interface Host {
