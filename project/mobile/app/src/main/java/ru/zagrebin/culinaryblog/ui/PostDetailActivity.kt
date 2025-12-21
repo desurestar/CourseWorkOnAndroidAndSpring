@@ -7,6 +7,7 @@ import android.os.Bundle
 import android.text.Layout
 import android.util.Log
 import android.widget.LinearLayout
+import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.addCallback
@@ -16,6 +17,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
 import coil.load
+import coil.transform.CircleCropTransformation
 import com.google.android.material.chip.Chip
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.collectLatest
@@ -347,12 +349,28 @@ class PostDetailActivity : AppCompatActivity() {
             val level = byParent[parentId] ?: return
             level.forEach { comment ->
                 val view = layoutInflater.inflate(R.layout.item_comment, binding.commentsList, false)
-                val avatar = view.findViewById<TextView>(R.id.commentAvatar)
+                val avatarImage = view.findViewById<ImageView>(R.id.commentAvatarImage)
+                val avatarInitial = view.findViewById<TextView>(R.id.commentAvatarInitial)
                 val author = view.findViewById<TextView>(R.id.commentAuthor)
                 val date = view.findViewById<TextView>(R.id.commentDate)
                 val message = view.findViewById<TextView>(R.id.commentMessage)
 
-                avatar.text = comment.authorName.firstOrNull()?.uppercase() ?: "?"
+                val avatarUrl = comment.avatarUrl?.takeIf { it.isNotBlank() }
+                if (avatarUrl != null) {
+                    avatarInitial.isVisible = false
+                    avatarInitial.text = ""
+                    avatarImage.load(avatarUrl) {
+                        placeholder(R.drawable.bg_avatar_placeholder)
+                        error(R.drawable.bg_avatar_placeholder)
+                        transformations(CircleCropTransformation())
+                        crossfade(true)
+                    }
+                } else {
+                    avatarInitial.isVisible = true
+                    avatarImage.setImageDrawable(null)
+                    avatarImage.setBackgroundResource(R.drawable.bg_avatar_placeholder)
+                    avatarInitial.text = comment.authorName.firstOrNull()?.uppercase() ?: "?"
+                }
                 author.text = comment.authorName
                 date.text = formatDisplayDate(comment.createdAt) ?: getString(R.string.published_unknown)
                 message.text = comment.message
@@ -394,8 +412,8 @@ class PostDetailActivity : AppCompatActivity() {
 
         lifecycleScope.launch {
             try {
-                val author = resolveAuthorName()
-                commentRepository.addComment(currentPostId, author, text, replyTo?.id)
+                val author = resolveAuthor()
+                commentRepository.addComment(currentPostId, author.name, text, replyTo?.id, author.avatarUrl)
                 binding.inputComment.text?.clear()
                 clearReplyTarget()
             } catch (e: Exception) {
@@ -405,15 +423,19 @@ class PostDetailActivity : AppCompatActivity() {
         }
     }
 
-    private suspend fun resolveAuthorName(): String {
+    private suspend fun resolveAuthor(): CommentAuthor {
         val profileResult = profileRepository.getProfile()
         profileResult.exceptionOrNull()?.let {
             Log.w(TAG, "Failed to fetch profile for comment author", it)
         }
-        val profile = profileResult.getOrNull() ?: return getString(R.string.comment_author_you)
-        return profile.displayName?.takeIf { it.isNotBlank() }
-            ?: profile.username?.takeIf { it.isNotBlank() }
+        val profile = profileResult.getOrNull()
+        val name = profile?.displayName?.takeIf { it.isNotBlank() }
+            ?: profile?.username?.takeIf { it.isNotBlank() }
             ?: getString(R.string.comment_author_you)
+        return CommentAuthor(
+            name = name,
+            avatarUrl = profile?.avatarUrl
+        )
     }
 
     private fun openAuthorProfile() {
@@ -448,6 +470,11 @@ class PostDetailActivity : AppCompatActivity() {
         backPressedCallback = null
         super.onDestroy()
     }
+
+    private data class CommentAuthor(
+        val name: String,
+        val avatarUrl: String?
+    )
 
     companion object {
         const val EXTRA_POST = "extra_post"

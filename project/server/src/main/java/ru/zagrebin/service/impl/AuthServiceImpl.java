@@ -15,6 +15,7 @@ import ru.zagrebin.repository.UserRepository;
 import ru.zagrebin.security.Roles;
 import ru.zagrebin.security.JwtService;
 import ru.zagrebin.service.AuthService;
+import ru.zagrebin.util.UrlHelper;
 
 import java.time.OffsetDateTime;
 
@@ -126,7 +127,7 @@ public class AuthServiceImpl implements AuthService {
                 user.getEmail(),
                 user.getDisplayName(),
                 user.getRole(),
-                user.getAvatarUrl()
+                UrlHelper.toAbsolute(user.getAvatarUrl())
         );
     }
 }

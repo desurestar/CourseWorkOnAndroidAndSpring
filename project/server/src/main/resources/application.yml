@@ -1,6 +1,7 @@
 media:
-  path: /absolute/path/to/your/project/MEDIA
-  public-url-prefix: /media
+  # По умолчанию сохраняем медиафайлы в папку MEDIA рядом с приложением (можно переопределить переменной MEDIA_PATH)
+  path: ${MEDIA_PATH:${user.dir}/MEDIA}
+  public-url-prefix: ${MEDIA_PUBLIC_PREFIX:/media}
 
 server:
   address: 0.0.0.0
