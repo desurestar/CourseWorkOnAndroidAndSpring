@@ -22,8 +22,10 @@ import coil.load
 import coil.transform.CircleCropTransformation
 import com.google.android.material.chip.Chip
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import ru.zagrebin.culinaryblog.R
 import ru.zagrebin.culinaryblog.AuthActivity
 import ru.zagrebin.culinaryblog.MainActivity
@@ -451,8 +453,16 @@ class PostDetailActivity : AppCompatActivity() {
                     Toast.makeText(this, R.string.comment_edit_empty_error, Toast.LENGTH_SHORT).show()
                     return@setPositiveButton
                 }
-                if (commentRepository.updateComment(comment.postId, comment.id, newText)) {
-                    Toast.makeText(this, R.string.comment_edit_updated, Toast.LENGTH_SHORT).show()
+                lifecycleScope.launch {
+                    val updated = withContext(Dispatchers.Default) {
+                        commentRepository.updateComment(comment.postId, comment.id, newText)
+                    }
+                    if (updated) {
+                        Toast.makeText(this@PostDetailActivity, R.string.comment_edit_updated, Toast.LENGTH_SHORT).show()
+                        renderComments(commentRepository.getComments(comment.postId).value)
+                    } else {
+                        Toast.makeText(this@PostDetailActivity, R.string.comment_edit_failed, Toast.LENGTH_SHORT).show()
+                    }
                 }
             }
             .setNegativeButton(android.R.string.cancel, null)
@@ -460,9 +470,17 @@ class PostDetailActivity : AppCompatActivity() {
     }
 
     private fun deleteComment(comment: Comment) {
-        val result = commentRepository.deleteComment(comment.postId, comment.id)
-        val messageRes = if (result) R.string.comment_deleted else R.string.error_loading
-        Toast.makeText(this, messageRes, Toast.LENGTH_SHORT).show()
+        lifecycleScope.launch {
+            val result = withContext(Dispatchers.Default) {
+                commentRepository.deleteComment(comment.postId, comment.id)
+            }
+            if (result) {
+                Toast.makeText(this@PostDetailActivity, R.string.comment_deleted, Toast.LENGTH_SHORT).show()
+                renderComments(commentRepository.getComments(comment.postId).value)
+            } else {
+                Toast.makeText(this@PostDetailActivity, R.string.comment_delete_error, Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     private suspend fun resolveAuthor(): CommentAuthor {
