@@ -10,9 +10,11 @@ import android.widget.LinearLayout
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
+import android.widget.EditText
 import androidx.activity.addCallback
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
@@ -84,6 +86,8 @@ class PostDetailActivity : AppCompatActivity() {
         binding.likesText.setOnClickListener { toggleLike() }
         binding.buttonSendComment.setOnClickListener { sendComment() }
         binding.buttonCancelReply.setOnClickListener { clearReplyTarget() }
+        binding.buttonEditPost.setOnClickListener { showPostActionHint(R.string.post_action_edit_hint) }
+        binding.buttonDeletePost.setOnClickListener { showPostActionHint(R.string.post_action_delete_hint) }
         updateLikeUi()
     }
 
@@ -358,6 +362,8 @@ class PostDetailActivity : AppCompatActivity() {
                 val author = view.findViewById<TextView>(R.id.commentAuthor)
                 val date = view.findViewById<TextView>(R.id.commentDate)
                 val message = view.findViewById<TextView>(R.id.commentMessage)
+                val editButton = view.findViewById<android.widget.Button>(R.id.buttonEditComment)
+                val deleteButton = view.findViewById<android.widget.Button>(R.id.buttonDeleteComment)
 
                 val avatarUrl = comment.avatarUrl?.takeIf { it.isNotBlank() }
                 if (avatarUrl != null) {
@@ -380,6 +386,8 @@ class PostDetailActivity : AppCompatActivity() {
                 val paddingStart = (depth * resources.getDimensionPixelSize(R.dimen.comment_indent)) + view.paddingStart
                 view.setPaddingRelative(paddingStart, view.paddingTop, view.paddingEnd, view.paddingBottom)
                 view.setOnClickListener { setReplyTarget(comment) }
+                editButton.setOnClickListener { showEditCommentDialog(comment) }
+                deleteButton.setOnClickListener { deleteComment(comment) }
                 binding.commentsList.addView(view)
                 renderLevel(comment.id, depth + 1)
             }
@@ -397,6 +405,10 @@ class PostDetailActivity : AppCompatActivity() {
     private fun clearReplyTarget() {
         replyTo = null
         binding.replyRow.isVisible = false
+    }
+
+    private fun showPostActionHint(messageRes: Int) {
+        Toast.makeText(this, messageRes, Toast.LENGTH_SHORT).show()
     }
 
     private fun sendComment() {
@@ -423,6 +435,34 @@ class PostDetailActivity : AppCompatActivity() {
                 Toast.makeText(this@PostDetailActivity, R.string.error_posting_comment, Toast.LENGTH_SHORT).show()
             }
         }
+    }
+
+    private fun showEditCommentDialog(comment: Comment) {
+        val input = EditText(this).apply {
+            setText(comment.message)
+            setSelection(comment.message.length)
+        }
+        AlertDialog.Builder(this)
+            .setTitle(R.string.comment_edit_title)
+            .setView(input)
+            .setPositiveButton(R.string.action_save) { _, _ ->
+                val newText = input.text?.toString()?.trim().orEmpty()
+                if (newText.isBlank()) {
+                    Toast.makeText(this, R.string.comment_edit_empty_error, Toast.LENGTH_SHORT).show()
+                    return@setPositiveButton
+                }
+                if (commentRepository.updateComment(comment.postId, comment.id, newText)) {
+                    Toast.makeText(this, R.string.comment_edit_updated, Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun deleteComment(comment: Comment) {
+        val result = commentRepository.deleteComment(comment.postId, comment.id)
+        val messageRes = if (result) R.string.comment_deleted else R.string.error_loading
+        Toast.makeText(this, messageRes, Toast.LENGTH_SHORT).show()
     }
 
     private suspend fun resolveAuthor(): CommentAuthor {

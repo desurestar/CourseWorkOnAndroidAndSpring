@@ -55,6 +55,45 @@ class CommentRepository @Inject constructor(
         return newComment
     }
 
+    fun updateComment(postId: Long, commentId: Long, newMessage: String): Boolean {
+        val flow = getFlow(postId)
+        var updated = false
+        flow.value = flow.value.map { comment ->
+            if (comment.id == commentId) {
+                updated = true
+                comment.copy(message = newMessage)
+            } else {
+                comment
+            }
+        }
+        if (updated) {
+            persist(postId, flow.value)
+        }
+        return updated
+    }
+
+    fun deleteComment(postId: Long, commentId: Long): Boolean {
+        val flow = getFlow(postId)
+        val items = flow.value
+        if (items.isEmpty()) return false
+        val toRemove = collectWithChildren(items, commentId)
+        if (toRemove.isEmpty()) return false
+        flow.value = items.filterNot { it.id in toRemove }
+        persist(postId, flow.value)
+        return true
+    }
+
+    private fun collectWithChildren(items: List<Comment>, rootId: Long): Set<Long> {
+        if (items.none { it.id == rootId }) return emptySet()
+        val result = mutableSetOf<Long>()
+        fun dfs(id: Long) {
+            result.add(id)
+            items.filter { it.parentId == id }.forEach { dfs(it.id) }
+        }
+        dfs(rootId)
+        return result
+    }
+
     private fun getFlow(postId: Long): MutableStateFlow<List<Comment>> {
         return comments.getOrPut(postId) {
             val initial = loadComments(postId)
