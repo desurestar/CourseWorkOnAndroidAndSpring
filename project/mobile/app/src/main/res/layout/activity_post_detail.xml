@@ -243,6 +243,9 @@
                     android:id="@+id/cookingTime"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:drawablePadding="@dimen/create_horizontal_space"
+                    android:drawableStart="@drawable/ic_time_outline"
+                    android:drawableTint="@color/recipe_primary"
                     android:text="@string/cooking_time_placeholder"
                     android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
                     android:textColor="@color/recipe_primary" />
@@ -252,6 +255,9 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="2dp"
+                    android:drawablePadding="@dimen/create_horizontal_space"
+                    android:drawableStart="@drawable/ic_fire"
+                    android:drawableTint="@color/recipe_primary"
                     android:text="@string/calories_placeholder"
                     android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
                     android:textColor="@color/recipe_primary" />
@@ -268,6 +274,9 @@
                     android:id="@+id/viewsText"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:drawablePadding="@dimen/create_horizontal_space"
+                    android:drawableStart="@drawable/ic_visibility"
+                    android:drawableTint="@color/recipe_primary"
                     android:text="@string/views_placeholder"
                     android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
                     android:textColor="@color/text_muted" />
@@ -277,6 +286,9 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="2dp"
+                    android:drawablePadding="@dimen/create_horizontal_space"
+                    android:drawableStart="@drawable/ic_favorite"
+                    android:drawableTint="@color/recipe_primary"
                     android:text="@string/likes_placeholder"
                     android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
                     android:textColor="@color/text_muted" />

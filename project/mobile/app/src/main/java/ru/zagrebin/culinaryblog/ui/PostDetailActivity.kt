@@ -2,6 +2,7 @@ package ru.zagrebin.culinaryblog.ui
 
 import android.app.Activity
 import android.content.Intent
+import android.content.res.ColorStateList
 import android.graphics.text.LineBreaker
 import android.os.Build
 import android.os.Bundle
@@ -19,6 +20,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
+import androidx.core.widget.TextViewCompat
 import androidx.lifecycle.lifecycleScope
 import coil.load
 import coil.transform.CircleCropTransformation
@@ -333,7 +335,7 @@ class PostDetailActivity : AppCompatActivity() {
                 isLiked = !isLiked
                 likesCount = (likesCount + if (isLiked) 1 else -1).coerceAtLeast(0)
                 likeStateChanged = true
-                updateLikeUi()
+                updateLikeUi(true)
                 if (offlineHandled) {
                     Toast.makeText(
                         this@PostDetailActivity,
@@ -351,10 +353,20 @@ class PostDetailActivity : AppCompatActivity() {
         }
     }
 
-    private fun updateLikeUi() {
+    private fun updateLikeUi(animated: Boolean = false) {
         binding.likesText.text = getString(R.string.likes_format, likesCount)
-        val color = if (isLiked) R.color.recipe_primary else R.color.text_muted
-        binding.likesText.setTextColor(ContextCompat.getColor(this, color))
+        val textColor = if (isLiked) R.color.text_error else R.color.text_muted
+        val iconColor = if (isLiked) R.color.text_error else R.color.recipe_primary
+        val icon = if (isLiked) R.drawable.ic_favorite_border else R.drawable.ic_favorite
+        binding.likesText.setTextColor(ContextCompat.getColor(this, textColor))
+        binding.likesText.setCompoundDrawablesWithIntrinsicBounds(icon, 0, 0, 0)
+        binding.likesText.compoundDrawablePadding =
+            resources.getDimensionPixelSize(R.dimen.create_horizontal_space)
+        TextViewCompat.setCompoundDrawableTintList(
+            binding.likesText,
+            ColorStateList.valueOf(ContextCompat.getColor(this, iconColor))
+        )
+        if (animated) animateLike(binding.likesText)
     }
 
     private fun collectComments(postId: Long) {
@@ -655,6 +667,20 @@ class PostDetailActivity : AppCompatActivity() {
         val avatarUrl: String?,
         val id: Long?
     )
+
+    private fun animateLike(target: TextView) {
+        target.animate().cancel()
+        target.scaleX = 1f
+        target.scaleY = 1f
+        target.animate()
+            .scaleX(1.1f)
+            .scaleY(1.1f)
+            .setDuration(120)
+            .withEndAction {
+                target.animate().scaleX(1f).scaleY(1f).setDuration(120).start()
+            }
+            .start()
+    }
 
     companion object {
         const val EXTRA_POST = "extra_post"
