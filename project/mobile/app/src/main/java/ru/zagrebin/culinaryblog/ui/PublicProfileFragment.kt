@@ -21,11 +21,15 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import dagger.hilt.android.AndroidEntryPoint
 import ru.zagrebin.culinaryblog.R
+import ru.zagrebin.culinaryblog.AuthActivity
 import ru.zagrebin.culinaryblog.databinding.FragmentPublicProfileBinding
 import ru.zagrebin.culinaryblog.formatDisplayDate
+import ru.zagrebin.culinaryblog.data.repository.ProfileRepository
+import ru.zagrebin.culinaryblog.data.storage.TokenStorage
 import ru.zagrebin.culinaryblog.model.PostCard
 import ru.zagrebin.culinaryblog.viewmodel.PostViewModel
 import ru.zagrebin.culinaryblog.viewmodel.PostsUiState
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class PublicProfileFragment : Fragment() {
@@ -33,6 +37,8 @@ class PublicProfileFragment : Fragment() {
     private var _binding: FragmentPublicProfileBinding? = null
     private val binding get() = _binding!!
     private val postViewModel: PostViewModel by viewModels()
+    @Inject lateinit var profileRepository: ProfileRepository
+    @Inject lateinit var tokenStorage: TokenStorage
 
     private var userId: Long? = null
     private var displayName: String? = null
@@ -64,12 +70,9 @@ class PublicProfileFragment : Fragment() {
         renderFollowers(followersStub())
         renderFollowing(followingStub())
         observePosts()
+        loadSubscriptionStatus()
 
-        binding.buttonSubscribe.setOnClickListener {
-            subscribed = !subscribed
-            renderSubscription()
-            Toast.makeText(requireContext(), R.string.profile_subscription_updated, Toast.LENGTH_SHORT).show()
-        }
+        binding.buttonSubscribe.setOnClickListener { toggleSubscription() }
         binding.buttonClose.setOnClickListener {
             (activity as? Host)?.onPublicProfileClose() ?: activity?.onBackPressedDispatcher?.onBackPressed()
         }
@@ -94,6 +97,7 @@ class PublicProfileFragment : Fragment() {
             renderPosts(postViewModel.uiState.value)
             binding.publicTabs.getTabAt(0)?.select()
             showSection(0)
+            loadSubscriptionStatus()
         }
     }
 
@@ -209,6 +213,41 @@ class PublicProfileFragment : Fragment() {
             if (subscribed) getString(R.string.profile_unsubscribe) else getString(R.string.profile_subscribe)
         binding.publicMeta.text =
             if (subscribed) getString(R.string.profile_following) else getString(R.string.nav_profile)
+    }
+
+    private fun loadSubscriptionStatus() {
+        val id = userId ?: return
+        if (tokenStorage.getToken().isNullOrBlank()) return
+        viewLifecycleOwner.lifecycleScope.launch {
+            val result = profileRepository.getSubscription(id)
+            result.onSuccess {
+                subscribed = it.subscribed
+                renderSubscription()
+            }
+        }
+    }
+
+    private fun toggleSubscription() {
+        val id = userId ?: return
+        if (tokenStorage.getToken().isNullOrBlank()) {
+            startActivity(Intent(requireContext(), AuthActivity::class.java))
+            return
+        }
+        viewLifecycleOwner.lifecycleScope.launch {
+            binding.buttonSubscribe.isEnabled = false
+            try {
+                val result = if (subscribed) profileRepository.unsubscribe(id) else profileRepository.subscribe(id)
+                result.onSuccess {
+                    subscribed = it.subscribed
+                    renderSubscription()
+                    Toast.makeText(requireContext(), R.string.profile_subscription_updated, Toast.LENGTH_SHORT).show()
+                }.onFailure {
+                    Toast.makeText(requireContext(), R.string.error_loading, Toast.LENGTH_SHORT).show()
+                }
+            } finally {
+                binding.buttonSubscribe.isEnabled = true
+            }
+        }
     }
 
     private fun openPost(post: PostCard) {

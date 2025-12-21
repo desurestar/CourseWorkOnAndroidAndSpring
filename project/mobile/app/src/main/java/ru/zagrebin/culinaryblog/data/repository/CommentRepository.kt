@@ -26,12 +26,26 @@ class CommentRepository @Inject constructor(
 
     fun getComments(postId: Long): StateFlow<List<Comment>> = getFlow(postId)
 
-    fun addComment(postId: Long, author: String, message: String, parentId: Long? = null): Comment {
+    fun addComment(
+        postId: Long,
+        author: String,
+        message: String,
+        parentId: Long? = null
+    ): Comment = addComment(postId, author, message, parentId, null)
+
+    fun addComment(
+        postId: Long,
+        author: String,
+        message: String,
+        parentId: Long? = null,
+        avatarUrl: String? = null
+    ): Comment {
         val flow = getFlow(postId)
         val newComment = Comment(
             id = idGenerator.getAndIncrement(),
             postId = postId,
             authorName = author,
+            avatarUrl = avatarUrl,
             message = message,
             createdAt = OffsetDateTime.now().toString(),
             parentId = parentId

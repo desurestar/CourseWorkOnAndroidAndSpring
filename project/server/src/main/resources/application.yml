@@ -1,6 +1,7 @@
 media:
-  path: /absolute/path/to/your/project/MEDIA
-  public-url-prefix: /media
+  # By default store media files in MEDIA folder next to the app (override with MEDIA_PATH)
+  path: ${MEDIA_PATH:${user.dir}/MEDIA}
+  public-url-prefix: ${MEDIA_PUBLIC_PREFIX:/media}
 
 server:
   address: 0.0.0.0

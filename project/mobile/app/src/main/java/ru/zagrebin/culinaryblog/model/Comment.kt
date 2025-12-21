@@ -4,6 +4,7 @@ data class Comment(
     val id: Long,
     val postId: Long,
     val authorName: String,
+    val avatarUrl: String? = null,
     val message: String,
     val createdAt: String,
     val parentId: Long? = null
