@@ -397,6 +397,8 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
     }
 
     private fun openPublicProfile(userId: Long, displayName: String?, subscribed: Boolean?) {
+        val existing = supportFragmentManager.findFragmentByTag(PUBLIC_PROFILE_TAG) as? PublicProfileFragment
+        existing?.updateUser(userId, displayName, subscribed)
         showFragment(PUBLIC_PROFILE_TAG) { PublicProfileFragment.newInstance(userId, displayName, subscribed) }
     }
 
@@ -495,6 +497,10 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
     override fun onProfileOpenDrafts(): Boolean {
         binding.bottomNavigation.selectedItemId = R.id.menu_create
         return true
+    }
+
+    override fun onOpenUserProfile(userId: Long, displayName: String?, subscribed: Boolean?) {
+        openPublicProfile(userId, displayName, subscribed)
     }
 
     private fun restoreFeedTab() {

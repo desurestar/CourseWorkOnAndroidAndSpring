@@ -41,6 +41,15 @@ class ProfileActivity : AppCompatActivity(), ProfileFragment.Host {
         return true
     }
 
+    override fun onOpenUserProfile(userId: Long, displayName: String?, subscribed: Boolean?) {
+        startActivity(
+            Intent(this, MainActivity::class.java)
+                .putExtra(MainActivity.EXTRA_TARGET_USER_ID, userId)
+                .putExtra(MainActivity.EXTRA_TARGET_USER_NAME, displayName)
+                .putExtra(MainActivity.EXTRA_TARGET_USER_SUBSCRIBED, subscribed ?: false)
+        )
+    }
+
     companion object {
         private const val FRAGMENT_TAG = "profile_fragment"
     }

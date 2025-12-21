@@ -157,8 +157,19 @@ class ProfileFragment : Fragment() {
             binding.profileScroll.smoothScrollTo(0, binding.editDisplayName.top)
         }
         setupInputs()
-        renderFollowers(listOf("Алексей", "Мария", "Владимир"))
-        renderFollowing(listOf("Иван", "Дарья"))
+        renderFollowers(
+            listOf(
+                ProfileListItem(2L, "Алексей"),
+                ProfileListItem(3L, "Мария"),
+                ProfileListItem(4L, "Владимир")
+            )
+        )
+        renderFollowing(
+            listOf(
+                ProfileListItem(5L, "Иван", subscribed = true),
+                ProfileListItem(6L, "Дарья", subscribed = true)
+            )
+        )
     }
 
     private fun setEditingVisible(show: Boolean) {
@@ -392,15 +403,15 @@ class ProfileFragment : Fragment() {
         }
     }
 
-    private fun renderFollowers(items: List<String>) {
+    private fun renderFollowers(items: List<ProfileListItem>) {
         renderSimpleList(binding.followersList, items, getString(R.string.profile_followers))
     }
 
-    private fun renderFollowing(items: List<String>) {
+    private fun renderFollowing(items: List<ProfileListItem>) {
         renderSimpleList(binding.followingList, items, getString(R.string.profile_following))
     }
 
-    private fun renderSimpleList(container: LinearLayout, items: List<String>, meta: String) {
+    private fun renderSimpleList(container: LinearLayout, items: List<ProfileListItem>, meta: String) {
         container.removeAllViews()
         if (items.isEmpty()) {
             val stub = TextView(requireContext())
@@ -408,11 +419,12 @@ class ProfileFragment : Fragment() {
             container.addView(stub)
             return
         }
-        items.forEach { name ->
+        items.forEach { user ->
             val view = layoutInflater.inflate(R.layout.item_profile_mini, container, false)
-            view.findViewById<TextView>(R.id.miniProfileName).text = name
-            view.findViewById<TextView>(R.id.miniProfileAvatar).text = name.firstOrNull()?.uppercase() ?: "?"
+            view.findViewById<TextView>(R.id.miniProfileName).text = user.name
+            view.findViewById<TextView>(R.id.miniProfileAvatar).text = user.name.firstOrNull()?.uppercase() ?: "?"
             view.findViewById<TextView>(R.id.miniProfileMeta).text = meta
+            view.setOnClickListener { openUser(user) }
             container.addView(view)
         }
     }
@@ -486,5 +498,17 @@ class ProfileFragment : Fragment() {
         fun onProfileRequiresAuth()
         fun onProfileLogout()
         fun onProfileOpenDrafts(): Boolean
+        fun onOpenUserProfile(userId: Long, displayName: String?, subscribed: Boolean?)
+    }
+
+    private fun openUser(user: ProfileListItem) {
+        if (user.id <= 0) return
+        (activity as? Host)?.onOpenUserProfile(user.id, user.name, user.subscribed)
     }
 }
+
+data class ProfileListItem(
+    val id: Long,
+    val name: String,
+    val subscribed: Boolean = false
+)
