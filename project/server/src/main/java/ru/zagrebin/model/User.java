@@ -4,7 +4,9 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 import java.time.OffsetDateTime;
 import java.util.HashSet;
@@ -13,12 +15,14 @@ import java.util.Set;
 @Entity
 @Table(name = "users")
 @Data
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @EqualsAndHashCode.Include
     private Long id;
 
     @Column(nullable = false, unique = true, length = 150)
@@ -52,11 +56,13 @@ public class User {
             inverseJoinColumns = @JoinColumn(name = "subscribed_to_id")
     )
     @Builder.Default
+    @ToString.Exclude
     private Set<User> subscriptions = new HashSet<>();
 
 
     @ManyToMany(mappedBy = "subscriptions")
     @Builder.Default
+    @ToString.Exclude
     private Set<User> subscribers = new HashSet<>();
 
     @PrePersist

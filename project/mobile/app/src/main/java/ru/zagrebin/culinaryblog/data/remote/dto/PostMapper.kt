@@ -6,12 +6,13 @@ import ru.zagrebin.culinaryblog.model.PostAuthor
 import ru.zagrebin.culinaryblog.model.PostIngredientLine
 import ru.zagrebin.culinaryblog.model.PostStep
 import ru.zagrebin.culinaryblog.model.PostTag
+import ru.zagrebin.culinaryblog.util.resolveUrl
 
 fun PostCardDto.toModel(): PostCard = PostCard(
     id = id,
     title = title,
     excerpt = excerpt,
-    coverUrl = coverUrl,
+    coverUrl = resolveUrl(coverUrl),
     authorId = authorId,
     postType = postType,
     likesCount = likesCount,
@@ -47,7 +48,7 @@ fun PostFullDto.toModel(): PostFull = PostFull(
 private fun PostAuthorDto.toModel(): PostAuthor = PostAuthor(
     id = id,
     displayName = displayName,
-    avatarUrl = avatarUrl,
+    avatarUrl = resolveUrl(avatarUrl),
     subscribed = subscribed
 )
 
@@ -67,5 +68,5 @@ private fun PostIngredientLineDto.toModel(): PostIngredientLine = PostIngredient
 private fun PostStepDto.toModel(): PostStep = PostStep(
     order = order,
     description = description,
-    imageUrl = imageUrl
+    imageUrl = resolveUrl(imageUrl)
 )
