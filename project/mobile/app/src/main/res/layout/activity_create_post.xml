@@ -18,7 +18,10 @@
             android:layout_height="wrap_content"
             android:layout_margin="4dp"
             app:cardCornerRadius="18dp"
-            app:cardElevation="4dp">
+            app:cardElevation="4dp"
+            app:cardBackgroundColor="@color/recipe_card"
+            app:strokeColor="@color/recipe_primary_light"
+            app:strokeWidth="1dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
