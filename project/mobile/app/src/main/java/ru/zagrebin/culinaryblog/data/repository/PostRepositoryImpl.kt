@@ -166,6 +166,17 @@ class PostRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun getDraft(id: Long): Result<PostDraft> = withContext(Dispatchers.IO) {
+        try {
+            val draft = draftDao.getById(id) ?: return@withContext Result.failure(
+                NoSuchElementException("Draft not found for id: $id")
+            )
+            Result.success(draft.toDraft(gson))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     override suspend fun like(postId: Long): Result<Unit> = withContext(Dispatchers.IO) {
         try {
             val resp = api.like(postId)
