@@ -43,6 +43,7 @@ import ru.zagrebin.culinaryblog.viewmodel.PostsUiState
 import ru.zagrebin.culinaryblog.data.repository.OFFLINE_LIKE_CACHED
 import ru.zagrebin.culinaryblog.data.repository.OFFLINE_UNLIKE_CACHED
 import ru.zagrebin.culinaryblog.util.renderAvatar
+import ru.zagrebin.culinaryblog.util.applyInfoStyle
 import javax.inject.Inject
 import kotlin.jvm.Volatile
 
@@ -495,21 +496,9 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
         tags.forEach { tag ->
             val chip = Chip(this)
             chip.text = tag
-            styleInfoChip(chip)
+            chip.applyInfoStyle()
             group.addView(chip)
         }
-    }
-
-    private fun styleInfoChip(chip: Chip) {
-        chip.isCheckable = false
-        chip.isClickable = false
-        chip.chipBackgroundColor =
-            ContextCompat.getColorStateList(this, R.color.recipe_primary_light)
-        chip.setTextColor(ContextCompat.getColor(this, R.color.recipe_primary))
-        chip.shapeAppearanceModel = chip.shapeAppearanceModel
-            .toBuilder()
-            .setAllCornerSizes(resources.getDimension(R.dimen.chip_corner_radius))
-            .build()
     }
 
     private fun updateScrollTopButtonMargin(raise: Boolean) {
