@@ -27,6 +27,7 @@ import ru.zagrebin.culinaryblog.formatDisplayDate
 import ru.zagrebin.culinaryblog.data.repository.ProfileRepository
 import ru.zagrebin.culinaryblog.data.storage.TokenStorage
 import ru.zagrebin.culinaryblog.model.PostCard
+import ru.zagrebin.culinaryblog.model.UserProfile
 import ru.zagrebin.culinaryblog.viewmodel.PostViewModel
 import ru.zagrebin.culinaryblog.viewmodel.PostsUiState
 import javax.inject.Inject
@@ -45,6 +46,9 @@ class PublicProfileFragment : Fragment() {
     private var subscribed: Boolean = false
     private var followersCount: Int = 0
     private var followingCount: Int = 0
+    private var followers: List<UserProfile> = emptyList()
+    private var following: List<UserProfile> = emptyList()
+    private var relationsLoaded: Boolean = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -69,8 +73,8 @@ class PublicProfileFragment : Fragment() {
         renderHeader()
         setupTabs()
         renderSubscription()
-        renderFollowers(followersCount)
-        renderFollowing(followingCount)
+        renderFollowers(emptyList())
+        renderFollowing(emptyList())
         observePosts()
         loadUserProfile()
         loadSubscriptionStatus()
@@ -79,8 +83,8 @@ class PublicProfileFragment : Fragment() {
         binding.buttonClose.setOnClickListener {
             (activity as? Host)?.onPublicProfileClose() ?: activity?.onBackPressedDispatcher?.onBackPressed()
         }
-        binding.publicTabs.getTabAt(0)?.select()
-        showSection(0)
+        binding.publicTabs.getTabAt(2)?.select()
+        showSection(2)
     }
 
     override fun onDestroyView() {
@@ -97,11 +101,14 @@ class PublicProfileFragment : Fragment() {
             renderSubscription()
             followersCount = 0
             followingCount = 0
-            renderFollowers(followersCount)
-            renderFollowing(followingCount)
+            followers = emptyList()
+            following = emptyList()
+            relationsLoaded = false
+            renderFollowers(followers)
+            renderFollowing(following)
             renderPosts(postViewModel.uiState.value)
-            binding.publicTabs.getTabAt(0)?.select()
-            showSection(0)
+            binding.publicTabs.getTabAt(2)?.select()
+            showSection(2)
             loadUserProfile()
             loadSubscriptionStatus()
         }
@@ -180,19 +187,37 @@ class PublicProfileFragment : Fragment() {
         }
     }
 
-    private fun renderFollowers(count: Int) {
-        renderSimpleList(binding.publicFollowersList, count, getString(R.string.profile_followers))
+    private fun renderFollowers(users: List<UserProfile>) {
+        renderUserList(binding.publicFollowersList, users, followersCount, getString(R.string.profile_followers))
     }
 
-    private fun renderFollowing(count: Int) {
-        renderSimpleList(binding.publicFollowingList, count, getString(R.string.profile_following))
+    private fun renderFollowing(users: List<UserProfile>) {
+        renderUserList(binding.publicFollowingList, users, followingCount, getString(R.string.profile_following))
     }
 
-    private fun renderSimpleList(container: LinearLayout, count: Int, meta: String) {
+    private fun renderUserList(container: LinearLayout, users: List<UserProfile>, count: Int, meta: String) {
         container.removeAllViews()
-        val stub = TextView(requireContext())
-        stub.text = "$meta: $count"
-        container.addView(stub)
+        if (users.isEmpty()) {
+            val stub = TextView(requireContext())
+            val suffix = if (count > 0) " ($count)" else ""
+            stub.text = "$meta: ${getString(R.string.profile_empty)}$suffix"
+            container.addView(stub)
+            return
+        }
+        users.forEach { user ->
+            val view = layoutInflater.inflate(R.layout.item_profile_mini, container, false)
+            val name = user.displayName?.takeIf { it.isNotBlank() }
+                ?: user.username
+                ?: getString(R.string.profile_user_stub)
+            val metaText = user.email?.takeIf { it.isNotBlank() }
+                ?: user.username
+                ?: getString(R.string.profile_email_stub)
+            view.findViewById<TextView>(R.id.miniProfileName).text = name
+            view.findViewById<TextView>(R.id.miniProfileMeta).text = metaText
+            view.findViewById<TextView>(R.id.miniProfileAvatar).text = name.firstOrNull()?.uppercase() ?: "U"
+            view.setOnClickListener { openUser(user) }
+            container.addView(view)
+        }
     }
 
     private fun renderHeader() {
@@ -219,9 +244,10 @@ class PublicProfileFragment : Fragment() {
                 subscribed = it.subscribed
                 followersCount = it.followersCount
                 followingCount = it.followingCount
-                renderFollowers(followersCount)
-                renderFollowing(followingCount)
+                renderFollowers(followers)
+                renderFollowing(following)
                 renderSubscription()
+                loadRelations()
             }
         }
     }
@@ -237,8 +263,29 @@ class PublicProfileFragment : Fragment() {
                     displayName = profile.displayName
                 }
                 renderHeader()
-                renderFollowers(followersCount)
-                renderFollowing(followingCount)
+                renderFollowers(followers)
+                renderFollowing(following)
+                loadRelations()
+            }
+        }
+    }
+
+    private fun loadRelations(force: Boolean = false) {
+        val id = userId ?: return
+        if (!force && relationsLoaded) return
+        relationsLoaded = true
+        viewLifecycleOwner.lifecycleScope.launch {
+            profileRepository.getFollowers(id).onSuccess {
+                followers = it
+                followersCount = it.size
+                renderFollowers(followers)
+            }
+        }
+        viewLifecycleOwner.lifecycleScope.launch {
+            profileRepository.getFollowing(id).onSuccess {
+                following = it
+                followingCount = it.size
+                renderFollowing(following)
             }
         }
     }
@@ -257,9 +304,10 @@ class PublicProfileFragment : Fragment() {
                     subscribed = it.subscribed
                     followersCount = it.followersCount
                     followingCount = it.followingCount
-                    renderFollowers(followersCount)
-                    renderFollowing(followingCount)
+                    renderFollowers(followers)
+                    renderFollowing(following)
                     renderSubscription()
+                    loadRelations(true)
                     Toast.makeText(requireContext(), R.string.profile_subscription_updated, Toast.LENGTH_SHORT).show()
                 }.onFailure {
                     Toast.makeText(requireContext(), R.string.error_loading, Toast.LENGTH_SHORT).show()
@@ -268,6 +316,11 @@ class PublicProfileFragment : Fragment() {
                 binding.buttonSubscribe.isEnabled = true
             }
         }
+    }
+
+    private fun openUser(user: UserProfile) {
+        val id = user.id ?: return
+        (activity as? Host)?.onOpenUserProfile(id, user.displayName ?: user.username, null)
     }
 
     private fun openPost(post: PostCard) {

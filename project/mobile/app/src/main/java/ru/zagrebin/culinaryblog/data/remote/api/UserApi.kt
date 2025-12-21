@@ -20,4 +20,10 @@ interface UserApi {
 
     @DELETE("users/{id}/subscribe")
     suspend fun unsubscribe(@Path("id") id: Long): Response<SubscriptionDto>
+
+    @GET("users/{id}/followers")
+    suspend fun getFollowers(@Path("id") id: Long): Response<List<UserDto>>
+
+    @GET("users/{id}/following")
+    suspend fun getFollowing(@Path("id") id: Long): Response<List<UserDto>>
 }

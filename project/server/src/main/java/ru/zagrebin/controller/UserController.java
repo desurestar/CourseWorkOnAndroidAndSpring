@@ -18,6 +18,9 @@ import ru.zagrebin.security.UserPrincipal;
 import ru.zagrebin.service.SubscriptionService;
 import ru.zagrebin.util.UrlHelper;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 @RestController
 @RequestMapping("/api/users")
 public class UserController {
@@ -70,6 +73,32 @@ public class UserController {
     ) {
         SubscriptionDto dto = subscriptionService.getStatus(requirePrincipal(principal), userId);
         return ResponseEntity.ok(dto);
+    }
+
+    @PreAuthorize("permitAll()")
+    @GetMapping("/{id}/followers")
+    public ResponseEntity<List<UserDto>> getFollowers(
+            @PathVariable("id") Long userId
+    ) {
+        return userRepository.findById(userId)
+                .map(user -> user.getSubscribers().stream()
+                        .map(this::toDto)
+                        .collect(Collectors.toList()))
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    @PreAuthorize("permitAll()")
+    @GetMapping("/{id}/following")
+    public ResponseEntity<List<UserDto>> getFollowing(
+            @PathVariable("id") Long userId
+    ) {
+        return userRepository.findById(userId)
+                .map(user -> user.getSubscriptions().stream()
+                        .map(this::toDto)
+                        .collect(Collectors.toList()))
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     private UserDto toDto(User user) {

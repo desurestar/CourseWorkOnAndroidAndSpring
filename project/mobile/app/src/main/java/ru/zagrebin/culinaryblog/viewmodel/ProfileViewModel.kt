@@ -33,6 +33,9 @@ class ProfileViewModel @Inject constructor(
     val email = MutableStateFlow("")
     val username = MutableStateFlow("")
     val avatarUrl = MutableStateFlow<String?>(null)
+    val followers = MutableStateFlow<List<UserProfile>>(emptyList())
+    val following = MutableStateFlow<List<UserProfile>>(emptyList())
+    private var relationsLoadedFor: Long? = null
 
     init {
         loadProfile()
@@ -134,5 +137,24 @@ class ProfileViewModel @Inject constructor(
         email.value = user.email.orEmpty()
         username.value = user.username.orEmpty()
         avatarUrl.value = user.avatarUrl
+    }
+
+    fun loadRelations(userId: Long, force: Boolean = false) {
+        if (!force && relationsLoadedFor == userId) return
+        relationsLoadedFor = userId
+        loadFollowers(userId)
+        loadFollowing(userId)
+    }
+
+    private fun loadFollowers(userId: Long) {
+        viewModelScope.launch {
+            repository.getFollowers(userId).onSuccess { followers.value = it }
+        }
+    }
+
+    private fun loadFollowing(userId: Long) {
+        viewModelScope.launch {
+            repository.getFollowing(userId).onSuccess { following.value = it }
+        }
     }
 }
