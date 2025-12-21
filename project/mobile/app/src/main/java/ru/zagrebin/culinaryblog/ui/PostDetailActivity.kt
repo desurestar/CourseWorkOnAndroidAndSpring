@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import ru.zagrebin.culinaryblog.R
 import ru.zagrebin.culinaryblog.AuthActivity
+import ru.zagrebin.culinaryblog.MainActivity
 import ru.zagrebin.culinaryblog.data.repository.CommentRepository
 import ru.zagrebin.culinaryblog.data.repository.PostRepository
 import ru.zagrebin.culinaryblog.data.repository.ProfileRepository
