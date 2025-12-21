@@ -391,8 +391,8 @@ class PostDetailActivity : AppCompatActivity() {
                 val author = view.findViewById<TextView>(R.id.commentAuthor)
                 val date = view.findViewById<TextView>(R.id.commentDate)
                 val message = view.findViewById<TextView>(R.id.commentMessage)
-                val editButton = view.findViewById<android.widget.Button>(R.id.buttonEditComment)
-                val deleteButton = view.findViewById<android.widget.Button>(R.id.buttonDeleteComment)
+                val editButton = view.findViewById<android.widget.TextView>(R.id.actionEdit)
+                val deleteButton = view.findViewById<android.widget.TextView>(R.id.actionDelete)
 
                 val avatarUrl = comment.avatarUrl?.takeIf { it.isNotBlank() }
                 if (avatarUrl != null) {

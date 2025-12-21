@@ -42,7 +42,8 @@
                 android:text="@string/profile_user_stub"
                 android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"
                 android:textColor="@color/recipe_primary"
-                android:textStyle="bold" />
+                android:textStyle="bold"
+                android:textAlignment="center"/>
 
             <TextView
                 android:id="@+id/miniProfileMeta"
@@ -50,7 +51,9 @@
                 android:layout_height="wrap_content"
                 android:text="@string/profile_email_stub"
                 android:textAppearance="@style/TextAppearance.MaterialComponents.Caption"
-                android:textColor="@color/text_caption" />
+                android:textColor="@color/text_caption"
+                android:textAlignment="center"
+                />
         </LinearLayout>
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>

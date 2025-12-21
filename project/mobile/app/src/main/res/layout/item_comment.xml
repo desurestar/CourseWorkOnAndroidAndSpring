@@ -1,11 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/commentRoot"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:gravity="center_vertical"
     android:orientation="horizontal"
-    android:paddingVertical="8dp">
+    android:paddingStart="8dp"
+    android:paddingEnd="8dp"
+    android:paddingTop="8dp"
+    android:paddingBottom="8dp">
 
+    <!-- AVATAR -->
     <FrameLayout
         android:layout_width="36dp"
         android:layout_height="36dp">
@@ -22,12 +26,12 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:gravity="center"
-            android:text=""
             android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"
             android:textColor="@color/recipe_primary"
             android:textStyle="bold" />
     </FrameLayout>
 
+    <!-- CONTENT -->
     <LinearLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
@@ -35,29 +39,16 @@
         android:layout_weight="1"
         android:orientation="vertical">
 
-        <LinearLayout
-            android:layout_width="match_parent"
+        <!-- HEADER: AUTHOR -->
+        <TextView
+            android:id="@+id/commentAuthor"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
+            android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
+            android:textColor="@color/recipe_primary"
+            android:textStyle="bold" />
 
-            <TextView
-                android:id="@+id/commentAuthor"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
-                android:textColor="@color/recipe_primary"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/commentDate"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:textAppearance="@style/TextAppearance.MaterialComponents.Caption"
-                android:textColor="@color/text_caption" />
-        </LinearLayout>
-
+        <!-- MESSAGE -->
         <TextView
             android:id="@+id/commentMessage"
             android:layout_width="match_parent"
@@ -66,30 +57,49 @@
             android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
             android:textColor="@color/text_secondary" />
 
+        <!-- FOOTER -->
         <LinearLayout
-            android:id="@+id/commentActionsRow"
+            android:id="@+id/commentFooter"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="6dp"
-            android:gravity="start"
-            android:orientation="horizontal">
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
 
-            <Button
-                android:id="@+id/buttonEditComment"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="8dp"
-                android:layout_weight="1"
-                android:contentDescription="@string/action_edit"
-                android:text="@string/action_edit" />
-
-            <Button
-                android:id="@+id/buttonDeleteComment"
+            <!-- ACTIONS -->
+            <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:contentDescription="@string/action_delete"
-                android:text="@string/action_delete" />
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/actionEdit"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/action_edit"
+                    android:textAppearance="@style/TextAppearance.MaterialComponents.Caption"
+                    android:textColor="@color/recipe_primary"
+                    android:paddingEnd="12dp" />
+
+                <TextView
+                    android:id="@+id/actionDelete"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/action_delete"
+                    android:textAppearance="@style/TextAppearance.MaterialComponents.Caption"
+                    android:textColor="@color/error"
+                    android:visibility="gone" />
+            </LinearLayout>
+
+            <!-- DATE -->
+            <TextView
+                android:id="@+id/commentDate"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="@style/TextAppearance.MaterialComponents.Caption"
+                android:textColor="@color/text_caption" />
         </LinearLayout>
     </LinearLayout>
+
 </LinearLayout>

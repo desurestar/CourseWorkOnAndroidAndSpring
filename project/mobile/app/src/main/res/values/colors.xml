@@ -17,4 +17,5 @@
     <color name="text_muted">#4D4D4D</color>
     <color name="text_error">#B00020</color>
     <color name="text_empty">#8A7A66</color>
+    <color name="error">#F44336</color>
 </resources>

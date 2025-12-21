@@ -26,7 +26,7 @@
 
         <LinearLayout
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="88dp"
             android:layout_marginStart="10dp"
             android:layout_weight="1"
             android:orientation="vertical">
@@ -35,23 +35,29 @@
                 android:id="@+id/miniPostTitle"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="2"
                 android:text="@string/card_title_placeholder"
+                android:textAlignment="center"
                 android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"
                 android:textColor="@color/recipe_primary"
-                android:textStyle="bold"
-                android:maxLines="2"
-                android:ellipsize="end" />
+                android:textStyle="bold" />
 
             <TextView
                 android:id="@+id/miniPostExcerpt"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
-                android:text="@string/card_excerpt_placeholder"
-                android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
-                android:textColor="@color/text_secondary"
+                android:ellipsize="end"
                 android:maxLines="2"
-                android:ellipsize="end" />
+                android:text="@string/card_excerpt_placeholder"
+                android:textAlignment="center"
+                android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
+                android:textColor="@color/text_secondary" />
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -72,13 +78,13 @@
                     android:id="@+id/miniPostLikes"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:drawablePadding="@dimen/create_horizontal_space"
                     android:drawableStart="@drawable/ic_favorite_border"
+                    android:drawablePadding="@dimen/create_horizontal_space"
                     android:drawableTint="@color/recipe_primary"
+                    android:gravity="center_vertical"
                     android:text="@string/likes_placeholder"
                     android:textAppearance="@style/TextAppearance.MaterialComponents.Caption"
-                    android:textColor="@color/text_muted"
-                    android:gravity="center_vertical"/>
+                    android:textColor="@color/text_muted" />
             </LinearLayout>
         </LinearLayout>
     </LinearLayout>

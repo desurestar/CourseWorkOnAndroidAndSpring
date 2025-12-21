@@ -151,7 +151,8 @@
                     android:maxLines="1"
                     android:text="@string/cooking_time_placeholder"
                     android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
-                    android:textColor="@color/recipe_primary" />
+                    android:textColor="@color/recipe_primary"
+                    android:gravity="center_vertical"/>
 
                 <TextView
                     android:id="@+id/calories"
@@ -165,7 +166,8 @@
                     android:maxLines="1"
                     android:text="@string/calories_placeholder"
                     android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
-                    android:textColor="@color/recipe_primary" />
+                    android:textColor="@color/recipe_primary"
+                    android:gravity="center_vertical"/>
             </LinearLayout>
 
             <LinearLayout
@@ -186,7 +188,8 @@
                     android:maxLines="1"
                     android:text="@string/views_placeholder"
                     android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
-                    android:textColor="@color/text_muted" />
+                    android:textColor="@color/text_muted"
+                    android:gravity="center_vertical"/>
 
                 <TextView
                     android:id="@+id/likesText"
@@ -200,7 +203,8 @@
                     android:maxLines="1"
                     android:text="@string/likes_placeholder"
                     android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
-                    android:textColor="@color/text_muted" />
+                    android:textColor="@color/text_muted"
+                    android:gravity="center_vertical"/>
             </LinearLayout>
         </LinearLayout>
     </LinearLayout>
