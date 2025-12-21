@@ -90,10 +90,22 @@
     <string name="action_like">Поставить лайк</string>
     <string name="action_unlike">Убрать лайк</string>
     <string name="action_liked">Лайк поставлен</string>
+    <string name="action_edit">Редактировать</string>
+    <string name="action_delete">Удалить</string>
+    <string name="action_save">Сохранить</string>
     <string name="comments_replying">Ответ на выбранный комментарий</string>
     <string name="comments_cancel_reply">Отмена</string>
     <string name="comments_hint">Добавьте комментарий…</string>
     <string name="comments_send">Отправить</string>
+    <string name="comment_edit_title">Редактировать комментарий</string>
+    <string name="comment_edit_empty_error">Комментарий не может быть пустым</string>
+    <string name="comment_edit_updated">Комментарий обновлён</string>
+    <string name="comment_edit_failed">Не удалось обновить комментарий</string>
+    <string name="comment_modify_forbidden">Можно изменять только свои комментарии</string>
+    <string name="comment_deleted">Комментарий удалён</string>
+    <string name="comment_delete_error">Не удалось удалить комментарий</string>
+    <string name="comment_delete_confirm_title">Удалить комментарий?</string>
+    <string name="comment_delete_confirm_message">Это действие удалит комментарий и ответы на него.</string>
     <string name="auth_title">Вход или регистрация</string>
     <string name="auth_tab_login">Вход</string>
     <string name="auth_tab_register">Регистрация</string>
@@ -130,4 +142,6 @@
     <string name="profile_unsubscribe">Отписаться</string>
     <string name="profile_subscription_updated">Статус подписки изменён</string>
     <string name="profile_back">Назад</string>
+    <string name="post_action_edit_hint">Редактирование поста будет доступно позже</string>
+    <string name="post_action_delete_hint">Удаление поста будет доступно позже</string>
 </resources>
