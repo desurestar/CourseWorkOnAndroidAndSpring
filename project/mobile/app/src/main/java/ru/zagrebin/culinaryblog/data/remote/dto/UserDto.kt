@@ -1,6 +1,7 @@
 package ru.zagrebin.culinaryblog.data.remote.dto
 
 import ru.zagrebin.culinaryblog.model.UserProfile
+import ru.zagrebin.culinaryblog.util.resolveUrl
 
 data class UserDto(
     val id: Long?,
@@ -24,5 +25,5 @@ fun UserDto.toModel(): UserProfile = UserProfile(
     email = email,
     displayName = displayName,
     role = role,
-    avatarUrl = avatarUrl
+    avatarUrl = resolveUrl(avatarUrl)
 )
