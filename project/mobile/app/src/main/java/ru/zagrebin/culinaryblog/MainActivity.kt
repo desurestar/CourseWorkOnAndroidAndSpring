@@ -177,9 +177,7 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
         }
 
         backPressedCallback = onBackPressedDispatcher.addCallback(this, false) {
-            val publicProfileVisible =
-                supportFragmentManager.findFragmentByTag(PUBLIC_PROFILE_TAG)?.isVisible == true
-            if (publicProfileVisible) {
+            if (isPublicProfileVisible()) {
                 closePublicProfile()
                 return@addCallback
             }
@@ -196,11 +194,6 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
     override fun onStart() {
         super.onStart()
         updateBackPressedHandling()
-    }
-
-    override fun onStop() {
-        backPressedCallback?.isEnabled = false
-        super.onStop()
     }
 
     private fun applySelection(itemId: Int) {
@@ -258,10 +251,11 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
     }
 
     private fun updateBackPressedHandling() {
-        val publicProfileVisible =
-            supportFragmentManager.findFragmentByTag(PUBLIC_PROFILE_TAG)?.isVisible == true
-        backPressedCallback?.isEnabled = publicProfileVisible || !currentTab.isFeed()
+        backPressedCallback?.isEnabled = isPublicProfileVisible() || !currentTab.isFeed()
     }
+
+    private fun isPublicProfileVisible(): Boolean =
+        supportFragmentManager.findFragmentByTag(PUBLIC_PROFILE_TAG)?.isVisible == true
 
     private fun renderState(state: PostsUiState) {
         if (!currentTab.isFeed()) return
