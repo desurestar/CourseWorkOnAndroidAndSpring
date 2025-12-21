@@ -12,6 +12,7 @@ import android.widget.TextView
 import android.widget.Toast
 import android.widget.EditText
 import androidx.activity.addCallback
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AlertDialog
@@ -28,6 +29,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import ru.zagrebin.culinaryblog.R
 import ru.zagrebin.culinaryblog.AuthActivity
+import ru.zagrebin.culinaryblog.CreatePostActivity
 import ru.zagrebin.culinaryblog.MainActivity
 import ru.zagrebin.culinaryblog.data.repository.CommentRepository
 import ru.zagrebin.culinaryblog.data.repository.PostRepository
@@ -64,6 +66,13 @@ class PostDetailActivity : AppCompatActivity() {
     private var cachedCommentAuthor: CommentAuthor? = null
     private var cachedAuthorToken: String? = null
     private var currentUserId: Long? = null
+    private val editPostLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode != Activity.RESULT_OK) return@registerForActivityResult
+        val updatedId = result.data?.getLongExtra(CreatePostActivity.EXTRA_RESULT_UPDATED_POST_ID, -1L) ?: -1L
+        if (updatedId > 0) {
+            loadFull(updatedId)
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -91,8 +100,8 @@ class PostDetailActivity : AppCompatActivity() {
         binding.likesText.setOnClickListener { toggleLike() }
         binding.buttonSendComment.setOnClickListener { sendComment() }
         binding.buttonCancelReply.setOnClickListener { clearReplyTarget() }
-        binding.buttonEditPost.setOnClickListener { showPostActionHint(R.string.post_action_edit_hint) }
-        binding.buttonDeletePost.setOnClickListener { showPostActionHint(R.string.post_action_delete_hint) }
+        binding.buttonEditPost.setOnClickListener { editPost() }
+        binding.buttonDeletePost.setOnClickListener { confirmDeletePost() }
         updateLikeUi()
     }
 
@@ -431,6 +440,51 @@ class PostDetailActivity : AppCompatActivity() {
         binding.postActionsRow.isVisible = canModifyPost
     }
 
+    private fun editPost() {
+        if (currentPostId <= 0) return
+        if (tokenStorage.getToken().isNullOrBlank()) {
+            openAuth()
+            return
+        }
+        val intent = Intent(this, CreatePostActivity::class.java)
+            .putExtra(CreatePostActivity.EXTRA_EDIT_POST_ID, currentPostId)
+        author?.id?.let { intent.putExtra(CreatePostActivity.EXTRA_AUTHOR_ID, it) }
+        editPostLauncher.launch(intent)
+    }
+
+    private fun confirmDeletePost() {
+        if (currentPostId <= 0) return
+        if (tokenStorage.getToken().isNullOrBlank()) {
+            openAuth()
+            return
+        }
+        AlertDialog.Builder(this)
+            .setTitle(R.string.post_delete_confirm_title)
+            .setMessage(R.string.post_delete_confirm_message)
+            .setPositiveButton(R.string.action_delete) { _, _ -> deletePost() }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun deletePost() {
+        lifecycleScope.launch {
+            val result = withContext(Dispatchers.IO) { postRepository.deletePost(currentPostId) }
+            if (result.isSuccess) {
+                Toast.makeText(this@PostDetailActivity, R.string.post_delete_success, Toast.LENGTH_SHORT).show()
+                setResult(
+                    Activity.RESULT_OK,
+                    Intent().apply {
+                        putExtra(EXTRA_RESULT_POST_ID, currentPostId)
+                        putExtra(EXTRA_RESULT_DELETED, true)
+                    }
+                )
+                finish()
+            } else {
+                Toast.makeText(this@PostDetailActivity, R.string.post_delete_error, Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
     private fun canModifyComment(comment: Comment, authorInfo: CommentAuthor? = cachedCommentAuthor): Boolean {
         val currentId = authorInfo?.id ?: currentUserId
         if (currentId != null && comment.authorId != null) {
@@ -438,10 +492,6 @@ class PostDetailActivity : AppCompatActivity() {
         }
         val currentName = authorInfo?.name ?: return false
         return currentName == comment.authorName
-    }
-
-    private fun showPostActionHint(messageRes: Int) {
-        Toast.makeText(this, messageRes, Toast.LENGTH_SHORT).show()
     }
 
     private fun sendComment() {
@@ -610,6 +660,7 @@ class PostDetailActivity : AppCompatActivity() {
         const val EXTRA_RESULT_POST_ID = "extra_result_post_id"
         const val EXTRA_RESULT_LIKED = "extra_result_liked"
         const val EXTRA_RESULT_LIKES_COUNT = "extra_result_likes_count"
+        const val EXTRA_RESULT_DELETED = "extra_result_deleted"
         private const val RECIPE_POST_TYPE = "recipe"
         private const val ARTICLE_POST_TYPE = "article"
         private const val TAG = "PostDetailActivity"

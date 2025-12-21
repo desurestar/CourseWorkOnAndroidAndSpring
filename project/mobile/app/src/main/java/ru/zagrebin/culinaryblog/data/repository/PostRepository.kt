@@ -6,6 +6,7 @@ import ru.zagrebin.culinaryblog.model.PostCard
 import ru.zagrebin.culinaryblog.model.PostCreateRequest
 import ru.zagrebin.culinaryblog.model.PostDraft
 import ru.zagrebin.culinaryblog.model.PostFull
+import ru.zagrebin.culinaryblog.model.PostUpdateRequest
 import ru.zagrebin.culinaryblog.model.TagItem
 
 
@@ -17,6 +18,8 @@ interface PostRepository {
     suspend fun getIngredients(search: String? = null): Result<List<IngredientItem>>
     suspend fun uploadImage(type: String, fileName: String, content: ByteArray, mimeType: String): Result<String>
     suspend fun createPost(request: PostCreateRequest): Result<PostCard>
+    suspend fun updatePost(postId: Long, request: PostUpdateRequest): Result<PostFull>
+    suspend fun deletePost(postId: Long): Result<Unit>
     suspend fun saveDraft(request: PostCreateRequest): Result<PostDraft>
     suspend fun getDrafts(): Result<List<PostDraft>>
     suspend fun getDraft(id: Long): Result<PostDraft>

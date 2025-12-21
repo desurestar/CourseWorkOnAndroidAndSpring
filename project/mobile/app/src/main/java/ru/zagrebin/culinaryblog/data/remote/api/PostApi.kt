@@ -7,6 +7,7 @@ import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.Multipart
 import retrofit2.http.POST
+import retrofit2.http.PUT
 import retrofit2.http.Part
 import retrofit2.http.Path
 import retrofit2.http.Query
@@ -18,6 +19,7 @@ import ru.zagrebin.culinaryblog.data.remote.dto.PaginatedResponseDto
 import ru.zagrebin.culinaryblog.data.remote.dto.TagDto
 import ru.zagrebin.culinaryblog.data.remote.dto.UploadResponseDto
 import ru.zagrebin.culinaryblog.model.PostCreateRequest
+import ru.zagrebin.culinaryblog.model.PostUpdateRequest
 
 interface PostApi {
     @GET("posts")
@@ -55,6 +57,15 @@ interface PostApi {
 
     @POST("posts")
     suspend fun createPost(@Body request: PostCreateRequest): Response<PostCardDto>
+
+    @PUT("posts/{id}")
+    suspend fun updatePost(
+        @Path("id") id: Long,
+        @Body request: PostUpdateRequest
+    ): Response<PostFullDto>
+
+    @DELETE("posts/{id}")
+    suspend fun deletePost(@Path("id") id: Long): Response<Unit>
 
     @POST("posts/{id}/like")
     suspend fun like(@Path("id") id: Long): Response<Unit>
