@@ -24,11 +24,13 @@ import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
 import java.util.EnumMap
 import ru.zagrebin.culinaryblog.AuthActivity
 import ru.zagrebin.culinaryblog.databinding.ActivityMainBinding
 import ru.zagrebin.culinaryblog.databinding.ItemPostCardBinding
 import ru.zagrebin.culinaryblog.data.repository.PostRepository
+import ru.zagrebin.culinaryblog.data.repository.ProfileRepository
 import ru.zagrebin.culinaryblog.model.PostCard
 import ru.zagrebin.culinaryblog.data.storage.TokenStorage
 import ru.zagrebin.culinaryblog.ui.CreatePostFragment
@@ -41,6 +43,7 @@ import ru.zagrebin.culinaryblog.data.repository.OFFLINE_LIKE_CACHED
 import ru.zagrebin.culinaryblog.data.repository.OFFLINE_UNLIKE_CACHED
 import ru.zagrebin.culinaryblog.util.renderAvatar
 import javax.inject.Inject
+import kotlin.jvm.Volatile
 
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragment.Host, PublicProfileFragment.Host {
@@ -50,6 +53,10 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
     private var latestState: PostsUiState = PostsUiState(isLoading = true)
     @Inject lateinit var tokenStorage: TokenStorage
     @Inject lateinit var postRepository: PostRepository
+    @Inject lateinit var profileRepository: ProfileRepository
+    @Volatile private var currentUserId: Long? = null
+    private var loadUserIdJob: Job? = null
+    private val pendingUserIdCallbacks = mutableListOf<(Long?) -> Unit>()
     private val postDetailLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode != Activity.RESULT_OK) return@registerForActivityResult
         val data = result.data ?: return@registerForActivityResult
@@ -496,9 +503,53 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
         OTHER
     }
 
+    private fun ensureCurrentUserIdLoaded(onLoaded: (Long?) -> Unit = {}) {
+        val existing = currentUserId
+        if (existing != null) {
+            onLoaded(existing)
+            return
+        }
+        if (tokenStorage.getToken().isNullOrBlank()) {
+            onLoaded(null)
+            return
+        }
+        synchronized(pendingUserIdCallbacks) {
+            if (loadUserIdJob != null) {
+                pendingUserIdCallbacks.add(onLoaded)
+                return
+            }
+            pendingUserIdCallbacks.add(onLoaded)
+            loadUserIdJob = lifecycleScope.launch {
+                try {
+                    profileRepository.getProfile()
+                        .onSuccess { profile ->
+                            currentUserId = profile.id
+                        }
+                        .onFailure {
+                            Log.w(TAG, "Failed to fetch current user id: ${it.message}")
+                        }
+                } finally {
+                    val callbacks = synchronized(pendingUserIdCallbacks) {
+                        val copy = pendingUserIdCallbacks.toList()
+                        pendingUserIdCallbacks.clear()
+                        loadUserIdJob = null
+                        copy
+                    }
+                    callbacks.forEach { it(currentUserId) }
+                }
+            }
+        }
+    }
+
     private fun openAuthorProfile(post: PostCard) {
         val authorId = post.authorId ?: return
-        openPublicProfile(authorId, post.authorName, null)
+        ensureCurrentUserIdLoaded { userId ->
+            if (userId == authorId) {
+                binding.bottomNavigation.selectedItemId = R.id.menu_profile
+            } else {
+                openPublicProfile(authorId, post.authorName, null)
+            }
+        }
     }
 
     private fun openPost(post: PostCard) {
@@ -543,6 +594,7 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
 
     override fun onProfileLogout() {
         tokenStorage.clearToken()
+        currentUserId = null
         restoreFeedTab()
     }
 
