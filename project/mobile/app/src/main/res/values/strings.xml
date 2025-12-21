@@ -144,4 +144,9 @@
     <string name="profile_back">Назад</string>
     <string name="post_action_edit_hint">Редактирование поста будет доступно позже</string>
     <string name="post_action_delete_hint">Удаление поста будет доступно позже</string>
+    <string name="post_edit_load_error">Не удалось загрузить пост для редактирования</string>
+    <string name="post_delete_confirm_title">Удалить пост?</string>
+    <string name="post_delete_confirm_message">Вы уверены, что хотите удалить эту публикацию?</string>
+    <string name="post_delete_success">Пост удалён</string>
+    <string name="post_delete_error">Не удалось удалить пост</string>
 </resources>

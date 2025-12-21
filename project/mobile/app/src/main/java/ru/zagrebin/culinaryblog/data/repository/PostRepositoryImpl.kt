@@ -26,6 +26,7 @@ import ru.zagrebin.culinaryblog.model.PostAuthor
 import ru.zagrebin.culinaryblog.model.PostIngredientLine
 import ru.zagrebin.culinaryblog.model.PostStep
 import ru.zagrebin.culinaryblog.model.PostTag
+import ru.zagrebin.culinaryblog.model.PostUpdateRequest
 import ru.zagrebin.culinaryblog.model.TagItem
 
 class PostRepositoryImpl @Inject constructor(
@@ -138,6 +139,33 @@ class PostRepositoryImpl @Inject constructor(
             if (resp.isSuccessful) {
                 val body = resp.body() ?: return@withContext Result.failure(RuntimeException("Empty body"))
                 Result.success(body.toModel())
+            } else {
+                Result.failure(RuntimeException("Server error: ${resp.code()}"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun updatePost(postId: Long, request: PostUpdateRequest): Result<PostFull> = withContext(Dispatchers.IO) {
+        return@withContext try {
+            val resp = api.updatePost(postId, request)
+            if (resp.isSuccessful) {
+                val body = resp.body() ?: return@withContext Result.failure(RuntimeException("Empty body"))
+                Result.success(body.toModel())
+            } else {
+                Result.failure(RuntimeException("Server error: ${resp.code()}"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun deletePost(postId: Long): Result<Unit> = withContext(Dispatchers.IO) {
+        return@withContext try {
+            val resp = api.deletePost(postId)
+            if (resp.isSuccessful) {
+                Result.success(Unit)
             } else {
                 Result.failure(RuntimeException("Server error: ${resp.code()}"))
             }

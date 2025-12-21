@@ -51,6 +51,15 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
         if (result.resultCode != Activity.RESULT_OK) return@registerForActivityResult
         val data = result.data ?: return@registerForActivityResult
         val postId = data.getLongExtra(PostDetailActivity.EXTRA_RESULT_POST_ID, -1L)
+        val deleted = data.getBooleanExtra(PostDetailActivity.EXTRA_RESULT_DELETED, false)
+        if (deleted && postId > 0 && currentTab.isFeed()) {
+            latestState = latestState.copy(
+                posts = latestState.posts.filterNot { it.id == postId },
+                likedIds = latestState.likedIds.toMutableSet().apply { remove(postId) }
+            )
+            renderState(latestState)
+            return@registerForActivityResult
+        }
         if (
             postId <= 0 ||
             !currentTab.isFeed() ||
@@ -486,6 +495,10 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
         binding.bottomNavigation.selectedItemId = targetTabId
         postViewModel.loadPosts()
         openPost(post)
+    }
+
+    override fun onPostUpdated(postId: Long) {
+        postViewModel.loadPosts()
     }
 
     override fun onCreateRequiresAuth() {

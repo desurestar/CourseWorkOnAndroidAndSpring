@@ -37,3 +37,17 @@ data class PostCreateRequest(
     val ingredients: List<PostIngredientRequest> = emptyList(),
     val steps: List<RecipeStepRequest> = emptyList()
 )
+
+data class PostUpdateRequest(
+    val postType: String = "recipe",
+    val status: String = "draft",
+    val title: String,
+    val excerpt: String,
+    val content: String,
+    val coverUrl: String? = null,
+    val cookingTimeMinutes: Int? = null,
+    val calories: Int? = null,
+    val tagIds: List<Long> = emptyList(),
+    val ingredients: List<PostIngredientRequest> = emptyList(),
+    val steps: List<RecipeStepRequest> = emptyList()
+)

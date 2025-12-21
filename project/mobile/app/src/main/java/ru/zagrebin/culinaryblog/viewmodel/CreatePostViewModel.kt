@@ -13,6 +13,8 @@ import ru.zagrebin.culinaryblog.model.IngredientItem
 import ru.zagrebin.culinaryblog.model.PostCard
 import ru.zagrebin.culinaryblog.model.PostCreateRequest
 import ru.zagrebin.culinaryblog.model.PostDraft
+import ru.zagrebin.culinaryblog.model.PostFull
+import ru.zagrebin.culinaryblog.model.PostUpdateRequest
 import ru.zagrebin.culinaryblog.model.TagItem
 
 data class CreateFormState(
@@ -23,7 +25,8 @@ data class CreateFormState(
     val submitting: Boolean = false,
     val error: String? = null,
     val created: PostCard? = null,
-    val draftSaved: PostDraft? = null
+    val draftSaved: PostDraft? = null,
+    val updatedPostId: Long? = null
 )
 
 @HiltViewModel
@@ -105,8 +108,28 @@ class CreatePostViewModel @Inject constructor(
         }
     }
 
+    fun updatePost(postId: Long, request: PostUpdateRequest) {
+        viewModelScope.launch {
+            _state.update { it.copy(submitting = true, error = null, updatedPostId = null) }
+            val res = repository.updatePost(postId, request)
+            _state.update {
+                if (res.isSuccess) {
+                    it.copy(submitting = false, updatedPostId = postId)
+                } else {
+                    it.copy(submitting = false, error = res.exceptionOrNull()?.message ?: GENERIC_ERROR_KEY)
+                }
+            }
+        }
+    }
+
+    suspend fun getPost(id: Long): Result<PostFull> = repository.getPost(id)
+
     fun clearCreated() {
         _state.update { it.copy(created = null) }
+    }
+
+    fun clearUpdated() {
+        _state.update { it.copy(updatedPostId = null) }
     }
 
     suspend fun getDraft(id: Long): Result<PostDraft> = repository.getDraft(id)
