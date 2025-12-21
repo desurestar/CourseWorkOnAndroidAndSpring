@@ -6,6 +6,7 @@ import android.content.res.ColorStateList
 import android.os.Bundle
 import android.util.Log
 import android.view.View
+import android.view.ViewGroup
 import android.widget.Toast
 import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
@@ -42,6 +43,7 @@ import ru.zagrebin.culinaryblog.viewmodel.PostsUiState
 import ru.zagrebin.culinaryblog.data.repository.OFFLINE_LIKE_CACHED
 import ru.zagrebin.culinaryblog.data.repository.OFFLINE_UNLIKE_CACHED
 import ru.zagrebin.culinaryblog.util.renderAvatar
+import ru.zagrebin.culinaryblog.util.applyInfoStyle
 import javax.inject.Inject
 import kotlin.jvm.Volatile
 
@@ -97,11 +99,15 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
     private var lastFeedTabId: Int = DEFAULT_TAB_ID
     private val likedPostIds = mutableSetOf<Long>()
     private val scrollTopThresholdPx by lazy { (resources.displayMetrics.density * 200).toInt() }
+    private var scrollTopBaseBottomMargin: Int = 0
+    private val scrollTopRaisedOffset by lazy { resources.getDimensionPixelSize(R.dimen.scroll_top_button_raise) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        scrollTopBaseBottomMargin =
+            (binding.buttonScrollTop.layoutParams as ViewGroup.MarginLayoutParams).bottomMargin
 
         savedInstanceState?.getLongArray(STATE_LIKED_POSTS)?.let { saved ->
             likedPostIds.clear()
@@ -115,9 +121,12 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
         binding.buttonRetry.setOnClickListener { postViewModel.loadPosts() }
 
         binding.postsScroll.setOnScrollChangeListener { v, _, scrollY, _, _ ->
-            binding.buttonScrollTop.isVisible = currentTab.isFeed() && scrollY > scrollTopThresholdPx
+            val isFeedTab = currentTab.isFeed()
+            val atBottom = isFeedTab && scrollY > 0 && !v.canScrollVertically(1)
+            binding.buttonScrollTop.isVisible = isFeedTab && scrollY > scrollTopThresholdPx
+            updateScrollTopButtonMargin(atBottom)
             if (
-                currentTab.isFeed() &&
+                isFeedTab &&
                 !latestState.isLoading &&
                 !latestState.isAppending &&
                 latestState.nextPage != null &&
@@ -395,6 +404,7 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
         binding.swipeRefresh.isEnabled = true
         binding.swipeRefresh.isRefreshing = latestState.isLoading
         binding.buttonScrollTop.isVisible = binding.postsScroll.scrollY > scrollTopThresholdPx
+        updateScrollTopButtonMargin(false)
 
         updateFeedTitle()
 
@@ -486,12 +496,17 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
         tags.forEach { tag ->
             val chip = Chip(this)
             chip.text = tag
-            chip.isCheckable = false
-            chip.isClickable = false
-            chip.chipBackgroundColor =
-                ContextCompat.getColorStateList(this, R.color.recipe_primary_light)
-            chip.setTextColor(ContextCompat.getColor(this, R.color.recipe_primary))
+            chip.applyInfoStyle()
             group.addView(chip)
+        }
+    }
+
+    private fun updateScrollTopButtonMargin(raise: Boolean) {
+        val params = binding.buttonScrollTop.layoutParams as ViewGroup.MarginLayoutParams
+        val targetMargin = scrollTopBaseBottomMargin + if (raise) scrollTopRaisedOffset else 0
+        if (params.bottomMargin != targetMargin) {
+            params.bottomMargin = targetMargin
+            binding.buttonScrollTop.layoutParams = params
         }
     }
 

@@ -48,6 +48,7 @@ import ru.zagrebin.culinaryblog.model.PostAuthor
 import ru.zagrebin.culinaryblog.model.PostStep
 import ru.zagrebin.culinaryblog.model.Comment
 import ru.zagrebin.culinaryblog.util.renderAvatar
+import ru.zagrebin.culinaryblog.util.applyInfoStyle
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -203,11 +204,7 @@ class PostDetailActivity : AppCompatActivity() {
         ingredientsSafe.forEach { ingredient ->
             val chip = Chip(this)
             chip.text = ingredient
-            chip.isClickable = false
-            chip.isCheckable = false
-            chip.chipBackgroundColor =
-                ContextCompat.getColorStateList(this, R.color.recipe_primary_light)
-            chip.setTextColor(ContextCompat.getColor(this, R.color.recipe_primary))
+            chip.applyInfoStyle()
             binding.ingredientsGroup.addView(chip)
         }
     }
