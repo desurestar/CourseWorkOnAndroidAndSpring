@@ -217,7 +217,7 @@ class PostRepositoryImpl @Inject constructor(
         author = PostAuthor(
             id = card.authorId,
             displayName = card.authorName,
-            avatarUrl = null,
+            avatarUrl = card.authorAvatarUrl,
             subscribed = null
         ),
         tags = card.tags?.mapIndexed { index, tag -> PostTag(id = index.toLong(), name = tag, color = null) } ?: emptyList(),

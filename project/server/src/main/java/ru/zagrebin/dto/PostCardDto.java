@@ -17,6 +17,7 @@ public class PostCardDto {
     private Integer cookingTimeMinutes;
     private Integer calories;
     private String authorName;
+    private String authorAvatarUrl;
     private String publishedAt;
     private Set<String> tags;
     private Long viewsCount;

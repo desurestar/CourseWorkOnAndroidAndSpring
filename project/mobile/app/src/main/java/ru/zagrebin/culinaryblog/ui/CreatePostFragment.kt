@@ -222,6 +222,7 @@ class CreatePostFragment : Fragment() {
                                 activity?.finish()
                             }
                         }
+                        viewModel.clearCreated()
                     }
                     state.draftSaved?.let { draft ->
                         val draftKey = draft.id to draft.updatedAt

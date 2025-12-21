@@ -29,6 +29,7 @@ public final class PostMapper {
         dto.setCookingTimeMinutes(p.getCookingTimeMinutes());
         dto.setCalories(p.getCalories());
         dto.setAuthorName(p.getAuthor() != null ? p.getAuthor().getDisplayName() : "Unknown");
+        dto.setAuthorAvatarUrl(p.getAuthor() != null ? UrlHelper.toAbsolute(p.getAuthor().getAvatarUrl()) : null);
         dto.setPublishedAt(p.getCreatedAt() != null ? p.getCreatedAt().toString() : "Unknown");
         dto.setViewsCount(p.getViewsCount() == null ? 0 : p.getViewsCount());
         dto.setTags(p.getTags().stream().map(Tag::getName).collect(Collectors.toSet()));

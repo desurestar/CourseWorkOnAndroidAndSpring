@@ -12,6 +12,7 @@ data class PostCardDto(
         val calories: Int?,
 
         val authorName: String?,
+        val authorAvatarUrl: String? = null,
         val publishedAt: String?,
         val tags: Set<String>?,
         val viewsCount: Long?
