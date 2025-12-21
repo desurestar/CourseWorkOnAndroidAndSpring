@@ -21,6 +21,8 @@ interface PostRepository {
     suspend fun updatePost(postId: Long, request: PostUpdateRequest): Result<PostFull>
     suspend fun deletePost(postId: Long): Result<Unit>
     suspend fun saveDraft(request: PostCreateRequest): Result<PostDraft>
+    suspend fun updateDraft(id: Long, request: PostCreateRequest): Result<PostDraft>
+    suspend fun deleteDraft(id: Long): Result<Unit>
     suspend fun getDrafts(): Result<List<PostDraft>>
     suspend fun getDraft(id: Long): Result<PostDraft>
     suspend fun like(postId: Long): Result<Unit>

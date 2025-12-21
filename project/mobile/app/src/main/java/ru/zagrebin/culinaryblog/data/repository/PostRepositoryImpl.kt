@@ -186,6 +186,27 @@ class PostRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun updateDraft(id: Long, request: PostCreateRequest): Result<PostDraft> = withContext(Dispatchers.IO) {
+        try {
+            val persistedId = draftDao.upsert(request.toDraftEntity(gson, draftId = id))
+            val saved = draftDao.getById(persistedId) ?: return@withContext Result.failure(
+                RuntimeException("Draft not found after update")
+            )
+            Result.success(saved.toDraft(gson))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun deleteDraft(id: Long): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            draftDao.delete(id)
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     override suspend fun getDrafts(): Result<List<PostDraft>> = withContext(Dispatchers.IO) {
         try {
             Result.success(draftDao.getAll().map { it.toDraft(gson) })

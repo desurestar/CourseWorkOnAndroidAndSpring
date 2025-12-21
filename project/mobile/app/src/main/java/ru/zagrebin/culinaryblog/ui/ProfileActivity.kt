@@ -36,11 +36,6 @@ class ProfileActivity : AppCompatActivity(), ProfileFragment.Host {
         finish()
     }
 
-    override fun onProfileOpenDrafts(): Boolean {
-        startActivity(Intent(this, CreatePostActivity::class.java))
-        return true
-    }
-
     override fun onOpenUserProfile(userId: Long, displayName: String?, subscribed: Boolean?) {
         startActivity(
             Intent(this, MainActivity::class.java)

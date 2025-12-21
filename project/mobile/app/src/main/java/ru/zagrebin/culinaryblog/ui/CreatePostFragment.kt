@@ -59,6 +59,7 @@ class CreatePostFragment : Fragment() {
     private var lastShownDraftKey: Pair<Long, Long>? = null
     private var restoredDraftId: Long? = null
     private var editPostId: Long? = null
+    private var draftId: Long? = null
 
     private var tags: List<TagItem> = emptyList()
     private var ingredients: List<IngredientItem> = emptyList()
@@ -125,6 +126,7 @@ class CreatePostFragment : Fragment() {
 
         val passedAuthorId = arguments?.getLong(ARG_AUTHOR_ID) ?: viewModel.authorId
         viewModel.setAuthorId(passedAuthorId)
+        draftId = arguments?.getLong(ARG_DRAFT_ID, INVALID_DRAFT_ID)?.takeIf { it != INVALID_DRAFT_ID }
         editPostId = arguments?.getLong(ARG_EDIT_POST_ID, INVALID_EDIT_ID)?.takeIf { it != INVALID_EDIT_ID }
 
         if (activity is MainActivity) {
@@ -133,8 +135,10 @@ class CreatePostFragment : Fragment() {
             setupBottomNavigation()
         }
         setupStatusSpinner()
+        binding.statusSpinner.setSelection(statusValues.indexOf(DRAFT_STATUS), false)
         setupPostTypeSelector()
         setupClicks()
+        updateDraftActionsVisibility()
         observeState()
 
         viewModel.loadTags()
@@ -153,6 +157,7 @@ class CreatePostFragment : Fragment() {
         selectedTags.clear()
         lastShownDraftKey = null
         restoredDraftId = null
+        draftId = null
     }
 
     private fun setupStatusSpinner() {
@@ -176,6 +181,10 @@ class CreatePostFragment : Fragment() {
         }
     }
 
+    private fun updateDraftActionsVisibility() {
+        binding.draftActionsRow.isVisible = draftId != null && editPostId == null
+    }
+
     private fun setupClicks() {
         binding.buttonSearchTags.setOnClickListener {
             viewModel.loadTags(binding.inputTagSearch.text.toString().trim().ifBlank { null })
@@ -188,6 +197,8 @@ class CreatePostFragment : Fragment() {
         binding.buttonSubmit.setOnClickListener { submit() }
         binding.buttonPickCover.setOnClickListener { pickImage(ImageTarget.Cover) }
         binding.buttonCaptureCover.setOnClickListener { captureImage(ImageTarget.Cover) }
+        binding.buttonSaveDraft.setOnClickListener { saveDraftChanges() }
+        binding.buttonDeleteDraft.setOnClickListener { deleteDraft() }
     }
 
     private fun observeState() {
@@ -402,13 +413,12 @@ class CreatePostFragment : Fragment() {
 
     private fun restoreDraftIfNeeded() {
         if (editPostId != null) return
-        val draftId = arguments?.getLong(ARG_DRAFT_ID, INVALID_DRAFT_ID) ?: return
-        if (draftId == INVALID_DRAFT_ID) return
-        if (restoredDraftId == draftId) return
+        val targetDraftId = draftId ?: return
+        if (restoredDraftId == targetDraftId) return
         viewLifecycleOwner.lifecycleScope.launch {
-            val draft = viewModel.getDraft(draftId).getOrNull()
+            val draft = viewModel.getDraft(targetDraftId).getOrNull()
             if (draft != null) {
-                restoredDraftId = draftId
+                restoredDraftId = targetDraftId
                 applyDraft(draft)
             } else {
                 Toast.makeText(requireContext(), R.string.create_draft_load_error, Toast.LENGTH_SHORT).show()
@@ -531,14 +541,77 @@ class CreatePostFragment : Fragment() {
     }
 
     private fun submit() {
+        val createRequest = buildCreateRequest() ?: return
+        val updateRequest = createRequest.toUpdateRequest()
+
+        binding.textError.isVisible = false
+        val targetPostId = editPostId
+        if (targetPostId != null) {
+            viewModel.updatePost(targetPostId, updateRequest)
+        } else {
+            viewModel.createPost(createRequest)
+        }
+    }
+
+    private fun saveDraftChanges() {
+        val request = buildCreateRequest(forceDraftStatus = true) ?: run {
+            val message = binding.textError.text?.takeIf { binding.textError.isVisible && it.isNotBlank() }
+                ?: getString(R.string.draft_save_error)
+            Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
+            return
+        }
+        val targetDraftId = draftId ?: run {
+            Toast.makeText(requireContext(), R.string.draft_save_error, Toast.LENGTH_SHORT).show()
+            return
+        }
+        binding.progressSubmit.isVisible = true
+        viewLifecycleOwner.lifecycleScope.launch {
+            val result = viewModel.saveDraft(request, targetDraftId)
+            binding.progressSubmit.isVisible = false
+            if (result.isSuccess) {
+                Toast.makeText(requireContext(), R.string.create_draft_saved_offline, Toast.LENGTH_LONG).show()
+                activity?.finish()
+            } else {
+                binding.textError.isVisible = true
+                binding.textError.text = result.exceptionOrNull()?.message ?: getString(R.string.create_error_generic)
+            }
+        }
+    }
+
+    private fun deleteDraft() {
+        val targetDraftId = draftId ?: run {
+            Toast.makeText(requireContext(), R.string.draft_delete_error, Toast.LENGTH_SHORT).show()
+            return
+        }
+        binding.progressSubmit.isVisible = true
+        viewLifecycleOwner.lifecycleScope.launch {
+            val result = viewModel.deleteDraft(targetDraftId)
+            binding.progressSubmit.isVisible = false
+            if (result.isSuccess) {
+                Toast.makeText(requireContext(), R.string.draft_delete_success, Toast.LENGTH_SHORT).show()
+                activity?.finish()
+            } else {
+                binding.textError.isVisible = true
+                binding.textError.text = result.exceptionOrNull()?.message ?: getString(R.string.draft_delete_error)
+            }
+        }
+    }
+
+    private fun buildCreateRequest(forceDraftStatus: Boolean = false): PostCreateRequest? {
         val title = binding.inputTitle.text.toString().trim()
         val excerpt = binding.inputExcerpt.text.toString().trim()
         val content = binding.inputContent.text.toString().trim()
-        val status = statusValues.getOrNull(binding.statusSpinner.selectedItemPosition) ?: DRAFT_STATUS
-        if (status == DRAFT_STATUS && (title.isBlank() || excerpt.isBlank() || content.isBlank())) {
+        val status = if (forceDraftStatus) DRAFT_STATUS else statusValues.getOrNull(binding.statusSpinner.selectedItemPosition) ?: DRAFT_STATUS
+        if (forceDraftStatus) {
+            if (title.isBlank() && excerpt.isBlank() && content.isBlank()) {
+                binding.textError.isVisible = true
+                binding.textError.text = getString(R.string.create_fill_required)
+                return null
+            }
+        } else if (status == DRAFT_STATUS && (title.isBlank() || excerpt.isBlank() || content.isBlank())) {
             binding.textError.isVisible = true
             binding.textError.text = getString(R.string.create_fill_required)
-            return
+            return null
         }
 
         val isRecipe = selectedPostType == POST_TYPE_RECIPE
@@ -568,7 +641,7 @@ class CreatePostFragment : Fragment() {
             if (invalidAmount || (ingredientRows.isNotEmpty() && list.isEmpty())) {
                 binding.textError.isVisible = true
                 binding.textError.text = getString(R.string.create_ingredient_error)
-                return
+                return null
             }
             list
         } else {
@@ -587,7 +660,7 @@ class CreatePostFragment : Fragment() {
             if (stepRows.isNotEmpty() && steps.isEmpty()) {
                 binding.textError.isVisible = true
                 binding.textError.text = getString(R.string.create_step_error)
-                return
+                return null
             }
             steps
         } else {
@@ -608,15 +681,8 @@ class CreatePostFragment : Fragment() {
             ingredients = ingredientRequests,
             steps = stepRequests
         )
-        val updateRequest = createRequest.toUpdateRequest()
-
         binding.textError.isVisible = false
-        val targetPostId = editPostId
-        if (targetPostId != null) {
-            viewModel.updatePost(targetPostId, updateRequest)
-        } else {
-            viewModel.createPost(createRequest)
-        }
+        return createRequest
     }
 
     private fun PostCreateRequest.toUpdateRequest(): PostUpdateRequest = PostUpdateRequest(

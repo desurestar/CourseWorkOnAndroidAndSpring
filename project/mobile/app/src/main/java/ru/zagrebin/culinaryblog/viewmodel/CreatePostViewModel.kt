@@ -124,6 +124,11 @@ class CreatePostViewModel @Inject constructor(
 
     suspend fun getPost(id: Long): Result<PostFull> = repository.getPost(id)
 
+    suspend fun saveDraft(request: PostCreateRequest, draftId: Long? = null): Result<PostDraft> =
+        if (draftId != null) repository.updateDraft(draftId, request) else repository.saveDraft(request)
+
+    suspend fun deleteDraft(id: Long): Result<Unit> = repository.deleteDraft(id)
+
     fun clearCreated() {
         _state.update { it.copy(created = null) }
     }
