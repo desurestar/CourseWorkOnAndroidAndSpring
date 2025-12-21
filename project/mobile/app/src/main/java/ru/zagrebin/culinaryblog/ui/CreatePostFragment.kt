@@ -60,6 +60,7 @@ class CreatePostFragment : Fragment() {
     private var restoredDraftId: Long? = null
     private var editPostId: Long? = null
     private var draftId: Long? = null
+    private var draftIdPendingRemoval: Long? = null
 
     private var tags: List<TagItem> = emptyList()
     private var ingredients: List<IngredientItem> = emptyList()
@@ -197,7 +198,6 @@ class CreatePostFragment : Fragment() {
         binding.buttonSubmit.setOnClickListener { submit() }
         binding.buttonPickCover.setOnClickListener { pickImage(ImageTarget.Cover) }
         binding.buttonCaptureCover.setOnClickListener { captureImage(ImageTarget.Cover) }
-        binding.buttonSaveDraft.setOnClickListener { saveDraftChanges() }
         binding.buttonDeleteDraft.setOnClickListener { deleteDraft() }
     }
 
@@ -226,6 +226,16 @@ class CreatePostFragment : Fragment() {
                     }
 
                     state.created?.let { created ->
+                        draftIdPendingRemoval?.let { draftToRemove ->
+                            draftIdPendingRemoval = null
+                            if (draftId == draftToRemove) {
+                                draftId = null
+                                updateDraftActionsVisibility()
+                            }
+                            viewLifecycleOwner.lifecycleScope.launch {
+                                viewModel.deleteDraft(draftToRemove)
+                            }
+                        }
                         Toast.makeText(
                             requireContext(),
                             getString(R.string.create_success),
@@ -541,6 +551,13 @@ class CreatePostFragment : Fragment() {
     }
 
     private fun submit() {
+        val isDraftMode = draftId != null && editPostId == null
+        val selectedStatus = statusValues.getOrNull(binding.statusSpinner.selectedItemPosition) ?: DRAFT_STATUS
+        if (isDraftMode && selectedStatus == DRAFT_STATUS) {
+            saveDraftChanges()
+            return
+        }
+
         val createRequest = buildCreateRequest() ?: return
         val updateRequest = createRequest.toUpdateRequest()
 
@@ -549,6 +566,7 @@ class CreatePostFragment : Fragment() {
         if (targetPostId != null) {
             viewModel.updatePost(targetPostId, updateRequest)
         } else {
+            draftIdPendingRemoval = if (isDraftMode) draftId else null
             viewModel.createPost(createRequest)
         }
     }
@@ -564,6 +582,7 @@ class CreatePostFragment : Fragment() {
             Toast.makeText(requireContext(), R.string.draft_save_error, Toast.LENGTH_SHORT).show()
             return
         }
+        draftIdPendingRemoval = null
         binding.progressSubmit.isVisible = true
         viewLifecycleOwner.lifecycleScope.launch {
             val result = viewModel.saveDraft(request, targetDraftId)

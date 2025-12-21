@@ -340,21 +340,9 @@
                     android:visibility="gone">
 
                     <Button
-                        android:id="@+id/buttonSaveDraft"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="@string/create_save_draft" />
-
-                    <Space
-                        android:layout_width="@dimen/create_horizontal_space"
-                        android:layout_height="wrap_content" />
-
-                    <Button
                         android:id="@+id/buttonDeleteDraft"
-                        android:layout_width="0dp"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
                         android:text="@string/action_delete" />
                 </LinearLayout>
             </LinearLayout>
