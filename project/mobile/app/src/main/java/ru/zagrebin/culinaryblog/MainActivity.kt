@@ -9,6 +9,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import android.widget.TextView
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.addCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
@@ -60,6 +61,7 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
     @Volatile private var currentUserId: Long? = null
     private var loadUserIdJob: Job? = null
     private val pendingUserIdCallbacks = mutableListOf<(Long?) -> Unit>()
+    private var backPressedCallback: OnBackPressedCallback? = null
     private val postDetailLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode != Activity.RESULT_OK) return@registerForActivityResult
         val data = result.data ?: return@registerForActivityResult
@@ -174,7 +176,7 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
             }
         }
 
-        onBackPressedDispatcher.addCallback(this) {
+        backPressedCallback = onBackPressedDispatcher.addCallback(this) {
             val publicProfileVisible =
                 supportFragmentManager.findFragmentByTag(PUBLIC_PROFILE_TAG)?.isVisible == true
             if (publicProfileVisible) {
@@ -187,6 +189,12 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
             }
             finish()
         }
+    }
+
+    override fun onDestroy() {
+        backPressedCallback?.remove()
+        backPressedCallback = null
+        super.onDestroy()
     }
 
     private fun applySelection(itemId: Int) {
