@@ -81,6 +81,7 @@
     <string name="create_login_required">Необходимо войти, чтобы создавать посты</string>
     <string name="create_draft_saved_offline">Черновик сохранён на устройстве. Отправьте его, когда будет интернет.</string>
     <string name="create_error_generic">Ошибка создания поста</string>
+    <string name="create_draft_load_error">Не удалось загрузить черновик</string>
     <string name="status_draft">Черновик</string>
     <string name="status_published">Опубликован</string>
     <string name="create_loading_tags">Загрузка тегов</string>

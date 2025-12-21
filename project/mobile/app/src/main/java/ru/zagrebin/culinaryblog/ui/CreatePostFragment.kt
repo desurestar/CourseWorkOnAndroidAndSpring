@@ -381,7 +381,7 @@ class CreatePostFragment : Fragment() {
                 restoredDraftId = draftId
                 applyDraft(draft)
             } else {
-                Toast.makeText(requireContext(), R.string.create_upload_error, Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), R.string.create_draft_load_error, Toast.LENGTH_SHORT).show()
             }
         }
     }

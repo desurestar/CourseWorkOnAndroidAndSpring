@@ -395,29 +395,7 @@ class ProfileFragment : Fragment() {
             return
         }
         posts.forEach { post ->
-            val view = layoutInflater.inflate(R.layout.item_post_mini, container, false)
-            view.findViewById<TextView>(R.id.miniPostTitle).text =
-                post.title.ifBlank { getString(R.string.card_title_placeholder) }
-            view.findViewById<TextView>(R.id.miniPostExcerpt).text =
-                post.excerpt.ifBlank { getString(R.string.card_excerpt_placeholder) }
-            view.findViewById<TextView>(R.id.miniPostMeta).text =
-                formatDisplayDate(post.publishedAt) ?: getString(R.string.published_unknown)
-            view.findViewById<TextView>(R.id.miniPostLikes).text =
-                getString(R.string.likes_format, post.likesCount)
-            val coverUrl = post.coverUrl?.takeIf { it.isNotBlank() }
-            val coverView = view.findViewById<ImageView>(R.id.miniPostCover)
-            coverView.isVisible = coverUrl != null
-            if (coverUrl != null) {
-                coverView.load(coverUrl) {
-                    placeholder(R.drawable.bg_image_placeholder)
-                    error(R.drawable.bg_image_placeholder)
-                    crossfade(true)
-                }
-            } else {
-                coverView.setImageDrawable(null)
-            }
-            view.setOnClickListener { onClick(post) }
-            container.addView(view)
+            addMiniPostView(container, post) { onClick(post) }
         }
     }
 
@@ -430,31 +408,34 @@ class ProfileFragment : Fragment() {
             return
         }
         drafts.forEach { draft ->
-            val post = draft.toCard()
-            val view = layoutInflater.inflate(R.layout.item_post_mini, container, false)
-            view.findViewById<TextView>(R.id.miniPostTitle).text =
-                post.title.ifBlank { getString(R.string.card_title_placeholder) }
-            view.findViewById<TextView>(R.id.miniPostExcerpt).text =
-                post.excerpt.ifBlank { getString(R.string.card_excerpt_placeholder) }
-            view.findViewById<TextView>(R.id.miniPostMeta).text =
-                formatDisplayDate(post.publishedAt) ?: getString(R.string.published_unknown)
-            view.findViewById<TextView>(R.id.miniPostLikes).text =
-                getString(R.string.likes_format, post.likesCount)
-            val coverUrl = post.coverUrl?.takeIf { it.isNotBlank() }
-            val coverView = view.findViewById<ImageView>(R.id.miniPostCover)
-            coverView.isVisible = coverUrl != null
-            if (coverUrl != null) {
-                coverView.load(coverUrl) {
-                    placeholder(R.drawable.bg_image_placeholder)
-                    error(R.drawable.bg_image_placeholder)
-                    crossfade(true)
-                }
-            } else {
-                coverView.setImageDrawable(null)
-            }
-            view.setOnClickListener { openDraft(draft) }
-            container.addView(view)
+            addMiniPostView(container, draft.toCard()) { openDraft(draft) }
         }
+    }
+
+    private fun addMiniPostView(container: LinearLayout, post: PostCard, onClick: () -> Unit) {
+        val view = layoutInflater.inflate(R.layout.item_post_mini, container, false)
+        view.findViewById<TextView>(R.id.miniPostTitle).text =
+            post.title.ifBlank { getString(R.string.card_title_placeholder) }
+        view.findViewById<TextView>(R.id.miniPostExcerpt).text =
+            post.excerpt.ifBlank { getString(R.string.card_excerpt_placeholder) }
+        view.findViewById<TextView>(R.id.miniPostMeta).text =
+            formatDisplayDate(post.publishedAt) ?: getString(R.string.published_unknown)
+        view.findViewById<TextView>(R.id.miniPostLikes).text =
+            getString(R.string.likes_format, post.likesCount)
+        val coverUrl = post.coverUrl?.takeIf { it.isNotBlank() }
+        val coverView = view.findViewById<ImageView>(R.id.miniPostCover)
+        coverView.isVisible = coverUrl != null
+        if (coverUrl != null) {
+            coverView.load(coverUrl) {
+                placeholder(R.drawable.bg_image_placeholder)
+                error(R.drawable.bg_image_placeholder)
+                crossfade(true)
+            }
+        } else {
+            coverView.setImageDrawable(null)
+        }
+        view.setOnClickListener { onClick() }
+        container.addView(view)
     }
 
     private fun renderFollowers(users: List<UserProfile>) {
