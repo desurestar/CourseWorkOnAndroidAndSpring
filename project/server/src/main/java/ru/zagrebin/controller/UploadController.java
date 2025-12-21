@@ -19,7 +19,7 @@ public class UploadController {
     }
 
     /**
-     * POST /api/v1/uploads/{type}
+     * POST /api/uploads/{type}
      * type: cover | step | avatar
      * returns JSON { "url": "/media/..." }
      */
