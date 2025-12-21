@@ -34,6 +34,7 @@ import ru.zagrebin.culinaryblog.databinding.ItemStepRowBinding
 import ru.zagrebin.culinaryblog.model.IngredientItem
 import ru.zagrebin.culinaryblog.model.PostCard
 import ru.zagrebin.culinaryblog.model.PostCreateRequest
+import ru.zagrebin.culinaryblog.model.PostDraft
 import ru.zagrebin.culinaryblog.model.PostIngredientRequest
 import ru.zagrebin.culinaryblog.model.RecipeStepRequest
 import ru.zagrebin.culinaryblog.model.TagItem
@@ -52,6 +53,7 @@ class CreatePostFragment : Fragment() {
     private val stepRows = mutableListOf<ItemStepRowBinding>()
     private val selectedTags = mutableSetOf<Long>()
     private var lastShownDraftKey: Pair<Long, Long>? = null
+    private var restoredDraftId: Long? = null
 
     private var tags: List<TagItem> = emptyList()
     private var ingredients: List<IngredientItem> = emptyList()
@@ -131,6 +133,7 @@ class CreatePostFragment : Fragment() {
         viewModel.loadTags()
         viewModel.loadIngredients()
         updateRecipeVisibility()
+        restoreDraftIfNeeded()
     }
 
     override fun onDestroyView() {
@@ -140,6 +143,7 @@ class CreatePostFragment : Fragment() {
         stepRows.clear()
         selectedTags.clear()
         lastShownDraftKey = null
+        restoredDraftId = null
     }
 
     private fun setupStatusSpinner() {
@@ -297,18 +301,21 @@ class CreatePostFragment : Fragment() {
         }
     }
 
-    private fun addIngredientRow() {
+    private fun addIngredientRow(prefill: PostIngredientRequest? = null) {
         val rowBinding = ItemIngredientRowBinding.inflate(layoutInflater, binding.ingredientsContainer, false)
         rowBinding.buttonRemoveIngredient.setOnClickListener {
             binding.ingredientsContainer.removeView(rowBinding.root)
             ingredientRows.remove(rowBinding)
         }
+        rowBinding.spinnerIngredient.tag = prefill?.ingredientId
+        rowBinding.inputAmount.setText(prefill?.quantityValue?.let { if (it == 0.0) "" else it.toString() } ?: "")
+        rowBinding.inputUnit.setText(prefill?.unit ?: "")
         ingredientRows.add(rowBinding)
         binding.ingredientsContainer.addView(rowBinding.root)
         renderIngredientAdapters()
     }
 
-    private fun addStepRow() {
+    private fun addStepRow(prefill: RecipeStepRequest? = null) {
         val rowBinding = ItemStepRowBinding.inflate(layoutInflater, binding.stepsContainer, false)
         rowBinding.buttonRemoveStep.setOnClickListener {
             binding.stepsContainer.removeView(rowBinding.root)
@@ -316,6 +323,9 @@ class CreatePostFragment : Fragment() {
         }
         rowBinding.buttonPickStepImage.setOnClickListener { pickImage(ImageTarget.Step(rowBinding)) }
         rowBinding.buttonCaptureStepImage.setOnClickListener { captureImage(ImageTarget.Step(rowBinding)) }
+        rowBinding.inputStepDescription.setText(prefill?.description ?: "")
+        rowBinding.inputStepImage.setText(prefill?.imageUrl ?: "")
+        showStepPreview(rowBinding, prefill?.imageUrl)
         stepRows.add(rowBinding)
         binding.stepsContainer.addView(rowBinding.root)
     }
@@ -360,6 +370,55 @@ class CreatePostFragment : Fragment() {
             binding.ingredientsContainer.removeAllViews()
             binding.stepsContainer.removeAllViews()
         }
+    }
+
+    private fun restoreDraftIfNeeded() {
+        val draftId = arguments?.getLong(ARG_DRAFT_ID)?.takeIf { it > 0 } ?: return
+        if (restoredDraftId == draftId) return
+        viewLifecycleOwner.lifecycleScope.launch {
+            val draft = viewModel.getDraft(draftId).getOrNull()
+            if (draft != null) {
+                restoredDraftId = draftId
+                applyDraft(draft)
+            } else {
+                Toast.makeText(requireContext(), R.string.create_upload_error, Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun applyDraft(draft: PostDraft) {
+        val request = draft.request
+        viewModel.setAuthorId(request.authorId)
+        selectedPostType = request.postType
+        binding.postTypeGroup.check(
+            if (request.postType == POST_TYPE_ARTICLE) binding.radioArticle.id else binding.radioRecipe.id
+        )
+        updateRecipeVisibility()
+
+        binding.inputTitle.setText(request.title)
+        binding.inputExcerpt.setText(request.excerpt)
+        binding.inputContent.setText(request.content)
+        binding.inputCoverUrl.setText(request.coverUrl.orEmpty())
+        showCoverPreview(request.coverUrl)
+        binding.inputCookingTime.setText(request.cookingTimeMinutes?.toString().orEmpty())
+        binding.inputCalories.setText(request.calories?.toString().orEmpty())
+
+        val statusIndex = statusValues.indexOf(request.status).takeIf { it >= 0 } ?: 0
+        binding.statusSpinner.setSelection(statusIndex, false)
+
+        selectedTags.clear()
+        selectedTags.addAll(request.tagIds)
+        renderTags()
+
+        ingredientRows.clear()
+        binding.ingredientsContainer.removeAllViews()
+        request.ingredients.forEach { addIngredientRow(it) }
+        renderIngredientAdapters()
+
+        stepRows.clear()
+        binding.stepsContainer.removeAllViews()
+        request.steps.sortedBy { it.order }.forEach { addStepRow(it) }
+        updateRecipeVisibility()
     }
 
     private fun submit() {
@@ -585,14 +644,14 @@ class CreatePostFragment : Fragment() {
         private const val POST_TYPE_ARTICLE = "article"
         private const val MIN_POSITIVE_AMOUNT = 0.01
         private const val ARG_AUTHOR_ID = "arg_author_id"
+        private const val ARG_DRAFT_ID = "arg_draft_id"
 
-        fun newInstance(authorId: Long? = null): CreatePostFragment {
+        fun newInstance(authorId: Long? = null, draftId: Long? = null): CreatePostFragment {
             val fragment = CreatePostFragment()
-            if (authorId != null) {
-                fragment.arguments = Bundle().apply {
-                    putLong(ARG_AUTHOR_ID, authorId)
-                }
-            }
+            val args = Bundle()
+            if (authorId != null) args.putLong(ARG_AUTHOR_ID, authorId)
+            if (draftId != null) args.putLong(ARG_DRAFT_ID, draftId)
+            if (!args.isEmpty) fragment.arguments = args
             return fragment
         }
     }

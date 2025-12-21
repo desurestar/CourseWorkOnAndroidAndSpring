@@ -108,4 +108,6 @@ class CreatePostViewModel @Inject constructor(
     fun clearCreated() {
         _state.update { it.copy(created = null) }
     }
+
+    suspend fun getDraft(id: Long): Result<PostDraft> = repository.getDraft(id)
 }

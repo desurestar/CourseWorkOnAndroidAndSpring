@@ -37,6 +37,7 @@ import ru.zagrebin.culinaryblog.formatDisplayDate
 import ru.zagrebin.culinaryblog.data.storage.TokenStorage
 import ru.zagrebin.culinaryblog.databinding.ActivityProfileBinding
 import ru.zagrebin.culinaryblog.model.PostCard
+import ru.zagrebin.culinaryblog.model.PostDraft
 import ru.zagrebin.culinaryblog.model.UserProfile
 import ru.zagrebin.culinaryblog.viewmodel.PostViewModel
 import ru.zagrebin.culinaryblog.viewmodel.PostsUiState
@@ -379,14 +380,13 @@ class ProfileFragment : Fragment() {
             currentUserId?.let { post.authorId == it } ?: true
         }
         val liked = state.posts.filter { state.likedIds.contains(it.id) }
-        val drafts = state.drafts.map { it.toCard() }
-        renderPostList(binding.postsList, posts)
-        renderPostList(binding.likedList, liked)
-        renderPostList(binding.draftsList, drafts)
+        renderPostList(binding.postsList, posts, ::openPost)
+        renderPostList(binding.likedList, liked, ::openPost)
+        renderDraftList(binding.draftsList, state.drafts)
         binding.profileEmpty.isVisible = posts.isEmpty()
     }
 
-    private fun renderPostList(container: LinearLayout, posts: List<PostCard>) {
+    private fun renderPostList(container: LinearLayout, posts: List<PostCard>, onClick: (PostCard) -> Unit) {
         container.removeAllViews()
         if (posts.isEmpty()) {
             val stub = TextView(requireContext())
@@ -416,7 +416,43 @@ class ProfileFragment : Fragment() {
             } else {
                 coverView.setImageDrawable(null)
             }
-            view.setOnClickListener { openPost(post) }
+            view.setOnClickListener { onClick(post) }
+            container.addView(view)
+        }
+    }
+
+    private fun renderDraftList(container: LinearLayout, drafts: List<PostDraft>) {
+        container.removeAllViews()
+        if (drafts.isEmpty()) {
+            val stub = TextView(requireContext())
+            stub.text = getString(R.string.profile_empty)
+            container.addView(stub)
+            return
+        }
+        drafts.forEach { draft ->
+            val post = draft.toCard()
+            val view = layoutInflater.inflate(R.layout.item_post_mini, container, false)
+            view.findViewById<TextView>(R.id.miniPostTitle).text =
+                post.title.ifBlank { getString(R.string.card_title_placeholder) }
+            view.findViewById<TextView>(R.id.miniPostExcerpt).text =
+                post.excerpt.ifBlank { getString(R.string.card_excerpt_placeholder) }
+            view.findViewById<TextView>(R.id.miniPostMeta).text =
+                formatDisplayDate(post.publishedAt) ?: getString(R.string.published_unknown)
+            view.findViewById<TextView>(R.id.miniPostLikes).text =
+                getString(R.string.likes_format, post.likesCount)
+            val coverUrl = post.coverUrl?.takeIf { it.isNotBlank() }
+            val coverView = view.findViewById<ImageView>(R.id.miniPostCover)
+            coverView.isVisible = coverUrl != null
+            if (coverUrl != null) {
+                coverView.load(coverUrl) {
+                    placeholder(R.drawable.bg_image_placeholder)
+                    error(R.drawable.bg_image_placeholder)
+                    crossfade(true)
+                }
+            } else {
+                coverView.setImageDrawable(null)
+            }
+            view.setOnClickListener { openDraft(draft) }
             container.addView(view)
         }
     }
@@ -473,6 +509,13 @@ class ProfileFragment : Fragment() {
     private fun openPost(post: PostCard) {
         val intent = Intent(requireContext(), PostDetailActivity::class.java)
         intent.putExtra(PostDetailActivity.EXTRA_POST, post)
+        startActivity(intent)
+    }
+
+    private fun openDraft(draft: PostDraft) {
+        val intent = Intent(requireContext(), CreatePostActivity::class.java)
+            .putExtra(CreatePostActivity.EXTRA_DRAFT_ID, draft.id)
+            .putExtra(CreatePostActivity.EXTRA_AUTHOR_ID, draft.request.authorId)
         startActivity(intent)
     }
 

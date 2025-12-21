@@ -19,6 +19,7 @@ interface PostRepository {
     suspend fun createPost(request: PostCreateRequest): Result<PostCard>
     suspend fun saveDraft(request: PostCreateRequest): Result<PostDraft>
     suspend fun getDrafts(): Result<List<PostDraft>>
+    suspend fun getDraft(id: Long): Result<PostDraft>
     suspend fun like(postId: Long): Result<Unit>
     suspend fun unlike(postId: Long): Result<Unit>
     suspend fun getLikedPostIds(): Result<Set<Long>>
