@@ -266,7 +266,7 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
         }
         fun updateLikesView(view: TextView, liked: Boolean, count: Int, animate: Boolean = false) {
             view.text = getString(R.string.likes_format, count)
-            val icon = if (liked) R.drawable.ic_favorite_border else R.drawable.ic_favorite
+            val icon = if (liked) R.drawable.ic_favorite else R.drawable.ic_favorite_border
             val tint = ContextCompat.getColor(this, if (liked) R.color.text_error else R.color.recipe_primary)
             view.setCompoundDrawablesWithIntrinsicBounds(icon, 0, 0, 0)
             view.compoundDrawablePadding = iconPadding

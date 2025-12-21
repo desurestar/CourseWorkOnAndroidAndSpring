@@ -194,7 +194,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginStart="8dp"
                     android:drawablePadding="@dimen/create_horizontal_space"
-                    android:drawableStart="@drawable/ic_favorite"
+                    android:drawableStart="@drawable/ic_favorite_border"
                     android:drawableTint="@color/recipe_primary"
                     android:ellipsize="end"
                     android:maxLines="1"

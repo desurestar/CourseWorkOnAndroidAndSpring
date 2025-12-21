@@ -357,7 +357,7 @@ class PostDetailActivity : AppCompatActivity() {
         binding.likesText.text = getString(R.string.likes_format, likesCount)
         val textColor = if (isLiked) R.color.text_error else R.color.text_muted
         val iconColor = if (isLiked) R.color.text_error else R.color.recipe_primary
-        val icon = if (isLiked) R.drawable.ic_favorite_border else R.drawable.ic_favorite
+        val icon = if (isLiked) R.drawable.ic_favorite else R.drawable.ic_favorite_border
         binding.likesText.setTextColor(ContextCompat.getColor(this, textColor))
         binding.likesText.setCompoundDrawablesWithIntrinsicBounds(icon, 0, 0, 0)
         binding.likesText.compoundDrawablePadding =
