@@ -9,7 +9,9 @@ data class UserDto(
     val email: String?,
     val displayName: String?,
     val role: String?,
-    val avatarUrl: String?
+    val avatarUrl: String?,
+    val followersCount: Int? = null,
+    val followingCount: Int? = null
 )
 
 data class UpdateProfileRequest(
@@ -25,5 +27,7 @@ fun UserDto.toModel(): UserProfile = UserProfile(
     email = email,
     displayName = displayName,
     role = role,
-    avatarUrl = resolveUrl(avatarUrl)
+    avatarUrl = resolveUrl(avatarUrl),
+    followersCount = followersCount ?: 0,
+    followingCount = followingCount ?: 0
 )
