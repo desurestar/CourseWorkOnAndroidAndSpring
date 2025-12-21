@@ -5,4 +5,6 @@
     <dimen name="step_item_image_height">180dp</dimen>
     <dimen name="step_item_image_margin_top">6dp</dimen>
     <dimen name="comment_indent">24dp</dimen>
+    <dimen name="chip_corner_radius">16dp</dimen>
+    <dimen name="scroll_top_button_raise">36dp</dimen>
 </resources>

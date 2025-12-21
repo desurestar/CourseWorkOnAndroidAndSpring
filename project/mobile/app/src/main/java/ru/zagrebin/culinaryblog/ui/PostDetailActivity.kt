@@ -203,13 +203,21 @@ class PostDetailActivity : AppCompatActivity() {
         ingredientsSafe.forEach { ingredient ->
             val chip = Chip(this)
             chip.text = ingredient
-            chip.isClickable = false
-            chip.isCheckable = false
-            chip.chipBackgroundColor =
-                ContextCompat.getColorStateList(this, R.color.recipe_primary_light)
-            chip.setTextColor(ContextCompat.getColor(this, R.color.recipe_primary))
+            styleInfoChip(chip)
             binding.ingredientsGroup.addView(chip)
         }
+    }
+
+    private fun styleInfoChip(chip: Chip) {
+        chip.isClickable = false
+        chip.isCheckable = false
+        chip.chipBackgroundColor =
+            ContextCompat.getColorStateList(this, R.color.recipe_primary_light)
+        chip.setTextColor(ContextCompat.getColor(this, R.color.recipe_primary))
+        chip.shapeAppearanceModel = chip.shapeAppearanceModel
+            .toBuilder()
+            .setAllCornerSizes(resources.getDimension(R.dimen.chip_corner_radius))
+            .build()
     }
 
     private fun bindSteps(isRecipe: Boolean, steps: List<PostStep>) {
