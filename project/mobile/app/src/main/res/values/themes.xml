@@ -1,5 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="Theme.CulinaryBlog" parent="Theme.MaterialComponents.DayNight.NoActionBar" />
+    <style name="Theme.CulinaryBlog" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/recipe_button</item>
+        <item name="colorPrimaryVariant">@color/recipe_primary</item>
+        <item name="colorOnPrimary">@color/recipe_primary</item>
+        <item name="colorSecondary">@color/recipe_primary</item>
+        <item name="colorSecondaryVariant">@color/recipe_primary_light</item>
+        <item name="colorOnSecondary">@color/white</item>
+        <item name="colorSurface">@color/recipe_card</item>
+        <item name="colorBackground">@color/recipe_background</item>
+        <item name="colorAccent">@color/recipe_button</item>
+        <item name="android:statusBarColor">@color/recipe_primary</item>
+        <item name="android:navigationBarColor">@color/recipe_background</item>
+    </style>
 </resources>
