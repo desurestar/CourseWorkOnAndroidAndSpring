@@ -9,6 +9,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import android.widget.TextView
+import androidx.activity.addCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
@@ -171,6 +172,20 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
                     renderState(state)
                 }
             }
+        }
+
+        onBackPressedDispatcher.addCallback(this) {
+            val publicProfileVisible =
+                supportFragmentManager.findFragmentByTag(PUBLIC_PROFILE_TAG)?.isVisible == true
+            if (publicProfileVisible) {
+                closePublicProfile()
+                return@addCallback
+            }
+            if (!currentTab.isFeed()) {
+                restoreFeedTab()
+                return@addCallback
+            }
+            finish()
         }
     }
 
