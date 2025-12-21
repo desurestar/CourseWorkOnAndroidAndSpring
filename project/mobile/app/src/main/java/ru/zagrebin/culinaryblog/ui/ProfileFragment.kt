@@ -144,7 +144,7 @@ class ProfileFragment : Fragment() {
             override fun onTabUnselected(tab: TabLayout.Tab) {}
             override fun onTabReselected(tab: TabLayout.Tab) {}
         })
-        tabs.getTabAt(2)?.select()
+        tabs.getTabAt(POSTS_TAB_POSITION)?.select()
     }
 
     private fun setupPostsSubTabs() {
@@ -155,12 +155,10 @@ class ProfileFragment : Fragment() {
 
     private fun selectPostsSubTab(target: PostsSubTab, rerender: Boolean = true) {
         postsSubTab = target
-        binding.buttonPostsPublished.isEnabled = target != PostsSubTab.PUBLISHED
-        binding.buttonPostsDrafts.isEnabled = target != PostsSubTab.DRAFTS
-        val showingPostsTab = binding.profileTabs.selectedTabPosition == 2
-        binding.sectionPosts.isVisible = showingPostsTab && target == PostsSubTab.PUBLISHED
-        binding.sectionDrafts.isVisible = showingPostsTab && target == PostsSubTab.DRAFTS
-        if (rerender) {
+        binding.buttonPostsPublished.isSelected = target == PostsSubTab.PUBLISHED
+        binding.buttonPostsDrafts.isSelected = target == PostsSubTab.DRAFTS
+        updatePostsSectionsVisibility(isPostsTab())
+        if (rerender && isPostsTab()) {
             renderPosts(postViewModel.uiState.value)
         }
     }
@@ -403,7 +401,7 @@ class ProfileFragment : Fragment() {
         renderPostList(binding.postsList, posts, ::openPost)
         renderPostList(binding.likedList, liked, ::openPost)
         renderDraftList(binding.draftsList, state.drafts)
-        val showingPostsTab = binding.profileTabs.selectedTabPosition == 2
+        val showingPostsTab = isPostsTab()
         binding.profileEmpty.isVisible = showingPostsTab && when (postsSubTab) {
             PostsSubTab.PUBLISHED -> posts.isEmpty()
             PostsSubTab.DRAFTS -> state.drafts.isEmpty()
@@ -412,12 +410,7 @@ class ProfileFragment : Fragment() {
 
     private fun renderPostList(container: LinearLayout, posts: List<PostCard>, onClick: (PostCard) -> Unit) {
         container.removeAllViews()
-        if (posts.isEmpty()) {
-            val stub = TextView(requireContext())
-            stub.text = getString(R.string.profile_empty)
-            container.addView(stub)
-            return
-        }
+        if (posts.isEmpty()) return
         posts.forEach { post ->
             addMiniPostView(container, post) { onClick(post) }
         }
@@ -425,12 +418,7 @@ class ProfileFragment : Fragment() {
 
     private fun renderDraftList(container: LinearLayout, drafts: List<PostDraft>) {
         container.removeAllViews()
-        if (drafts.isEmpty()) {
-            val stub = TextView(requireContext())
-            stub.text = getString(R.string.profile_empty)
-            container.addView(stub)
-            return
-        }
+        if (drafts.isEmpty()) return
         drafts.forEach { draft ->
             addMiniPostView(container, draft.toCard()) { openDraft(draft) }
         }
@@ -498,15 +486,23 @@ class ProfileFragment : Fragment() {
     private fun showSection(position: Int) {
         binding.sectionFollowers.isVisible = position == 0
         binding.sectionFollowing.isVisible = position == 1
-        val showingPostsTab = position == 2
-        binding.sectionPosts.isVisible = showingPostsTab && postsSubTab == PostsSubTab.PUBLISHED
-        binding.sectionDrafts.isVisible = showingPostsTab && postsSubTab == PostsSubTab.DRAFTS
-        binding.sectionLiked.isVisible = position == 3
+        val showingPostsTab = isPostsTab(position)
+        updatePostsSectionsVisibility(showingPostsTab)
+        binding.sectionLiked.isVisible = position == LIKED_TAB_POSITION
         if (showingPostsTab) {
             renderPosts(postViewModel.uiState.value)
         } else {
             binding.profileEmpty.isVisible = false
         }
+    }
+
+    private fun isPostsTab(position: Int = binding.profileTabs.selectedTabPosition): Boolean =
+        position == POSTS_TAB_POSITION
+
+    private fun updatePostsSectionsVisibility(showingPostsTab: Boolean) {
+        binding.sectionPosts.isVisible = showingPostsTab
+        binding.postsList.isVisible = showingPostsTab && postsSubTab == PostsSubTab.PUBLISHED
+        binding.sectionDrafts.isVisible = showingPostsTab && postsSubTab == PostsSubTab.DRAFTS
     }
 
     private fun renderUserStub() {
@@ -571,6 +567,8 @@ class ProfileFragment : Fragment() {
         private const val CROP_ASPECT = 1
         private const val CROP_OUTPUT = 512
         private const val JPEG_QUALITY = 90
+        private const val POSTS_TAB_POSITION = 2
+        private const val LIKED_TAB_POSITION = 3 // followers, following, posts, liked
     }
 
     interface Host {
