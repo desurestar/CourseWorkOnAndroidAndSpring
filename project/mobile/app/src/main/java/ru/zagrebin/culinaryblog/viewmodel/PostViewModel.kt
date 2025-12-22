@@ -40,11 +40,16 @@ class PostViewModel @Inject constructor(
         loadPosts(postType = DEFAULT_POST_TYPE)
     }
 
-    fun loadPosts(filters: PostFilters? = activeFilters, postType: String? = activePostType) {
-        val resolvedPostType = postType ?: DEFAULT_POST_TYPE
-        val normalizedFilters = (filters ?: PostFilters(postType = resolvedPostType)).normalizedForType(resolvedPostType)
-        activeFilters = normalizedFilters
-        activePostType = resolvedPostType
+    fun loadAllPosts() = loadPosts(filters = null, postType = null, allowAnyType = true)
+
+    fun loadPosts(
+        filters: PostFilters? = activeFilters,
+        postType: String? = activePostType,
+        allowAnyType: Boolean = false
+    ) {
+        val params = resolveLoadParams(filters, postType, allowAnyType)
+        activeFilters = params.normalizedFilters
+        activePostType = params.resolvedPostType
         _uiState.value = _uiState.value.copy(
             isLoading = true,
             isAppending = false,
@@ -55,7 +60,11 @@ class PostViewModel @Inject constructor(
             val likedIds = repository.getLikedPostIds().getOrDefault(emptySet())
             val drafts = repository.getDrafts().getOrDefault(emptyList())
             val cached = repository.getCachedPosts()
-            val cachedFiltered = PostFilters.filter(cached, normalizedFilters, resolvedPostType)
+            val cachedFiltered = if (params.skipTypeFilters) {
+                cached
+            } else {
+                PostFilters.filter(cached, params.normalizedFilters, params.targetType)
+            }
             if (cachedFiltered.isNotEmpty()) {
                 _uiState.value = _uiState.value.copy(
                     posts = cachedFiltered,
@@ -64,7 +73,7 @@ class PostViewModel @Inject constructor(
                     offline = false
                 )
             }
-            val res = repository.getPublishedPosts(filters = normalizedFilters)
+            val res = repository.getPublishedPosts(filters = params.normalizedFilters)
             if (res.isSuccess) {
                 val page = res.getOrDefault(PaginatedResult(emptyList(), null))
                 _uiState.value = PostsUiState(
@@ -84,7 +93,7 @@ class PostViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     isAppending = false,
-                    posts = PostFilters.filter(cachedFallback, normalizedFilters, resolvedPostType),
+                    posts = if (params.skipTypeFilters) cachedFallback else PostFilters.filter(cachedFallback, params.normalizedFilters, params.targetType),
                     nextPage = null,
                     error = res.exceptionOrNull()?.message ?: "Unknown",
                     likedIds = likedIds,
@@ -139,4 +148,33 @@ class PostViewModel @Inject constructor(
     companion object {
         private const val DEFAULT_POST_TYPE = PostFilters.RECIPE_POST_TYPE
     }
+
+    private data class LoadParams(
+        val skipTypeFilters: Boolean,
+        val normalizedFilters: PostFilters?,
+        val targetType: String,
+        val resolvedPostType: String?
+    )
+
+    private fun resolveLoadParams(
+        filters: PostFilters?,
+        postType: String?,
+        allowAnyType: Boolean
+    ): LoadParams {
+        val skipTypeFilters = shouldSkipTypeFiltering(allowAnyType, postType, filters)
+        val resolvedPostType = if (skipTypeFilters) null else postType ?: DEFAULT_POST_TYPE
+        val targetType = resolvedPostType ?: DEFAULT_POST_TYPE
+        val normalizedFilters = if (skipTypeFilters) {
+            null
+        } else {
+            (filters ?: PostFilters(postType = targetType)).normalizedForType(targetType)
+        }
+        return LoadParams(skipTypeFilters, normalizedFilters, targetType, resolvedPostType)
+    }
+
+    private fun shouldSkipTypeFiltering(
+        allowAnyType: Boolean,
+        postType: String?,
+        filters: PostFilters?
+    ): Boolean = allowAnyType && postType == null && filters == null
 }
