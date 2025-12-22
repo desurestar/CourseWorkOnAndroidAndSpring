@@ -40,67 +40,20 @@ class PostViewModel @Inject constructor(
         loadPosts(postType = DEFAULT_POST_TYPE)
     }
 
-    fun loadAllPosts() {
-        activeFilters = null
-        activePostType = null
-        _uiState.value = _uiState.value.copy(
-            isLoading = true,
-            isAppending = false,
-            error = null,
-            nextPage = 1
-        )
-        viewModelScope.launch {
-            val likedIds = repository.getLikedPostIds().getOrDefault(emptySet())
-            val drafts = repository.getDrafts().getOrDefault(emptyList())
-            val cached = repository.getCachedPosts()
-            if (cached.isNotEmpty()) {
-                _uiState.value = _uiState.value.copy(
-                    posts = cached,
-                    likedIds = likedIds,
-                    drafts = drafts,
-                    offline = false
-                )
-            } else {
-                _uiState.value = _uiState.value.copy(
-                    likedIds = likedIds,
-                    drafts = drafts,
-                    offline = false
-                )
-            }
-            val res = repository.getPublishedPosts()
-            if (res.isSuccess) {
-                val page = res.getOrDefault(PaginatedResult(emptyList(), null))
-                _uiState.value = PostsUiState(
-                    isLoading = false,
-                    isAppending = false,
-                    posts = page.items,
-                    nextPage = page.nextPage,
-                    likedIds = likedIds,
-                    drafts = drafts,
-                    offline = false
-                )
-            } else {
-                val cachedFallback = when (val ex = res.exceptionOrNull()) {
-                    is OfflineCacheException -> ex.cached
-                    else -> cached
-                }
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    isAppending = false,
-                    posts = cachedFallback,
-                    nextPage = null,
-                    error = res.exceptionOrNull()?.message ?: "Unknown",
-                    likedIds = likedIds,
-                    drafts = drafts,
-                    offline = true
-                )
-            }
-        }
-    }
+    fun loadAllPosts() = loadPosts(filters = null, postType = null, allowAnyType = true)
 
-    fun loadPosts(filters: PostFilters? = activeFilters, postType: String? = activePostType) {
-        val resolvedPostType = postType ?: DEFAULT_POST_TYPE
-        val normalizedFilters = (filters ?: PostFilters(postType = resolvedPostType)).normalizedForType(resolvedPostType)
+    fun loadPosts(
+        filters: PostFilters? = activeFilters,
+        postType: String? = activePostType,
+        allowAnyType: Boolean = false
+    ) {
+        val resolvedPostType = if (allowAnyType) postType else postType ?: DEFAULT_POST_TYPE
+        val normalizedFilters = if (allowAnyType && postType == null && filters == null) {
+            null
+        } else {
+            val targetType = resolvedPostType ?: DEFAULT_POST_TYPE
+            (filters ?: PostFilters(postType = targetType)).normalizedForType(targetType)
+        }
         activeFilters = normalizedFilters
         activePostType = resolvedPostType
         _uiState.value = _uiState.value.copy(
@@ -113,7 +66,11 @@ class PostViewModel @Inject constructor(
             val likedIds = repository.getLikedPostIds().getOrDefault(emptySet())
             val drafts = repository.getDrafts().getOrDefault(emptyList())
             val cached = repository.getCachedPosts()
-            val cachedFiltered = PostFilters.filter(cached, normalizedFilters, resolvedPostType)
+            val cachedFiltered = if (allowAnyType && normalizedFilters == null) {
+                cached
+            } else {
+                PostFilters.filter(cached, normalizedFilters, resolvedPostType ?: DEFAULT_POST_TYPE)
+            }
             if (cachedFiltered.isNotEmpty()) {
                 _uiState.value = _uiState.value.copy(
                     posts = cachedFiltered,
@@ -142,7 +99,7 @@ class PostViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     isAppending = false,
-                    posts = PostFilters.filter(cachedFallback, normalizedFilters, resolvedPostType),
+                    posts = PostFilters.filter(cachedFallback, normalizedFilters, resolvedPostType ?: DEFAULT_POST_TYPE),
                     nextPage = null,
                     error = res.exceptionOrNull()?.message ?: "Unknown",
                     likedIds = likedIds,
