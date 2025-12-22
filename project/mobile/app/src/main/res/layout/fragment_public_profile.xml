@@ -48,16 +48,30 @@
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 
-                <TextView
-                    android:id="@+id/publicAvatar"
+                <FrameLayout
                     android:layout_width="56dp"
                     android:layout_height="56dp"
                     android:background="@drawable/bg_avatar_placeholder"
-                    android:gravity="center"
-                    android:text="U"
-                    android:textAppearance="@style/TextAppearance.MaterialComponents.Headline5"
-                    android:textColor="@color/recipe_primary"
-                    android:textStyle="bold" />
+                    android:clipToOutline="true"
+                    android:padding="4dp">
+
+                    <ImageView
+                        android:id="@+id/publicAvatarImage"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:contentDescription="@string/profile_avatar_content_description"
+                        android:scaleType="centerCrop" />
+
+                    <TextView
+                        android:id="@+id/publicAvatar"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:gravity="center"
+                        android:text="U"
+                        android:textAppearance="@style/TextAppearance.MaterialComponents.Headline6"
+                        android:textColor="@color/recipe_primary"
+                        android:textStyle="bold" />
+                </FrameLayout>
 
                 <LinearLayout
                     android:layout_width="0dp"
@@ -76,59 +90,96 @@
                         android:textStyle="bold" />
 
                     <TextView
-                        android:id="@+id/publicMeta"
+                        android:id="@+id/publicEmail"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="@string/nav_profile"
+                        android:text="@string/profile_email_stub"
                         android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
                         android:textColor="@color/text_caption" />
                 </LinearLayout>
+
+                <Button
+                    android:id="@+id/buttonSubscribe"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/profile_subscribe" />
             </LinearLayout>
 
-            <Button
-                android:id="@+id/buttonSubscribe"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:text="@string/profile_subscribe" />
-
-            <com.google.android.material.tabs.TabLayout
-                android:id="@+id/publicTabs"
+            <LinearLayout
+                android:id="@+id/publicCounters"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
-                app:tabIndicatorColor="@color/recipe_primary"
-                app:tabRippleColor="@color/recipe_primary_light"
-                app:tabSelectedTextColor="@color/recipe_primary"
-                app:tabTextColor="@color/text_caption" />
-
-            <LinearLayout
-                android:id="@+id/publicSectionFollowers"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
-                android:orientation="vertical">
+                android:gravity="center"
+                android:orientation="horizontal">
 
                 <LinearLayout
-                    android:id="@+id/publicFollowersList"
-                    android:layout_width="match_parent"
+                    android:id="@+id/buttonFollowers"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical" />
-            </LinearLayout>
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_profile_posts_tab"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?attr/selectableItemBackgroundBorderless"
+                    android:gravity="center"
+                    android:minHeight="88dp"
+                    android:orientation="vertical"
+                    android:padding="12dp">
 
-            <LinearLayout
-                android:id="@+id/publicSectionFollowing"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
-                android:orientation="vertical"
-                android:visibility="gone">
+                    <TextView
+                        android:id="@+id/publicFollowersCount"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="0"
+                        android:textAppearance="@style/TextAppearance.MaterialComponents.Headline6"
+                        android:textColor="@color/recipe_primary"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="@string/profile_followers"
+                        android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
+                        android:textColor="@color/text_caption" />
+                </LinearLayout>
+
+                <Space
+                    android:layout_width="12dp"
+                    android:layout_height="0dp" />
 
                 <LinearLayout
-                    android:id="@+id/publicFollowingList"
-                    android:layout_width="match_parent"
+                    android:id="@+id/buttonFollowing"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical" />
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_profile_posts_tab"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?attr/selectableItemBackgroundBorderless"
+                    android:gravity="center"
+                    android:minHeight="88dp"
+                    android:orientation="vertical"
+                    android:padding="12dp">
+
+                    <TextView
+                        android:id="@+id/publicFollowingCount"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="0"
+                        android:textAppearance="@style/TextAppearance.MaterialComponents.Headline6"
+                        android:textColor="@color/recipe_primary"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="@string/profile_following"
+                        android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
+                        android:textColor="@color/text_caption" />
+                </LinearLayout>
             </LinearLayout>
 
             <LinearLayout
@@ -136,8 +187,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="10dp"
-                android:orientation="vertical"
-                android:visibility="gone">
+                android:orientation="vertical">
 
                 <LinearLayout
                     android:id="@+id/publicPostsList"

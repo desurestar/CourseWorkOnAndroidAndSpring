@@ -17,7 +17,6 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import coil.load
-import com.google.android.material.tabs.TabLayout
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -30,6 +29,7 @@ import ru.zagrebin.culinaryblog.formatDisplayDate
 import ru.zagrebin.culinaryblog.model.PostCard
 import ru.zagrebin.culinaryblog.model.UserProfile
 import ru.zagrebin.culinaryblog.ui.buildUserListDialog
+import ru.zagrebin.culinaryblog.util.renderAvatar
 import ru.zagrebin.culinaryblog.viewmodel.PostViewModel
 import ru.zagrebin.culinaryblog.viewmodel.PostsUiState
 import javax.inject.Inject
@@ -45,6 +45,8 @@ class PublicProfileFragment : Fragment() {
 
     private var userId: Long? = null
     private var displayName: String? = null
+    private var email: String? = null
+    private var avatarUrl: String? = null
     private var subscribed: Boolean = false
     private var usersDialog: AlertDialog? = null
     private var followersCount: Int = 0
@@ -74,10 +76,8 @@ class PublicProfileFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         renderHeader()
-        setupTabs()
         renderSubscription()
-        renderFollowers(emptyList())
-        renderFollowing(emptyList())
+        renderCounters()
         observePosts()
         loadUserProfile()
         loadSubscriptionStatus()
@@ -86,8 +86,8 @@ class PublicProfileFragment : Fragment() {
         binding.buttonClose.setOnClickListener {
             (activity as? Host)?.onPublicProfileClose() ?: activity?.onBackPressedDispatcher?.onBackPressed()
         }
-        binding.publicTabs.getTabAt(POSTS_TAB_POSITION)?.select()
-        showSection(POSTS_TAB_POSITION)
+        binding.buttonFollowers.setOnClickListener { showFollowersDialog() }
+        binding.buttonFollowing.setOnClickListener { showFollowingDialog() }
     }
 
     override fun onDestroyView() {
@@ -98,50 +98,28 @@ class PublicProfileFragment : Fragment() {
     }
 
     fun updateUser(userId: Long?, displayName: String?, subscribed: Boolean?) {
+        val userChanged = this.userId != userId
         this.userId = userId
-        this.displayName = displayName
         subscribed?.let { this.subscribed = it }
-        if (_binding != null) {
-            renderHeader()
-            renderSubscription()
+        if (userChanged) {
+            this.displayName = displayName
+            email = null
+            avatarUrl = null
             followersCount = 0
             followingCount = 0
             followers = emptyList()
             following = emptyList()
             relationsLoaded = false
-            renderFollowers(followers)
-            renderFollowing(following)
+        } else {
+            displayName?.let { this.displayName = it }
+        }
+        if (_binding != null) {
+            renderHeader()
+            renderSubscription()
+            renderCounters()
             renderPosts(postViewModel.uiState.value)
-            binding.publicTabs.getTabAt(POSTS_TAB_POSITION)?.select()
-            showSection(POSTS_TAB_POSITION)
             loadUserProfile()
             loadSubscriptionStatus()
-        }
-    }
-
-    private fun setupTabs() {
-        val tabs = binding.publicTabs
-        tabs.removeAllTabs()
-        tabs.addTab(tabs.newTab().setText(R.string.profile_followers))
-        tabs.addTab(tabs.newTab().setText(R.string.profile_following))
-        tabs.addTab(tabs.newTab().setText(R.string.profile_posts))
-        tabs.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
-            override fun onTabSelected(tab: TabLayout.Tab) {
-                showSection(tab.position)
-            }
-
-            override fun onTabUnselected(tab: TabLayout.Tab) {}
-            override fun onTabReselected(tab: TabLayout.Tab) {}
-        })
-    }
-
-    private fun showSection(position: Int) {
-        binding.publicSectionFollowers.isVisible = position == FOLLOWERS_TAB_POSITION
-        binding.publicSectionFollowing.isVisible = position == FOLLOWING_TAB_POSITION
-        binding.publicSectionPosts.isVisible = position == POSTS_TAB_POSITION
-        when (position) {
-            FOLLOWERS_TAB_POSITION -> showFollowersDialog()
-            FOLLOWING_TAB_POSITION -> showFollowingDialog()
         }
     }
 
@@ -197,11 +175,11 @@ class PublicProfileFragment : Fragment() {
     }
 
     private fun renderFollowers(users: List<UserProfile>) {
-        renderUserList(binding.publicFollowersList, users, followersCount, getString(R.string.profile_followers))
+        renderCounters()
     }
 
     private fun renderFollowing(users: List<UserProfile>) {
-        renderUserList(binding.publicFollowingList, users, followingCount, getString(R.string.profile_following))
+        renderCounters()
     }
 
     private fun showFollowersDialog() {
@@ -255,16 +233,19 @@ class PublicProfileFragment : Fragment() {
     private fun renderHeader() {
         val name = displayName?.takeIf { it.isNotBlank() } ?: getString(R.string.profile_user_stub)
         binding.publicName.text = name
-        binding.publicAvatar.text = name.firstOrNull()?.uppercase() ?: "U"
-        binding.publicMeta.text =
-            if (subscribed) getString(R.string.profile_following) else getString(R.string.nav_profile)
+        val emailValue = email?.takeIf { it.isNotBlank() } ?: getString(R.string.profile_email_stub)
+        binding.publicEmail.text = emailValue
+        renderAvatar(binding.publicAvatarImage, binding.publicAvatar, avatarUrl, name)
     }
 
     private fun renderSubscription() {
         binding.buttonSubscribe.text =
             if (subscribed) getString(R.string.profile_unsubscribe) else getString(R.string.profile_subscribe)
-        binding.publicMeta.text =
-            if (subscribed) getString(R.string.profile_following) else getString(R.string.nav_profile)
+    }
+
+    private fun renderCounters() {
+        binding.publicFollowersCount.text = followersCount.toString()
+        binding.publicFollowingCount.text = followingCount.toString()
     }
 
     private fun loadSubscriptionStatus() {
@@ -276,8 +257,7 @@ class PublicProfileFragment : Fragment() {
                 subscribed = it.subscribed
                 followersCount = it.followersCount
                 followingCount = it.followingCount
-                renderFollowers(followers)
-                renderFollowing(following)
+                renderCounters()
                 renderSubscription()
                 loadRelations()
             }
@@ -291,12 +271,13 @@ class PublicProfileFragment : Fragment() {
             result.onSuccess { profile ->
                 followersCount = profile.followersCount
                 followingCount = profile.followingCount
+                email = profile.email
+                avatarUrl = profile.avatarUrl
                 if (!profile.displayName.isNullOrBlank()) {
                     displayName = profile.displayName
                 }
                 renderHeader()
-                renderFollowers(followers)
-                renderFollowing(following)
+                renderCounters()
                 loadRelations()
             }
         }
@@ -310,14 +291,14 @@ class PublicProfileFragment : Fragment() {
             profileRepository.getFollowers(id).onSuccess {
                 followers = it
                 followersCount = it.size
-                renderFollowers(followers)
+                renderCounters()
             }
         }
         viewLifecycleOwner.lifecycleScope.launch {
             profileRepository.getFollowing(id).onSuccess {
                 following = it
                 followingCount = it.size
-                renderFollowing(following)
+                renderCounters()
             }
         }
     }
@@ -336,8 +317,7 @@ class PublicProfileFragment : Fragment() {
                     subscribed = it.subscribed
                     followersCount = it.followersCount
                     followingCount = it.followingCount
-                    renderFollowers(followers)
-                    renderFollowing(following)
+                    renderCounters()
                     renderSubscription()
                     loadRelations(true)
                     Toast.makeText(requireContext(), R.string.profile_subscription_updated, Toast.LENGTH_SHORT).show()
@@ -367,9 +347,6 @@ class PublicProfileFragment : Fragment() {
     }
 
     companion object {
-        private const val FOLLOWERS_TAB_POSITION = 0
-        private const val FOLLOWING_TAB_POSITION = 1
-        private const val POSTS_TAB_POSITION = 2
         private const val ARG_USER_ID = "arg_user_id"
         private const val ARG_DISPLAY_NAME = "arg_display_name"
         private const val ARG_SUBSCRIBED = "arg_subscribed"
