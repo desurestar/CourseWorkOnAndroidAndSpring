@@ -14,6 +14,11 @@ spring:
     password: ${DB_PASSWORD:190485}
     driver-class-name: org.postgresql.Driver
 
+  servlet:
+    multipart:
+      max-file-size: -1
+      max-request-size: -1
+
   jpa:
     hibernate:
       ddl-auto: none
