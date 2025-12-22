@@ -294,12 +294,6 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
     private fun renderPosts(posts: List<PostCard>) {
         binding.postsContainer.removeAllViews()
         val iconPadding = resources.getDimensionPixelSize(R.dimen.create_horizontal_space)
-        val primaryIconColor = ContextCompat.getColor(this, R.color.recipe_primary)
-        fun applyMetaIcon(view: TextView, icon: Int) {
-            view.setCompoundDrawablesWithIntrinsicBounds(icon, 0, 0, 0)
-            view.compoundDrawablePadding = iconPadding
-            TextViewCompat.setCompoundDrawableTintList(view, ColorStateList.valueOf(primaryIconColor))
-        }
         fun updateLikesView(view: TextView, liked: Boolean, count: Int, animate: Boolean = false) {
             view.text = getString(R.string.likes_format, count)
             val icon = if (liked) R.drawable.ic_favorite else R.drawable.ic_favorite_border
@@ -353,11 +347,8 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
             post.calories?.let {
                 cardBinding.calories.text = getString(R.string.calories_format, it)
             }
-            applyMetaIcon(cardBinding.cookingTime, R.drawable.ic_time_outline)
-            applyMetaIcon(cardBinding.calories, R.drawable.ic_fire)
             cardBinding.viewsText.text =
                 getString(R.string.views_format, post.viewsCount ?: 0L)
-            applyMetaIcon(cardBinding.viewsText, R.drawable.ic_visibility)
             val likedPreviously = likedPostIds.contains(post.id)
             var currentLikes = post.likesCount
             var hasLiked = likedPreviously
