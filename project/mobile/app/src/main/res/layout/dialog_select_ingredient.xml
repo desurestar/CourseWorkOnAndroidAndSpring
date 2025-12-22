@@ -35,9 +35,9 @@
 
     <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="@dimen/ingredient_dialog_list_height"
         android:layout_marginTop="8dp"
-        android:maxHeight="200dp">
+        android:scrollbars="vertical">
 
         <RadioGroup
             android:id="@+id/groupIngredients"

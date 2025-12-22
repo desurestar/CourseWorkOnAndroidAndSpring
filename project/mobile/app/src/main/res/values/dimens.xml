@@ -7,4 +7,5 @@
     <dimen name="comment_indent">24dp</dimen>
     <dimen name="chip_corner_radius">16dp</dimen>
     <dimen name="scroll_top_button_raise">36dp</dimen>
+    <dimen name="ingredient_dialog_list_height">300dp</dimen>
 </resources>
