@@ -74,17 +74,29 @@
                     android:textAppearance="@style/TextAppearance.MaterialComponents.Caption"
                     android:textColor="@color/text_caption" />
 
-                <TextView
-                    android:id="@+id/miniPostLikes"
+                <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:drawableStart="@drawable/ic_favorite_border"
-                    android:drawablePadding="@dimen/create_horizontal_space"
-                    android:drawableTint="@color/recipe_primary"
-                    android:gravity="center_vertical"
-                    android:text="@string/likes_placeholder"
-                    android:textAppearance="@style/TextAppearance.MaterialComponents.Caption"
-                    android:textColor="@color/text_muted" />
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <ImageView
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:contentDescription="@null"
+                        app:srcCompat="@drawable/ic_favorite_border"
+                        app:tint="@color/recipe_primary" />
+
+                    <TextView
+                        android:id="@+id/miniPostLikes"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="@dimen/create_horizontal_space"
+                        android:gravity="center_vertical"
+                        android:text="@string/likes_placeholder"
+                        android:textAppearance="@style/TextAppearance.MaterialComponents.Caption"
+                        android:textColor="@color/text_muted" />
+                </LinearLayout>
             </LinearLayout>
         </LinearLayout>
     </LinearLayout>
