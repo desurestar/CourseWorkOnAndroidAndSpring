@@ -70,8 +70,13 @@
     <string name="create_search_hint">Поиск</string>
     <string name="create_search_button">Искать</string>
     <string name="create_tags_empty">Теги не найдены</string>
+    <string name="create_select_tags">Выбрать теги</string>
+    <string name="create_selected_tags_title">Выбранные теги</string>
+    <string name="create_tags_clear">Очистить</string>
     <string name="create_ingredients_label">Ингредиенты</string>
     <string name="create_add_ingredient">Добавить ингредиент</string>
+    <string name="create_ingredients_empty">Ингредиенты не найдены</string>
+    <string name="create_selected_ingredient">Выбранный ингредиент</string>
     <string name="create_steps_label">Шаги рецепта</string>
     <string name="create_add_step">Добавить шаг</string>
     <string name="create_status_label">Статус</string>

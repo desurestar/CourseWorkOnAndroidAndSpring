@@ -66,41 +66,58 @@
                         android:text="@string/create_type_article" />
                 </RadioGroup>
 
-                <EditText
-                    android:id="@+id/inputTitle"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:hint="@string/create_title_hint"
-                    android:padding="10dp" />
-
-                <EditText
-                    android:id="@+id/inputExcerpt"
+                <com.google.android.material.textfield.TextInputLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:hint="@string/create_excerpt_hint"
-                    android:minLines="2"
-                    android:gravity="top"
-                    android:padding="10dp" />
+                    android:hint="@string/create_title_hint">
 
-                <EditText
-                    android:id="@+id/inputContent"
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/inputTitle"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <com.google.android.material.textfield.TextInputLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:hint="@string/create_content_hint"
-                    android:minLines="4"
-                    android:gravity="top"
-                    android:padding="10dp" />
+                    android:hint="@string/create_excerpt_hint">
 
-                <EditText
-                    android:id="@+id/inputCoverUrl"
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/inputExcerpt"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="top"
+                        android:minLines="2" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:hint="@string/create_content_hint">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/inputContent"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="top"
+                        android:minLines="4" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <com.google.android.material.textfield.TextInputLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
                     android:hint="@string/create_cover_hint"
-                    android:padding="10dp"
-                    android:visibility="gone" />
+                    android:visibility="gone">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/inputCoverUrl"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content" />
+                </com.google.android.material.textfield.TextInputLayout>
 
                 <LinearLayout
                     android:id="@+id/coverActionsRow"
@@ -146,26 +163,12 @@
                     android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1"
                     android:textColor="@color/recipe_primary" />
 
-                <LinearLayout
-                    android:layout_width="match_parent"
+                <Button
+                    android:id="@+id/buttonSelectTags"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal">
-
-                    <EditText
-                        android:id="@+id/inputTagSearch"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:hint="@string/create_search_hint"
-                        android:padding="10dp" />
-
-                    <Button
-                        android:id="@+id/buttonSearchTags"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="8dp"
-                        android:text="@string/create_search_button" />
-                </LinearLayout>
+                    android:layout_marginTop="4dp"
+                    android:text="@string/create_select_tags" />
 
                 <ProgressBar
                     android:id="@+id/progressTags"
@@ -176,12 +179,30 @@
                     android:contentDescription="@string/create_loading_tags"
                     android:visibility="gone" />
 
-                <LinearLayout
-                    android:id="@+id/tagsContainer"
+                <TextView
+                    android:id="@+id/textSelectedTagsTitle"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:layout_marginTop="6dp" />
+                    android:layout_marginTop="6dp"
+                    android:text="@string/create_selected_tags_title"
+                    android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"
+                    android:textColor="@color/recipe_primary" />
+
+                <TextView
+                    android:id="@+id/textSelectedTagsEmpty"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:text="@string/create_tags_empty"
+                    android:visibility="gone" />
+
+                <com.google.android.material.chip.ChipGroup
+                    android:id="@+id/selectedTagsGroup"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    app:singleLine="false"
+                    app:singleSelection="false" />
 
                 <LinearLayout
                     android:id="@+id/recipeSection"
@@ -196,27 +217,35 @@
                         android:layout_height="wrap_content"
                         android:orientation="horizontal">
 
-                        <EditText
-                            android:id="@+id/inputCookingTime"
+                        <com.google.android.material.textfield.TextInputLayout
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:hint="@string/create_cooking_time"
-                            android:inputType="number"
-                            android:padding="10dp" />
+                            android:hint="@string/create_cooking_time">
+
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/inputCookingTime"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:inputType="number" />
+                        </com.google.android.material.textfield.TextInputLayout>
 
                         <Space
                             android:layout_width="@dimen/create_horizontal_space"
                             android:layout_height="wrap_content" />
 
-                        <EditText
-                            android:id="@+id/inputCalories"
+                        <com.google.android.material.textfield.TextInputLayout
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:hint="@string/create_calories"
-                            android:inputType="number"
-                            android:padding="10dp" />
+                            android:hint="@string/create_calories">
+
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/inputCalories"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:inputType="number" />
+                        </com.google.android.material.textfield.TextInputLayout>
                     </LinearLayout>
 
                     <TextView
@@ -226,27 +255,6 @@
                         android:text="@string/create_ingredients_label"
                         android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1"
                         android:textColor="@color/recipe_primary" />
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal">
-
-                        <EditText
-                            android:id="@+id/inputIngredientSearch"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:hint="@string/create_search_hint"
-                            android:padding="10dp" />
-
-                        <Button
-                            android:id="@+id/buttonSearchIngredients"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="8dp"
-                            android:text="@string/create_search_button" />
-                    </LinearLayout>
 
                     <ProgressBar
                         android:id="@+id/progressIngredients"
