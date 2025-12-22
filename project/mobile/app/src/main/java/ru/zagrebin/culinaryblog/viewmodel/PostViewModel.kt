@@ -3,6 +3,7 @@ package ru.zagrebin.culinaryblog.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
@@ -36,6 +37,7 @@ class PostViewModel @Inject constructor(
     private var activeFilters: PostFilters? = null
     private var activePostType: String? = DEFAULT_POST_TYPE
     private var currentUserId: Long? = null
+    private var currentLoadJob: Job? = null
 
     init {
         loadPosts(postType = DEFAULT_POST_TYPE)
@@ -48,6 +50,7 @@ class PostViewModel @Inject constructor(
         postType: String? = activePostType,
         allowAnyType: Boolean = false
     ) {
+        currentLoadJob?.cancel()
         val params = resolveLoadParams(filters, postType, allowAnyType)
         activeFilters = params.normalizedFilters
         activePostType = params.resolvedPostType
@@ -57,7 +60,7 @@ class PostViewModel @Inject constructor(
             error = null,
             nextPage = 1
         )
-        viewModelScope.launch {
+        currentLoadJob = viewModelScope.launch {
             val likedIds = repository.getLikedPostIds().getOrDefault(emptySet())
             val drafts = loadDrafts(currentUserId)
             val cached = repository.getCachedPosts()
