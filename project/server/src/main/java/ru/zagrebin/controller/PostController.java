@@ -15,6 +15,7 @@ import ru.zagrebin.service.LikeService;
 import ru.zagrebin.service.PostService;
 
 import java.net.URI;
+import java.util.List;
 @RestController
 @RequestMapping("/api/posts")
 public class PostController {
@@ -34,19 +35,34 @@ public class PostController {
     @GetMapping
     public ResponseEntity<PaginatedResponse<PostCardDto>> listPublished(
             @RequestParam(defaultValue = "1") int page,
-            @RequestParam(name = "page_size", defaultValue = "6") int pageSize
+            @RequestParam(name = "page_size", defaultValue = "6") int pageSize,
+            @RequestParam(name = "post_type", required = false) String postType,
+            @RequestParam(name = "cooking_time_min", required = false) Integer cookingTimeMin,
+            @RequestParam(name = "cooking_time_max", required = false) Integer cookingTimeMax,
+            @RequestParam(name = "calories_min", required = false) Integer caloriesMin,
+            @RequestParam(name = "calories_max", required = false) Integer caloriesMax,
+            @RequestParam(name = "tags", required = false) List<String> tags
     ) {
         int pageIndex = Math.max(page - 1, 0);
         Pageable pageable = PageRequest.of(pageIndex, pageSize);
-        Page<PostCardDto> posts = postService.getPostsPageByStatus("published", pageable);
+        PostFilterRequest filters = PostFilterRequest.builder()
+                .postType(postType)
+                .cookingTimeMin(cookingTimeMin)
+                .cookingTimeMax(cookingTimeMax)
+                .caloriesMin(caloriesMin)
+                .caloriesMax(caloriesMax)
+                .tags(tags)
+                .build()
+                .normalize();
+        Page<PostCardDto> posts = postService.getPostsPageByStatus("published", pageable, filters);
 
         String next = null;
         if (posts.hasNext()) {
-            next = UriComponentsBuilder.fromPath("/api/posts")
+            UriComponentsBuilder builder = UriComponentsBuilder.fromPath("/api/posts")
                     .queryParam("page", page + 1)
-                    .queryParam("page_size", pageSize)
-                    .build()
-                    .toString();
+                    .queryParam("page_size", pageSize);
+            filters.appendQueryParams(builder);
+            next = builder.build().toString();
         }
 
         return ResponseEntity.ok(new PaginatedResponse<>(posts.getContent(), next));

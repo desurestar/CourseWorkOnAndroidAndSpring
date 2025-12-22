@@ -23,6 +23,7 @@ import ru.zagrebin.culinaryblog.model.PostCard
 import ru.zagrebin.culinaryblog.model.PostCreateRequest
 import ru.zagrebin.culinaryblog.model.PostDraft
 import ru.zagrebin.culinaryblog.model.PostFull
+import ru.zagrebin.culinaryblog.model.PostFilters
 import ru.zagrebin.culinaryblog.model.PostAuthor
 import ru.zagrebin.culinaryblog.model.PostIngredientLine
 import ru.zagrebin.culinaryblog.model.PostStep
@@ -37,22 +38,39 @@ class PostRepositoryImpl @Inject constructor(
     private val draftDao: DraftDao,
     private val gson: Gson
 ): PostRepository {
-    override suspend fun getPublishedPosts(page: Int, pageSize: Int): Result<PaginatedResult<PostCard>> = withContext(Dispatchers.IO) {
+    override suspend fun getPublishedPosts(
+        page: Int,
+        pageSize: Int,
+        filters: PostFilters?
+    ): Result<PaginatedResult<PostCard>> = withContext(Dispatchers.IO) {
+        val normalizedFilters = filters?.normalizedForType(filters.postType)
         return@withContext try {
-            val resp = api.getPublishedPosts(page = page, pageSize = pageSize)
+            val resp = api.getPublishedPosts(
+                page = page,
+                pageSize = pageSize,
+                postType = normalizedFilters?.postType,
+                cookingTimeMin = normalizedFilters?.cookingTimeMin,
+                cookingTimeMax = normalizedFilters?.cookingTimeMax,
+                caloriesMin = normalizedFilters?.caloriesMin,
+                caloriesMax = normalizedFilters?.caloriesMax,
+                tags = normalizedFilters?.tagList()
+            )
             if (resp.isSuccessful) {
                 val body = resp.body() ?: return@withContext Result.failure(RuntimeException("Empty body"))
                 val likedIds = postDao.getLikedIds().toSet()
                 val items = body.results?.map { dto -> dto.toModel() } ?: emptyList()
                 val nextPage = body.next?.let { Uri.parse(it).getQueryParameter("page")?.toIntOrNull() }
-                if (page == 1) postDao.clear()
-                postDao.insertAll(items.map { it.toEntity().copy(liked = likedIds.contains(it.id)) })
+                val shouldCache = normalizedFilters == null || normalizedFilters.isEmpty(normalizedFilters.postType)
+                if (shouldCache && page == 1) postDao.clear()
+                if (shouldCache) {
+                    postDao.insertAll(items.map { it.toEntity().copy(liked = likedIds.contains(it.id)) })
+                }
                 Result.success(PaginatedResult(items, nextPage))
             } else {
                 Result.failure(RuntimeException("Server error: ${resp.code()}"))
             }
         } catch (e: Exception) {
-            val cached = postDao.getAll().map { it.toModel() }
+            val cached = applyLocalFilters(postDao.getAll().map { it.toModel() }, normalizedFilters)
             if (cached.isNotEmpty()) {
                 Result.failure(OfflineCacheException(cached))
             } else {
@@ -311,6 +329,9 @@ class PostRepositoryImpl @Inject constructor(
             }
         )
     }
+
+    private fun applyLocalFilters(items: List<PostCard>, filters: PostFilters?): List<PostCard> =
+        PostFilters.filter(items, filters, filters?.postType ?: PostFilters.RECIPE_POST_TYPE)
 
     private companion object {
         const val TAG = "PostRepositoryImpl"

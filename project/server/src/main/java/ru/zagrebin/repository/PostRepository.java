@@ -20,11 +20,59 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     @Query("select p.id from Post p where p.status = :status order by p.createdAt desc")
     List<Long> findIdsByStatusOrderByCreatedAtDesc(@Param("status") String status, Pageable pageable);
 
+    @Query("""
+        select p.id from Post p
+        where p.status = :status
+          and (:postType is null or lower(p.postType) = lower(:postType))
+          and (:cookingTimeMin is null or p.cookingTimeMinutes >= :cookingTimeMin)
+          and (:cookingTimeMax is null or p.cookingTimeMinutes <= :cookingTimeMax)
+          and (:caloriesMin is null or p.calories >= :caloriesMin)
+          and (:caloriesMax is null or p.calories <= :caloriesMax)
+          and (
+              :tagsEmpty = true or t.name in :tags
+          )
+        group by p.id
+        having (:tagsEmpty = true or count(distinct t.name) > 0)
+        order by p.createdAt desc
+    """)
+    List<Long> findIdsByFilters(@Param("status") String status,
+                                @Param("postType") String postType,
+                                @Param("cookingTimeMin") Integer cookingTimeMin,
+                                @Param("cookingTimeMax") Integer cookingTimeMax,
+                                @Param("caloriesMin") Integer caloriesMin,
+                                @Param("caloriesMax") Integer caloriesMax,
+                                @Param("tagsEmpty") boolean tagsEmpty,
+                                @Param("tags") List<String> tags,
+                                Pageable pageable);
+
     @EntityGraph(attributePaths = {"author", "tags", "ingredients", "ingredients.ingredient", "steps"})
     @Query("select distinct p from Post p where p.id in :ids")
     List<Post> findAllByIdWithEntityGraph(@Param("ids") List<Long> ids);
 
     long countByStatus(String status);
+
+    @Query("""
+        select count(distinct p.id) from Post p
+        where p.status = :status
+          and (:postType is null or lower(p.postType) = lower(:postType))
+          and (:cookingTimeMin is null or p.cookingTimeMinutes >= :cookingTimeMin)
+          and (:cookingTimeMax is null or p.cookingTimeMinutes <= :cookingTimeMax)
+          and (:caloriesMin is null or p.calories >= :caloriesMin)
+          and (:caloriesMax is null or p.calories <= :caloriesMax)
+          and (
+              :tagsEmpty = true or t.name in :tags
+          )
+        group by p.id
+        having (:tagsEmpty = true or count(distinct t.name) > 0)
+    """)
+    long countByFilters(@Param("status") String status,
+                        @Param("postType") String postType,
+                        @Param("cookingTimeMin") Integer cookingTimeMin,
+                        @Param("cookingTimeMax") Integer cookingTimeMax,
+                        @Param("caloriesMin") Integer caloriesMin,
+                        @Param("caloriesMax") Integer caloriesMax,
+                        @Param("tagsEmpty") boolean tagsEmpty,
+                        @Param("tags") List<String> tags);
 
     @Query("""
         select distinct p from Post p

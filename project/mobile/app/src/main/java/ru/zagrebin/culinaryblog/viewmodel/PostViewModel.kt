@@ -11,6 +11,7 @@ import ru.zagrebin.culinaryblog.data.repository.OfflineCacheException
 import ru.zagrebin.culinaryblog.data.repository.PostRepository
 import ru.zagrebin.culinaryblog.model.PaginatedResult
 import ru.zagrebin.culinaryblog.model.PostCard
+import ru.zagrebin.culinaryblog.model.PostFilters
 import ru.zagrebin.culinaryblog.model.PostDraft
 import javax.inject.Inject
 
@@ -32,12 +33,18 @@ class PostViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(PostsUiState(isLoading = true))
     val uiState: StateFlow<PostsUiState> = _uiState
+    private var activeFilters: PostFilters? = null
+    private var activePostType: String? = DEFAULT_POST_TYPE
 
     init {
-        loadPosts()
+        loadPosts(postType = DEFAULT_POST_TYPE)
     }
 
-    fun loadPosts() {
+    fun loadPosts(filters: PostFilters? = activeFilters, postType: String? = activePostType) {
+        val resolvedPostType = postType ?: DEFAULT_POST_TYPE
+        val normalizedFilters = (filters ?: PostFilters(postType = resolvedPostType)).normalizedForType(resolvedPostType)
+        activeFilters = normalizedFilters
+        activePostType = resolvedPostType
         _uiState.value = _uiState.value.copy(
             isLoading = true,
             isAppending = false,
@@ -48,15 +55,16 @@ class PostViewModel @Inject constructor(
             val likedIds = repository.getLikedPostIds().getOrDefault(emptySet())
             val drafts = repository.getDrafts().getOrDefault(emptyList())
             val cached = repository.getCachedPosts()
-            if (cached.isNotEmpty()) {
+            val cachedFiltered = PostFilters.filter(cached, normalizedFilters, resolvedPostType)
+            if (cachedFiltered.isNotEmpty()) {
                 _uiState.value = _uiState.value.copy(
-                    posts = cached,
+                    posts = cachedFiltered,
                     likedIds = likedIds,
                     drafts = drafts,
                     offline = false
                 )
             }
-            val res = repository.getPublishedPosts()
+            val res = repository.getPublishedPosts(filters = normalizedFilters)
             if (res.isSuccess) {
                 val page = res.getOrDefault(PaginatedResult(emptyList(), null))
                 _uiState.value = PostsUiState(
@@ -71,12 +79,12 @@ class PostViewModel @Inject constructor(
             } else {
                 val cachedFallback = when (val ex = res.exceptionOrNull()) {
                     is OfflineCacheException -> ex.cached
-                    else -> if (cached.isNotEmpty()) cached else repository.getCachedPosts()
+                    else -> if (cachedFiltered.isNotEmpty()) cachedFiltered else repository.getCachedPosts()
                 }
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     isAppending = false,
-                    posts = cachedFallback,
+                    posts = PostFilters.filter(cachedFallback, normalizedFilters, resolvedPostType),
                     nextPage = null,
                     error = res.exceptionOrNull()?.message ?: "Unknown",
                     likedIds = likedIds,
@@ -100,7 +108,7 @@ class PostViewModel @Inject constructor(
 
         val pageToLoad = targetPage ?: return
         viewModelScope.launch {
-            val res = repository.getPublishedPosts(page = pageToLoad)
+            val res = repository.getPublishedPosts(page = pageToLoad, filters = activeFilters)
             if (res.isSuccess) {
                 val page = res.getOrDefault(PaginatedResult(emptyList(), null))
                 _uiState.update { current ->
@@ -126,5 +134,9 @@ class PostViewModel @Inject constructor(
             val drafts = repository.getDrafts().getOrDefault(emptyList())
             _uiState.update { it.copy(drafts = drafts) }
         }
+    }
+
+    companion object {
+        private const val DEFAULT_POST_TYPE = PostFilters.RECIPE_POST_TYPE
     }
 }
