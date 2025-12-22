@@ -197,7 +197,8 @@
                     android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1"
                     android:textColor="@color/recipe_primary"
                     android:textStyle="bold"
-                    android:paddingBottom="8dp" />
+                    android:padding="12dp"
+                    android:textAlignment="center"/>
 
                 <LinearLayout
                     android:id="@+id/publicPostsList"
