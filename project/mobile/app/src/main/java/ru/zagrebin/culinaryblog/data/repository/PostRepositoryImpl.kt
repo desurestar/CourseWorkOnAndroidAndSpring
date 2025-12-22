@@ -59,13 +59,17 @@ class PostRepositoryImpl @Inject constructor(
                 val body = resp.body() ?: return@withContext Result.failure(RuntimeException("Empty body"))
                 val likedIds = postDao.getLikedIds().toSet()
                 val items = body.results?.map { dto -> dto.toModel() } ?: emptyList()
+                val mergedItems = items.map { card ->
+                    val liked = card.liked || likedIds.contains(card.id)
+                    card.copy(liked = liked)
+                }
                 val nextPage = body.next?.let { Uri.parse(it).getQueryParameter("page")?.toIntOrNull() }
                 val shouldCache = normalizedFilters == null || normalizedFilters.isEmpty(normalizedFilters.postType)
                 if (shouldCache && page == 1) postDao.clear()
                 if (shouldCache) {
-                    postDao.insertAll(items.map { it.toEntity().copy(liked = likedIds.contains(it.id)) })
+                    postDao.insertAll(mergedItems.map { it.toEntity() })
                 }
-                Result.success(PaginatedResult(items, nextPage))
+                Result.success(PaginatedResult(mergedItems, nextPage))
             } else {
                 Result.failure(RuntimeException("Server error: ${resp.code()}"))
             }
@@ -309,7 +313,7 @@ class PostRepositoryImpl @Inject constructor(
         ingredients = emptyList<PostIngredientLine>(),
         steps = emptyList<PostStep>(),
         likesCount = card.likesCount,
-        liked = false,
+        liked = card.liked,
         viewsCount = card.viewsCount ?: 0L,
         calories = card.calories,
         cookingTimeMinutes = card.cookingTimeMinutes

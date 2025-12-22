@@ -21,4 +21,5 @@ public class PostCardDto {
     private String publishedAt;
     private Set<String> tags;
     private Long viewsCount;
+    private boolean liked;
 }

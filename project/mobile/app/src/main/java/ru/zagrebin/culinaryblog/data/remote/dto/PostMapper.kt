@@ -22,7 +22,8 @@ fun PostCardDto.toModel(): PostCard = PostCard(
     authorAvatarUrl = resolveUrl(authorAvatarUrl),
     publishedAt = publishedAt,
     tags = tags ?: emptySet(),
-    viewsCount = viewsCount
+    viewsCount = viewsCount,
+    liked = liked ?: false
 )
 
 fun PostFullDto.toModel(): PostFull = PostFull(
