@@ -96,6 +96,7 @@ public class AdminController {
                 ? UriComponentsBuilder.fromPath("/api/admin/posts")
                 .queryParam("page", page + 1)
                 .queryParam("page_size", pageSize)
+                .queryParamIfPresent("search", search == null || search.isBlank() ? java.util.Optional.empty() : java.util.Optional.of(search))
                 .build().toString()
                 : null;
 
@@ -139,6 +140,7 @@ public class AdminController {
                 ? UriComponentsBuilder.fromPath("/api/admin/ingredients")
                 .queryParam("page", page + 1)
                 .queryParam("page_size", pageSize)
+                .queryParamIfPresent("search", search == null || search.isBlank() ? java.util.Optional.empty() : java.util.Optional.of(search))
                 .build().toString()
                 : null;
         return ResponseEntity.ok(new PaginatedResponse<>(results, next));
@@ -182,6 +184,7 @@ public class AdminController {
                 ? UriComponentsBuilder.fromPath("/api/admin/tags")
                 .queryParam("page", page + 1)
                 .queryParam("page_size", pageSize)
+                .queryParamIfPresent("search", search == null || search.isBlank() ? java.util.Optional.empty() : java.util.Optional.of(search))
                 .build().toString()
                 : null;
         return ResponseEntity.ok(new PaginatedResponse<>(results, next));
@@ -235,6 +238,7 @@ public class AdminController {
                 ? UriComponentsBuilder.fromPath("/api/admin/users")
                 .queryParam("page", page + 1)
                 .queryParam("page_size", pageSize)
+                .queryParamIfPresent("search", search == null || search.isBlank() ? java.util.Optional.empty() : java.util.Optional.of(search))
                 .build().toString()
                 : null;
         return ResponseEntity.ok(new PaginatedResponse<>(results, next));

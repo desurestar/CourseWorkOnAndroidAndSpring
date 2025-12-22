@@ -154,6 +154,9 @@ class ProfileFragment : Fragment() {
         binding.buttonEditProfile.setOnClickListener {
             showEditProfileDialog()
         }
+        binding.buttonAdminPanel.setOnClickListener {
+            startActivity(Intent(requireContext(), AdminPanelActivity::class.java))
+        }
         binding.buttonFollowers.setOnClickListener { showFollowersDialog() }
         binding.buttonFollowing.setOnClickListener { showFollowingDialog() }
         binding.buttonLikes.setOnClickListener { showLikedPostsDialog() }
@@ -290,6 +293,7 @@ class ProfileFragment : Fragment() {
             user.id?.let { profileViewModel.loadRelations(it) }
             renderFollowers(profileViewModel.followers.value)
             renderFollowing(profileViewModel.following.value)
+            binding.buttonAdminPanel.isVisible = user.role?.equals("admin", ignoreCase = true) == true
         } else {
             renderUserStub()
             renderAvatar(null, binding.profileName.text?.toString())
@@ -298,6 +302,7 @@ class ProfileFragment : Fragment() {
             likesCount = 0
             renderFollowers(emptyList())
             renderFollowing(emptyList())
+            binding.buttonAdminPanel.isVisible = false
         }
         updateCounters()
     }

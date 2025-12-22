@@ -173,4 +173,24 @@
     <string name="post_delete_confirm_message">Вы уверены, что хотите удалить эту публикацию?</string>
     <string name="post_delete_success">Пост удалён</string>
     <string name="post_delete_error">Не удалось удалить пост</string>
+    <string name="admin_panel_title">Административная панель</string>
+    <string name="admin_close">Закрыть</string>
+    <string name="admin_tab_posts">Посты</string>
+    <string name="admin_tab_ingredients">Ингредиенты</string>
+    <string name="admin_tab_tags">Теги</string>
+    <string name="admin_tab_users">Пользователи</string>
+    <string name="admin_search_posts">Поиск (заголовок)</string>
+    <string name="admin_apply">Применить</string>
+    <string name="admin_load_more">Загрузить ещё</string>
+    <string name="admin_status_draft">Черновик</string>
+    <string name="admin_status_published">Опубликован</string>
+    <string name="admin_status_archived">Архив</string>
+    <string name="admin_tags_new">Новый тег</string>
+    <string name="admin_tags_color">Цвет (#RRGGBB)</string>
+    <string name="admin_ingredients_new">Новый ингредиент</string>
+    <string name="admin_search">Поиск</string>
+    <string name="admin_users_toggle_admin">Админ</string>
+    <string name="admin_users_delete">Удалить</string>
+    <string name="admin_panel_button">Админ-панель</string>
+    <string name="admin_error_action">Не удалось выполнить действие</string>
 </resources>
