@@ -41,6 +41,7 @@ import ru.zagrebin.culinaryblog.model.PostUpdateRequest
 import ru.zagrebin.culinaryblog.model.RecipeStepRequest
 import ru.zagrebin.culinaryblog.model.STATUS_DRAFT
 import ru.zagrebin.culinaryblog.model.TagItem
+import ru.zagrebin.culinaryblog.util.resolveUrl
 import ru.zagrebin.culinaryblog.viewmodel.CreatePostViewModel
 import java.text.DecimalFormat
 import javax.inject.Inject
@@ -380,7 +381,7 @@ class CreatePostFragment : Fragment() {
     }
 
     private fun showCoverPreview(url: String?) {
-        val safeUrl = url?.takeIf { it.isNotBlank() }
+        val safeUrl = resolveUrl(url?.takeIf { it.isNotBlank() })
         if (safeUrl == null) {
             binding.coverPreview.isVisible = false
             return
@@ -394,7 +395,7 @@ class CreatePostFragment : Fragment() {
     }
 
     private fun showStepPreview(rowBinding: ItemStepRowBinding, url: String?) {
-        val safeUrl = url?.takeIf { it.isNotBlank() }
+        val safeUrl = resolveUrl(url?.takeIf { it.isNotBlank() })
         if (safeUrl == null) {
             rowBinding.stepImagePreview.isVisible = false
             return
