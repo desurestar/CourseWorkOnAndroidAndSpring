@@ -7,7 +7,6 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
-import java.util.concurrent.atomic.AtomicInteger
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -97,14 +96,15 @@ private class FakePostRepository(
 ) : PostRepository {
 
     private val responses = publishedResponses.toList()
-    private val nextIndex = AtomicInteger(0)
+    private var nextIndex = 0
 
     override suspend fun getPublishedPosts(
         page: Int,
         pageSize: Int,
         filters: PostFilters?
     ): Result<PaginatedResult<PostCard>> {
-        val spec = responses.getOrElse(nextIndex.getAndIncrement()) { ResponseSpec() }
+        val spec = responses.getOrElse(nextIndex) { ResponseSpec() }
+        nextIndex++
         if (spec.delayMillis > 0) delay(spec.delayMillis)
         return Result.success(PaginatedResult(spec.posts, null))
     }

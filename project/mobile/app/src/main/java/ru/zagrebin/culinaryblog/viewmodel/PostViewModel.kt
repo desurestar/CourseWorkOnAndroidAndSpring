@@ -3,6 +3,7 @@ package ru.zagrebin.culinaryblog.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
@@ -14,7 +15,6 @@ import ru.zagrebin.culinaryblog.model.PostCard
 import ru.zagrebin.culinaryblog.model.PostFilters
 import ru.zagrebin.culinaryblog.model.PostDraft
 import javax.inject.Inject
-import java.util.concurrent.atomic.AtomicInteger
 
 data class PostsUiState(
     val isLoading: Boolean = false,
@@ -36,7 +36,7 @@ class PostViewModel @Inject constructor(
     val uiState: StateFlow<PostsUiState> = _uiState
     private var activeFilters: PostFilters? = null
     private var activePostType: String? = DEFAULT_POST_TYPE
-    private val loadRequestId = AtomicInteger(0)
+    private var currentLoadJob: Job? = null
 
     init {
         loadPosts(postType = DEFAULT_POST_TYPE)
@@ -49,7 +49,7 @@ class PostViewModel @Inject constructor(
         postType: String? = activePostType,
         allowAnyType: Boolean = false
     ) {
-        val requestId = loadRequestId.incrementAndGet()
+        currentLoadJob?.cancel()
         val params = resolveLoadParams(filters, postType, allowAnyType)
         activeFilters = params.normalizedFilters
         activePostType = params.resolvedPostType
@@ -59,7 +59,7 @@ class PostViewModel @Inject constructor(
             error = null,
             nextPage = 1
         )
-        viewModelScope.launch {
+        currentLoadJob = viewModelScope.launch {
             val likedIds = repository.getLikedPostIds().getOrDefault(emptySet())
             val drafts = repository.getDrafts().getOrDefault(emptyList())
             val cached = repository.getCachedPosts()
@@ -68,7 +68,6 @@ class PostViewModel @Inject constructor(
             } else {
                 PostFilters.filter(cached, params.normalizedFilters, params.targetType)
             }
-            if (isRequestStale(requestId)) return@launch
             if (cachedFiltered.isNotEmpty()) {
                 _uiState.value = _uiState.value.copy(
                     posts = cachedFiltered,
@@ -79,10 +78,8 @@ class PostViewModel @Inject constructor(
             }
             val res = repository.getPublishedPosts(filters = params.normalizedFilters)
             if (res.isSuccess) {
-                if (isRequestStale(requestId)) return@launch
                 val page = res.getOrDefault(PaginatedResult(emptyList(), null))
                 val mergedLikedIds = likedIds + page.items.filter { it.liked }.map { it.id }.toSet()
-                if (isRequestStale(requestId)) return@launch
                 _uiState.value = PostsUiState(
                     isLoading = false,
                     isAppending = false,
@@ -93,13 +90,11 @@ class PostViewModel @Inject constructor(
                     offline = false
                 )
             } else {
-                if (isRequestStale(requestId)) return@launch
                 val cachedFallback = when (val ex = res.exceptionOrNull()) {
                     is OfflineCacheException -> ex.cached
                     else -> if (cachedFiltered.isNotEmpty()) cachedFiltered else repository.getCachedPosts()
                 }
                 val mergedLikedIds = likedIds + cachedFallback.filter { it.liked }.map { it.id }.toSet()
-                if (isRequestStale(requestId)) return@launch
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     isAppending = false,
@@ -189,6 +184,4 @@ class PostViewModel @Inject constructor(
         postType: String?,
         filters: PostFilters?
     ): Boolean = allowAnyType && postType == null && filters == null
-
-    private fun isRequestStale(requestId: Int): Boolean = requestId != loadRequestId.get()
 }
