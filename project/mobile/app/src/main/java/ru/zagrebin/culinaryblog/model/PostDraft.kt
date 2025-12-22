@@ -1,6 +1,7 @@
 package ru.zagrebin.culinaryblog.model
 
 import ru.zagrebin.culinaryblog.formatDisplayDate
+import ru.zagrebin.culinaryblog.util.resolveUrl
 
 data class PostDraft(
     val id: Long,
@@ -11,7 +12,7 @@ data class PostDraft(
         id = id,
         title = request.title,
         excerpt = request.excerpt,
-        coverUrl = request.coverUrl,
+        coverUrl = resolveUrl(request.coverUrl?.takeIf { it.isNotBlank() }),
         authorId = request.authorId,
         postType = request.postType,
         likesCount = 0,
