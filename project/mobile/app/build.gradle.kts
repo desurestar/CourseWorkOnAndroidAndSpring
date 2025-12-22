@@ -67,6 +67,7 @@ dependencies {
     implementation(libs.okhttp.logging.interceptor)
 
     implementation(libs.coroutines.android)
+    testImplementation(libs.coroutines.test)
     implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
 
     // Hilt
