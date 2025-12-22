@@ -186,6 +186,11 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
                 }
             }
         }
+        ensureTagsLoaded {
+            if (currentTab.isFeed() && availableTags.isNotEmpty()) {
+                renderState(latestState)
+            }
+        }
 
         backPressedCallback = onBackPressedDispatcher.addCallback(this, false) {
             if (isPublicProfileVisible()) {
