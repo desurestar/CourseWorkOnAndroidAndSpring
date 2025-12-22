@@ -41,7 +41,7 @@ class AdminIngredientsFragment : Fragment() {
             val name = binding.adminIngredientName.text?.toString()?.trim().orEmpty()
             if (name.isNotEmpty()) {
                 viewModel.add(name)
-                binding.adminIngredientName.text = null
+                binding.adminIngredientName.setText("")
             }
         }
 

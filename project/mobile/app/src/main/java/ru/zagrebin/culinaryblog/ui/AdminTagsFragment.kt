@@ -42,7 +42,8 @@ class AdminTagsFragment : Fragment() {
             val name = binding.adminTagName.text?.toString()?.trim().orEmpty()
             if (name.isNotEmpty()) {
                 viewModel.add(name, binding.adminTagColor.text?.toString()?.trim())
-                binding.adminTagName.text = null
+                binding.adminTagName.setText("")
+                binding.adminTagColor.setText("")
             }
         }
 
