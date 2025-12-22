@@ -25,17 +25,21 @@ import androidx.lifecycle.repeatOnLifecycle
 import coil.load
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Job
 import java.util.EnumMap
 import ru.zagrebin.culinaryblog.AuthActivity
 import ru.zagrebin.culinaryblog.databinding.ActivityMainBinding
+import ru.zagrebin.culinaryblog.databinding.DialogFiltersBinding
 import ru.zagrebin.culinaryblog.databinding.ItemPostCardBinding
 import ru.zagrebin.culinaryblog.data.repository.PostRepository
 import ru.zagrebin.culinaryblog.data.repository.ProfileRepository
 import ru.zagrebin.culinaryblog.model.PostCard
+import ru.zagrebin.culinaryblog.model.PostFilters
 import ru.zagrebin.culinaryblog.data.storage.TokenStorage
+import ru.zagrebin.culinaryblog.model.TagItem
 import ru.zagrebin.culinaryblog.ui.CreatePostFragment
 import ru.zagrebin.culinaryblog.ui.PostDetailActivity
 import ru.zagrebin.culinaryblog.ui.ProfileFragment
@@ -102,6 +106,9 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
     private var scrollRestoreScheduled = false
     private var lastFeedTabId: Int = DEFAULT_TAB_ID
     private val likedPostIds = mutableSetOf<Long>()
+    private val filtersByTab = EnumMap<ContentTab, PostFilters?>(ContentTab::class.java)
+    private var availableTags: List<TagItem> = emptyList()
+    private var tagsLoadingJob: Job? = null
     private val scrollTopThresholdPx by lazy { (resources.displayMetrics.density * 200).toInt() }
     private var scrollTopBaseBottomMargin: Int = 0
     private val scrollTopRaisedOffset by lazy { resources.getDimensionPixelSize(R.dimen.scroll_top_button_raise) }
@@ -112,17 +119,19 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
         setContentView(binding.root)
         scrollTopBaseBottomMargin =
             (binding.buttonScrollTop.layoutParams as ViewGroup.MarginLayoutParams).bottomMargin
+        binding.buttonFilters.setOnClickListener { showFiltersDialog() }
+        updateFiltersButtonState()
 
         savedInstanceState?.getLongArray(STATE_LIKED_POSTS)?.let { saved ->
             likedPostIds.clear()
             likedPostIds.addAll(saved.toList())
         }
 
-        binding.swipeRefresh.setOnRefreshListener { postViewModel.loadPosts() }
+        binding.swipeRefresh.setOnRefreshListener { postViewModel.loadPosts(filtersForCurrentTab(), currentPostType()) }
         binding.swipeRefresh.setOnChildScrollUpCallback { _, _ ->
             !(currentTab.isFeed() && !binding.postsScroll.canScrollVertically(-1))
         }
-        binding.buttonRetry.setOnClickListener { postViewModel.loadPosts() }
+        binding.buttonRetry.setOnClickListener { postViewModel.loadPosts(filtersForCurrentTab(), currentPostType()) }
 
         binding.postsScroll.setOnScrollChangeListener { v, _, scrollY, _, _ ->
             val isFeedTab = currentTab.isFeed()
@@ -207,6 +216,7 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
         if (currentTab.isFeed()) {
             lastFeedTabId = itemId
             restoreFeedScroll = true
+            postViewModel.loadPosts(filtersForCurrentTab(), currentPostType())
         }
 
         if (currentTab.isFeed()) {
@@ -254,6 +264,7 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
     private fun renderState(state: PostsUiState) {
         if (!currentTab.isFeed()) return
 
+        updateFiltersButtonState()
         likedPostIds.clear()
         likedPostIds.addAll(state.likedIds)
 
@@ -289,10 +300,12 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
         }
     }
 
-    private fun filterPosts(posts: List<PostCard>): List<PostCard> = when (currentTab) {
-        ContentTab.RECIPES -> posts.filter { normalizePostType(it.postType) == DEFAULT_POST_TYPE }
-        ContentTab.ARTICLES -> posts.filter { normalizePostType(it.postType) == ARTICLE_POST_TYPE }
-        else -> posts
+    private fun filterPosts(posts: List<PostCard>): List<PostCard> {
+        return if (currentTab.isFeed()) {
+            PostFilters.filter(posts, filtersByTab[currentTab], currentPostType())
+        } else {
+            posts
+        }
     }
 
     private fun renderPosts(posts: List<PostCard>) {
@@ -431,7 +444,11 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
         binding.feedTitle.text = getString(
             if (currentTab == ContentTab.ARTICLES) R.string.nav_articles else R.string.nav_recipes
         )
-        binding.feedTitle.isVisible = currentTab.isFeed()
+        val isFeed = currentTab.isFeed()
+        binding.feedHeader.isVisible = isFeed
+        binding.buttonFilters.isVisible = isFeed
+        binding.feedTitle.isVisible = isFeed
+        if (isFeed) updateFiltersButtonState()
     }
 
     private fun showFragment(tag: String, provider: () -> Fragment) {
@@ -515,6 +532,115 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
             chip.text = tag
             chip.applyInfoStyle()
             group.addView(chip)
+        }
+    }
+
+    private fun filtersForCurrentTab(): PostFilters {
+        val type = currentPostType()
+        val stored = filtersByTab[currentTab]
+        val normalized = (stored ?: PostFilters(postType = type)).normalizedForType(type)
+        filtersByTab[currentTab] = normalized
+        return normalized
+    }
+
+    private fun updateFiltersButtonState() {
+        val count = filtersForCurrentTab().appliedCount(currentPostType())
+        val base = getString(R.string.filters_action)
+        binding.buttonFilters.text = if (count > 0) "$base ($count)" else base
+    }
+
+    private fun currentPostType(): String =
+        if (currentTab == ContentTab.ARTICLES) ARTICLE_POST_TYPE else DEFAULT_POST_TYPE
+
+    private fun showFiltersDialog() {
+        if (!currentTab.isFeed()) return
+        val dialogBinding = DialogFiltersBinding.inflate(layoutInflater)
+        val filters = filtersForCurrentTab()
+        val isRecipeTab = currentPostType() == DEFAULT_POST_TYPE
+        dialogBinding.recipeFiltersGroup.isVisible = isRecipeTab
+        if (isRecipeTab) {
+            dialogBinding.inputCookingTimeMin.setText(filters.cookingTimeMin?.toString().orEmpty())
+            dialogBinding.inputCookingTimeMax.setText(filters.cookingTimeMax?.toString().orEmpty())
+            dialogBinding.inputCaloriesMin.setText(filters.caloriesMin?.toString().orEmpty())
+            dialogBinding.inputCaloriesMax.setText(filters.caloriesMax?.toString().orEmpty())
+        } else {
+            dialogBinding.inputCookingTimeMin.setText("")
+            dialogBinding.inputCookingTimeMax.setText("")
+            dialogBinding.inputCaloriesMin.setText("")
+            dialogBinding.inputCaloriesMax.setText("")
+        }
+        val selectedTags = filters.tags.toMutableSet()
+        renderTagChips(dialogBinding, selectedTags)
+        ensureTagsLoaded { renderTagChips(dialogBinding, selectedTags) }
+        dialogBinding.buttonResetFilters.isVisible = filters.appliedCount(currentPostType()) > 0
+        val dialog = MaterialAlertDialogBuilder(this)
+            .setView(dialogBinding.root)
+            .create()
+
+        dialogBinding.buttonCancelFilters.setOnClickListener { dialog.dismiss() }
+        dialogBinding.buttonApplyFilters.setOnClickListener {
+            val updated = PostFilters(
+                postType = currentPostType(),
+                cookingTimeMin = dialogBinding.inputCookingTimeMin.text?.toString()?.toIntOrNull(),
+                cookingTimeMax = dialogBinding.inputCookingTimeMax.text?.toString()?.toIntOrNull(),
+                caloriesMin = dialogBinding.inputCaloriesMin.text?.toString()?.toIntOrNull(),
+                caloriesMax = dialogBinding.inputCaloriesMax.text?.toString()?.toIntOrNull(),
+                tags = selectedTags.map { it.trim() }.filter { it.isNotBlank() }.toSet()
+            ).normalizedForType(currentPostType())
+            filtersByTab[currentTab] = updated
+            updateFiltersButtonState()
+            postViewModel.loadPosts(updated, currentPostType())
+            dialog.dismiss()
+        }
+        dialogBinding.buttonResetFilters.setOnClickListener {
+            val cleared = PostFilters(postType = currentPostType()).normalizedForType(currentPostType())
+            filtersByTab[currentTab] = cleared
+            updateFiltersButtonState()
+            postViewModel.loadPosts(cleared, currentPostType())
+            dialog.dismiss()
+        }
+        dialog.show()
+    }
+
+    private fun renderTagChips(binding: DialogFiltersBinding, selected: MutableSet<String>) {
+        binding.tagsGroup.removeAllViews()
+        val tags = availableTags
+        val loading = tagsLoadingJob != null && tags.isEmpty()
+        binding.tagsProgress.isVisible = loading
+        binding.tagsEmpty.isVisible = tags.isEmpty() && !loading
+        binding.tagsGroup.isVisible = tags.isNotEmpty()
+        tags.forEach { tag ->
+            val chip = Chip(this)
+            chip.text = tag.name
+            chip.isCheckable = true
+            chip.isChecked = selected.contains(tag.name)
+            chip.applyInfoStyle()
+            chip.setOnCheckedChangeListener { _, isChecked ->
+                if (isChecked) selected.add(tag.name) else selected.remove(tag.name)
+            }
+            binding.tagsGroup.addView(chip)
+        }
+    }
+
+    private fun ensureTagsLoaded(onComplete: () -> Unit = {}) {
+        if (availableTags.isNotEmpty()) {
+            onComplete()
+            return
+        }
+        tagsLoadingJob?.let { job ->
+            lifecycleScope.launch {
+                job.join()
+                onComplete()
+            }
+            return
+        }
+        tagsLoadingJob = lifecycleScope.launch {
+            val result = postRepository.getTags()
+            if (result.isSuccess) {
+                availableTags = result.getOrDefault(emptyList())
+            }
+            tagsLoadingJob = null
+            onComplete()
         }
     }
 
@@ -607,12 +733,12 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
             R.id.menu_recipes
         }
         binding.bottomNavigation.selectedItemId = targetTabId
-        postViewModel.loadPosts()
+        postViewModel.loadPosts(filtersForCurrentTab(), currentPostType())
         openPost(post)
     }
 
     override fun onPostUpdated(postId: Long) {
-        postViewModel.loadPosts()
+        postViewModel.loadPosts(filtersForCurrentTab(), currentPostType())
     }
 
     override fun onCreateRequiresAuth() {
@@ -640,8 +766,8 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
     }
 
     companion object {
-        private const val DEFAULT_POST_TYPE = "recipe"
-        private const val ARTICLE_POST_TYPE = "article"
+        private const val DEFAULT_POST_TYPE = PostFilters.RECIPE_POST_TYPE
+        private const val ARTICLE_POST_TYPE = PostFilters.ARTICLE_POST_TYPE
         private const val CREATE_TAG = "create_tab_fragment"
         private const val PROFILE_TAG = "profile_tab_fragment"
         private const val PUBLIC_PROFILE_TAG = "public_profile_fragment"

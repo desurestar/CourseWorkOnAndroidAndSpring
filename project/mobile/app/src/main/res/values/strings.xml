@@ -5,6 +5,17 @@
     <string name="nav_create">Создать</string>
     <string name="nav_drafts">Черновики</string>
     <string name="nav_profile">Профиль</string>
+    <string name="filters_action">Фильтры</string>
+    <string name="filters_title">Выбор фильтров</string>
+    <string name="filters_cooking_time_min">Время готовки от (мин)</string>
+    <string name="filters_cooking_time_max">Время готовки до (мин)</string>
+    <string name="filters_calories_min">Калории от</string>
+    <string name="filters_calories_max">Калории до</string>
+    <string name="filters_tags">Теги</string>
+    <string name="filters_apply">Применить</string>
+    <string name="filters_cancel">Отменить</string>
+    <string name="filters_reset">Сбросить</string>
+    <string name="filters_tags_empty">Теги не найдены</string>
     <string name="scroll_to_top">Наверх</string>
     <string name="view_stub_title">Добро пожаловать в Culinary Blog</string>
     <string name="view_stub_message">Интерфейс переведен на обычные Views. Выберите пункт нижней навигации, чтобы увидеть соответствующий экран.</string>

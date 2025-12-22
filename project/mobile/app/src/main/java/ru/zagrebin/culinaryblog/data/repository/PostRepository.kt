@@ -5,13 +5,18 @@ import ru.zagrebin.culinaryblog.model.PaginatedResult
 import ru.zagrebin.culinaryblog.model.PostCard
 import ru.zagrebin.culinaryblog.model.PostCreateRequest
 import ru.zagrebin.culinaryblog.model.PostDraft
+import ru.zagrebin.culinaryblog.model.PostFilters
 import ru.zagrebin.culinaryblog.model.PostFull
 import ru.zagrebin.culinaryblog.model.PostUpdateRequest
 import ru.zagrebin.culinaryblog.model.TagItem
 
 
 interface PostRepository {
-    suspend fun getPublishedPosts(page: Int = 1, pageSize: Int = 6): Result<PaginatedResult<PostCard>>
+    suspend fun getPublishedPosts(
+        page: Int = 1,
+        pageSize: Int = 6,
+        filters: PostFilters? = null
+    ): Result<PaginatedResult<PostCard>>
     suspend fun getCachedPosts(): List<PostCard>
     suspend fun getPost(id: Long): Result<PostFull>
     suspend fun getTags(search: String? = null): Result<List<TagItem>>

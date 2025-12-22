@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.zagrebin.dto.PostCardDto;
 import ru.zagrebin.dto.PostCreateDto;
+import ru.zagrebin.dto.PostFilterRequest;
 import ru.zagrebin.dto.PostFullDto;
 import ru.zagrebin.dto.PostUpdateDto;
 import ru.zagrebin.mapper.PostMapper;
@@ -67,18 +68,29 @@ public class PostServiceImpl implements PostService {
      */
     @Override
     @Transactional(readOnly = true)
-    public Page<PostCardDto> getPostsPageByStatus(String status, Pageable pageable) {
-        // 1) Получаем id'шники с учётом пагинации/сортировки
-        List<Long> ids = postRepository.findIdsByStatusOrderByCreatedAtDesc(status, pageable);
+    public Page<PostCardDto> getPostsPageByStatus(String status, Pageable pageable, PostFilterRequest filters) {
+        PostFilterRequest normalized = filters == null ? new PostFilterRequest().normalize() : filters.normalize();
+        boolean tagsEmpty = !normalized.hasTags();
+        List<String> tagNames = normalized.effectiveTags();
+
+        List<Long> ids = postRepository.findIdsByFilters(
+                status,
+                normalized.getPostType(),
+                normalized.getCookingTimeMin(),
+                normalized.getCookingTimeMax(),
+                normalized.getCaloriesMin(),
+                normalized.getCaloriesMax(),
+                tagsEmpty,
+                tagNames,
+                pageable
+        );
 
         if (ids.isEmpty()) {
             return new PageImpl<>(Collections.emptyList(), pageable, 0);
         }
 
-        // 2) Загружаем сущности с графом (tags, steps, ingredients + their ingredient)
         List<Post> posts = postRepository.findAllByIdWithEntityGraph(ids);
 
-        // 3) Сопоставляем и восстанавливаем порядок по ids
         Map<Long, Post> map = posts.stream()
                 .collect(Collectors.toMap(Post::getId, p -> p));
 
@@ -90,7 +102,16 @@ public class PostServiceImpl implements PostService {
             }
         }
 
-        long total = postRepository.countByStatus(status);
+        long total = postRepository.countByFilters(
+                status,
+                normalized.getPostType(),
+                normalized.getCookingTimeMin(),
+                normalized.getCookingTimeMax(),
+                normalized.getCaloriesMin(),
+                normalized.getCaloriesMax(),
+                tagsEmpty,
+                tagNames
+        );
 
         return new PageImpl<>(orderedDtos, pageable, total);
     }

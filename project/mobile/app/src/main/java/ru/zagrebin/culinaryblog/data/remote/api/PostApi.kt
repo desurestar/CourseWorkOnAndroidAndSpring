@@ -25,7 +25,13 @@ interface PostApi {
     @GET("posts")
     suspend fun getPublishedPosts(
         @Query("page") page: Int = 1,
-        @Query("page_size") pageSize: Int = 6
+        @Query("page_size") pageSize: Int = 6,
+        @Query("post_type") postType: String? = null,
+        @Query("cooking_time_min") cookingTimeMin: Int? = null,
+        @Query("cooking_time_max") cookingTimeMax: Int? = null,
+        @Query("calories_min") caloriesMin: Int? = null,
+        @Query("calories_max") caloriesMax: Int? = null,
+        @Query("tags") tags: List<String>? = null
     ): Response<PaginatedResponseDto<PostCardDto>>
 
     @GET("posts/{id}")
