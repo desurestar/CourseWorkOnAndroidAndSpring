@@ -92,15 +92,6 @@
                 android:layout_marginTop="16dp"
                 android:text="@string/profile_subscribe" />
 
-            <TextView
-                android:id="@+id/publicHint"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:text="@string/profile_stub_message"
-                android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
-                android:textColor="@color/text_caption" />
-
             <com.google.android.material.tabs.TabLayout
                 android:id="@+id/publicTabs"
                 android:layout_width="match_parent"
