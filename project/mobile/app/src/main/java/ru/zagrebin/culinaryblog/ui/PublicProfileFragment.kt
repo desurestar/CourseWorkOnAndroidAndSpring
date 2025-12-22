@@ -98,19 +98,22 @@ class PublicProfileFragment : Fragment() {
     }
 
     fun updateUser(userId: Long?, displayName: String?, subscribed: Boolean?) {
+        val userChanged = this.userId != userId
         this.userId = userId
-        this.displayName = displayName
-        this.email = null
-        this.avatarUrl = null
+        this.displayName = displayName ?: this.displayName
         subscribed?.let { this.subscribed = it }
-        if (_binding != null) {
-            renderHeader()
-            renderSubscription()
+        if (userChanged) {
+            email = null
+            avatarUrl = null
             followersCount = 0
             followingCount = 0
             followers = emptyList()
             following = emptyList()
             relationsLoaded = false
+        }
+        if (_binding != null) {
+            renderHeader()
+            renderSubscription()
             renderCounters()
             renderPosts(postViewModel.uiState.value)
             loadUserProfile()
