@@ -127,12 +127,12 @@ class ProfileFragment : Fragment() {
     }
 
     override fun onDestroyView() {
-        super.onDestroyView()
         editDialog?.dismiss()
         editDialog = null
         pendingAvatarBitmap = null
         pendingAvatarUri = null
         _binding = null
+        super.onDestroyView()
     }
 
     private fun setupTabs() {
@@ -200,9 +200,7 @@ class ProfileFragment : Fragment() {
             pickAvatarLauncher.launch("image/*")
         }
         dialogBinding.buttonSaveProfile.setOnClickListener {
-            profileViewModel.displayName.value = dialogBinding.editDisplayName.text?.toString().orEmpty()
-            profileViewModel.username.value = dialogBinding.editUsername.text?.toString().orEmpty()
-            profileViewModel.email.value = dialogBinding.editEmail.text?.toString().orEmpty()
+            updateProfileInputs(dialogBinding)
             profileViewModel.saveProfile()
             editDialog?.dismiss()
         }
@@ -219,6 +217,12 @@ class ProfileFragment : Fragment() {
                 dialog.show()
                 dialogBinding.editDisplayName.requestFocus()
             }
+    }
+
+    private fun updateProfileInputs(dialogBinding: DialogEditProfileBinding) {
+        profileViewModel.displayName.value = dialogBinding.editDisplayName.text?.toString().orEmpty()
+        profileViewModel.username.value = dialogBinding.editUsername.text?.toString().orEmpty()
+        profileViewModel.email.value = dialogBinding.editEmail.text?.toString().orEmpty()
     }
 
     private fun setupInputs() {
