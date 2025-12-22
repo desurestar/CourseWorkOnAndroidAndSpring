@@ -28,7 +28,7 @@ class AdminTagsFragment : Fragment() {
     private val binding get() = _binding!!
     private val viewModel: AdminTagsViewModel by viewModels()
     private var selectedColor: String? = null
-    private var defaultColorInt: Int = Color.parseColor("#DDDDDD")
+    private var defaultColorInt: Int = 0
     private var presetColors: List<ColorPreset> = emptyList()
 
     override fun onCreateView(
@@ -81,7 +81,7 @@ class AdminTagsFragment : Fragment() {
             val itemBinding = ItemAdminTagBinding.inflate(inflater, container, false)
             itemBinding.adminTagName.text = tag.name
             val color = tag.color?.takeIf { it.isNotBlank() }
-            val parsed = try { Color.parseColor(color ?: "#DDDDDD") } catch (e: Exception) { Color.parseColor("#DDDDDD") }
+            val parsed = parseColorOrDefault(color)
             itemBinding.adminTagColorDot.setBackgroundColor(parsed)
             itemBinding.buttonDeleteTag.setOnClickListener { viewModel.delete(tag.id) }
             container.addView(itemBinding.root)
