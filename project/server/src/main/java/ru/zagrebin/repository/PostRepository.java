@@ -29,10 +29,10 @@ public interface PostRepository extends JpaRepository<Post, Long> {
           and (:caloriesMin is null or p.calories >= :caloriesMin)
           and (:caloriesMax is null or p.calories <= :caloriesMax)
           and (
-              :tagsEmpty = true or t.name in :tags
+              :tagsEmpty = true or exists (
+                  select 1 from p.tags t where t.name in :tags
+              )
           )
-        group by p.id
-        having (:tagsEmpty = true or count(distinct t.name) > 0)
         order by p.createdAt desc
     """)
     List<Long> findIdsByFilters(@Param("status") String status,
@@ -60,10 +60,10 @@ public interface PostRepository extends JpaRepository<Post, Long> {
           and (:caloriesMin is null or p.calories >= :caloriesMin)
           and (:caloriesMax is null or p.calories <= :caloriesMax)
           and (
-              :tagsEmpty = true or t.name in :tags
+              :tagsEmpty = true or exists (
+                  select 1 from p.tags t where t.name in :tags
+              )
           )
-        group by p.id
-        having (:tagsEmpty = true or count(distinct t.name) > 0)
     """)
     long countByFilters(@Param("status") String status,
                         @Param("postType") String postType,
