@@ -9,9 +9,12 @@ import android.provider.OpenableColumns
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.inputmethod.EditorInfo
 import android.widget.ArrayAdapter
 import android.widget.Toast
+import android.widget.RadioButton
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -19,6 +22,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import coil.load
+import com.google.android.material.chip.Chip
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -28,6 +33,8 @@ import ru.zagrebin.culinaryblog.MainActivity
 import ru.zagrebin.culinaryblog.R
 import ru.zagrebin.culinaryblog.data.storage.TokenStorage
 import ru.zagrebin.culinaryblog.databinding.ActivityCreatePostBinding
+import ru.zagrebin.culinaryblog.databinding.DialogSelectIngredientBinding
+import ru.zagrebin.culinaryblog.databinding.DialogSelectTagsBinding
 import ru.zagrebin.culinaryblog.databinding.ItemIngredientRowBinding
 import ru.zagrebin.culinaryblog.databinding.ItemStepRowBinding
 import ru.zagrebin.culinaryblog.model.IngredientItem
@@ -45,7 +52,6 @@ import ru.zagrebin.culinaryblog.util.applyTagStyle
 import ru.zagrebin.culinaryblog.viewmodel.CreatePostViewModel
 import java.text.DecimalFormat
 import javax.inject.Inject
-import com.google.android.material.chip.Chip
 
 @AndroidEntryPoint
 class CreatePostFragment : Fragment() {
@@ -56,7 +62,7 @@ class CreatePostFragment : Fragment() {
     @Inject lateinit var tokenStorage: TokenStorage
 
     private val ingredientRows = mutableListOf<ItemIngredientRowBinding>()
-    private val ingredientSelection = mutableMapOf<ItemIngredientRowBinding, Long?>()
+    private val ingredientSelection = mutableMapOf<ItemIngredientRowBinding, PostIngredientRequest>()
     private val stepRows = mutableListOf<ItemStepRowBinding>()
     private val selectedTags = mutableSetOf<Long>()
     private var lastShownDraftKey: Pair<Long, Long>? = null
@@ -70,6 +76,12 @@ class CreatePostFragment : Fragment() {
     private var selectedPostType: String = POST_TYPE_RECIPE
     private var pendingImageTarget: ImageTarget? = null
     private val amountFormatter = DecimalFormat("#.##")
+    private var tagDialogBinding: DialogSelectTagsBinding? = null
+    private var tagDialog: AlertDialog? = null
+    private var tagDialogSelection: MutableSet<Long>? = null
+    private var ingredientDialogBinding: DialogSelectIngredientBinding? = null
+    private var ingredientDialog: AlertDialog? = null
+    private var ingredientDialogSelectedId: Long? = null
 
     private val statusValues = listOf(STATUS_DRAFT, "published")
     private val statusLabels by lazy {
@@ -159,6 +171,14 @@ class CreatePostFragment : Fragment() {
         ingredientSelection.clear()
         stepRows.clear()
         selectedTags.clear()
+        tagDialog?.dismiss()
+        tagDialog = null
+        tagDialogBinding = null
+        tagDialogSelection = null
+        ingredientDialog?.dismiss()
+        ingredientDialog = null
+        ingredientDialogBinding = null
+        ingredientDialogSelectedId = null
         lastShownDraftKey = null
         restoredDraftId = null
         draftId = null
@@ -190,13 +210,8 @@ class CreatePostFragment : Fragment() {
     }
 
     private fun setupClicks() {
-        binding.buttonSearchTags.setOnClickListener {
-            viewModel.loadTags(binding.inputTagSearch.text.toString().trim().ifBlank { null })
-        }
-        binding.buttonSearchIngredients.setOnClickListener {
-            viewModel.loadIngredients(binding.inputIngredientSearch.text.toString().trim().ifBlank { null })
-        }
-        binding.buttonAddIngredient.setOnClickListener { addIngredientRow() }
+        binding.buttonSelectTags.setOnClickListener { showTagDialog() }
+        binding.buttonAddIngredient.setOnClickListener { showIngredientDialog() }
         binding.buttonAddStep.setOnClickListener { addStepRow() }
         binding.buttonSubmit.setOnClickListener { submit() }
         binding.buttonPickCover.setOnClickListener { pickImage(ImageTarget.Cover) }
@@ -210,6 +225,8 @@ class CreatePostFragment : Fragment() {
                 viewModel.state.collect { state ->
                     binding.progressTags.isVisible = state.loadingTags
                     binding.progressIngredients.isVisible = state.loadingIngredients
+                    tagDialogBinding?.progressTagsDialog?.isVisible = state.loadingTags
+                    ingredientDialogBinding?.progressIngredientsDialog?.isVisible = state.loadingIngredients
                     binding.progressSubmit.isVisible = state.submitting
                     binding.buttonSubmit.isEnabled = !state.submitting
                     val resolvedError = resolveErrorMessage(state.error)
@@ -293,79 +310,232 @@ class CreatePostFragment : Fragment() {
     }
 
     private fun renderTags() {
-        binding.tagsContainer.removeAllViews()
-        if (tags.isEmpty()) {
-            val stub = layoutInflater.inflate(android.R.layout.simple_list_item_1, binding.tagsContainer, false)
-            (stub.findViewById(android.R.id.text1) as? android.widget.TextView)?.text =
-                getString(R.string.create_tags_empty)
-            binding.tagsContainer.addView(stub)
-            return
-        }
+        renderSelectedTagsOnForm()
+        renderTagDialogContent()
+    }
 
+    private fun renderSelectedTagsOnForm() {
+        binding.selectedTagsGroup.removeAllViews()
+        val selectedList = tags.filter { selectedTags.contains(it.id) }
+        binding.textSelectedTagsEmpty.isVisible = selectedList.isEmpty()
+
+        selectedList.forEach { tag ->
+            val chip = Chip(requireContext())
+            chip.text = tag.name
+            chip.isCheckable = false
+            chip.isClickable = false
+            chip.applyTagStyle(tag.color)
+            binding.selectedTagsGroup.addView(chip)
+        }
+    }
+
+    private fun renderTagDialogContent() {
+        val bindingDialog = tagDialogBinding ?: return
+        val selection = tagDialogSelection ?: return
+
+        bindingDialog.chipGroupAvailableTags.setOnCheckedChangeListener(null)
+        bindingDialog.chipGroupAvailableTags.removeAllViews()
         tags.forEach { tag ->
             val chip = Chip(requireContext())
             chip.text = tag.name
             chip.isCheckable = true
-            chip.isChecked = selectedTags.contains(tag.id)
+            chip.isChecked = selection.contains(tag.id)
             chip.applyTagStyle(tag.color)
             chip.setOnCheckedChangeListener { _, isChecked ->
-                if (isChecked) selectedTags.add(tag.id) else selectedTags.remove(tag.id)
+                if (isChecked) selection.add(tag.id) else selection.remove(tag.id)
+                renderTagDialogSelected()
             }
-            binding.tagsContainer.addView(chip)
+            bindingDialog.chipGroupAvailableTags.addView(chip)
+        }
+        renderTagDialogSelected()
+    }
+
+    private fun renderTagDialogSelected() {
+        val bindingDialog = tagDialogBinding ?: return
+        val selection = tagDialogSelection ?: return
+        bindingDialog.chipGroupSelectedTags.removeAllViews()
+        val selectedList = tags.filter { selection.contains(it.id) }
+        bindingDialog.textSelectedTagsDialogEmpty.isVisible = selectedList.isEmpty()
+        selectedList.forEach { tag ->
+            val chip = Chip(requireContext())
+            chip.text = tag.name
+            chip.isCheckable = false
+            chip.applyTagStyle(tag.color)
+            chip.setOnClickListener {
+                selection.remove(tag.id)
+                renderTagDialogContent()
+            }
+            bindingDialog.chipGroupSelectedTags.addView(chip)
         }
     }
 
+    private fun showTagDialog() {
+        val dialogBinding = DialogSelectTagsBinding.inflate(layoutInflater)
+        tagDialogBinding = dialogBinding
+        tagDialogSelection = selectedTags.toMutableSet()
+
+        dialogBinding.buttonSearchTagsDialog.setOnClickListener {
+            viewModel.loadTags(dialogBinding.inputTagSearchDialog.text.toString().trim().ifBlank { null })
+        }
+        dialogBinding.inputTagSearchDialog.setOnEditorActionListener { _, actionId, _ ->
+            if (actionId == EditorInfo.IME_ACTION_SEARCH) {
+                viewModel.loadTags(dialogBinding.inputTagSearchDialog.text.toString().trim().ifBlank { null })
+                true
+            } else {
+                false
+            }
+        }
+        dialogBinding.buttonClearTagsDialog.setOnClickListener {
+            tagDialogSelection?.clear()
+            renderTagDialogContent()
+        }
+        dialogBinding.buttonSaveTagsDialog.setOnClickListener {
+            tagDialogSelection?.let {
+                selectedTags.clear()
+                selectedTags.addAll(it)
+                renderSelectedTagsOnForm()
+            }
+            tagDialog?.dismiss()
+        }
+
+        renderTagDialogContent()
+
+        tagDialog = MaterialAlertDialogBuilder(requireContext())
+            .setView(dialogBinding.root)
+            .setOnDismissListener {
+                tagDialogBinding = null
+                tagDialogSelection = null
+                tagDialog = null
+            }
+            .create()
+            .also { it.show() }
+    }
+
     private fun renderIngredientAdapters() {
-        val labels = listOf(getString(R.string.create_choose_ingredient)) + ingredients.map { it.name }
-        val adapter = ArrayAdapter(
-            requireContext(),
-            android.R.layout.simple_spinner_item,
-            labels
-        ).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
-
         ingredientRows.forEach { row ->
-            row.spinnerIngredient.adapter = adapter
-            val currentId = ingredientSelection[row]
-            if (currentId != null) {
-                val idx = ingredients.indexOfFirst { it.id == currentId }
-                if (idx >= 0) {
-                    row.spinnerIngredient.setSelection(idx + 1, false)
-                }
-            }
-            row.spinnerIngredient.onItemSelectedListener = null
-            row.spinnerIngredient.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
-                override fun onItemSelected(
-                    parent: android.widget.AdapterView<*>?,
-                    view: android.view.View?,
-                    position: Int,
-                    id: Long
-                ) {
-                    val selected = if (position > 0 && position - 1 < ingredients.size) {
-                        ingredients[position - 1].id
-                    } else null
-                    ingredientSelection[row] = selected
-                }
+            ingredientSelection[row]?.let { renderIngredientRow(row, it) }
+        }
+        renderIngredientDialogList()
+    }
 
-                override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
+    private fun renderIngredientRow(rowBinding: ItemIngredientRowBinding, request: PostIngredientRequest) {
+        val name = ingredients.find { it.id == request.ingredientId }?.name
+            ?: getString(R.string.create_choose_ingredient)
+        rowBinding.textIngredientName.text = name
+        val details = buildList {
+            request.quantityValue?.let { add(formatAmount(it)) }
+            request.unit?.takeIf { it.isNotBlank() }?.let { add(it) }
+        }.joinToString(" ")
+        rowBinding.textIngredientDetails.text = details
+    }
+
+    private fun renderIngredientDialogList() {
+        val dialogBinding = ingredientDialogBinding ?: return
+        val group = dialogBinding.groupIngredients
+        group.setOnCheckedChangeListener(null)
+        group.removeAllViews()
+        if (ingredients.isEmpty()) {
+            val placeholder = android.widget.TextView(requireContext()).apply {
+                text = getString(R.string.create_loading_ingredients)
             }
+            group.addView(placeholder)
+            dialogBinding.textSelectedIngredient.text = getString(R.string.create_selected_ingredient)
+            ingredientDialogSelectedId = null
+            return
+        }
+
+        val selectedId = ingredients.firstOrNull { it.id == ingredientDialogSelectedId }?.id
+            ?: ingredients.first().id.also { ingredientDialogSelectedId = it }
+        ingredients.forEach { ingredient ->
+            val radioButton = RadioButton(requireContext())
+            radioButton.id = android.view.View.generateViewId()
+            radioButton.text = ingredient.name
+            radioButton.tag = ingredient.id
+            radioButton.isChecked = ingredient.id == selectedId
+            group.addView(radioButton)
+        }
+        group.setOnCheckedChangeListener { radioGroup, checkedId ->
+            val checked = radioGroup.findViewById<RadioButton>(checkedId)
+            ingredientDialogSelectedId = checked?.tag as? Long
+            updateSelectedIngredientLabel()
+        }
+        updateSelectedIngredientLabel()
+    }
+
+    private fun updateSelectedIngredientLabel() {
+        val dialogBinding = ingredientDialogBinding ?: return
+        val name = ingredients.find { it.id == ingredientDialogSelectedId }?.name
+        dialogBinding.textSelectedIngredient.text = if (name.isNullOrBlank()) {
+            getString(R.string.create_selected_ingredient)
+        } else {
+            getString(R.string.create_selected_ingredient) + ": " + name
         }
     }
 
     private fun formatAmount(value: Double?): String = value?.let { amountFormatter.format(it) } ?: ""
 
-    private fun addIngredientRow(prefill: PostIngredientRequest? = null, renderAdapters: Boolean = true) {
+    private fun addIngredientRow(prefill: PostIngredientRequest, renderAdapters: Boolean = true) {
         val rowBinding = ItemIngredientRowBinding.inflate(layoutInflater, binding.ingredientsContainer, false)
         rowBinding.buttonRemoveIngredient.setOnClickListener {
             binding.ingredientsContainer.removeView(rowBinding.root)
             ingredientRows.remove(rowBinding)
             ingredientSelection.remove(rowBinding)
         }
-        rowBinding.inputAmount.setText(formatAmount(prefill?.quantityValue))
-        rowBinding.inputUnit.setText(prefill?.unit ?: "")
         ingredientRows.add(rowBinding)
         binding.ingredientsContainer.addView(rowBinding.root)
-        ingredientSelection[rowBinding] = prefill?.ingredientId
+        ingredientSelection[rowBinding] = prefill
+        renderIngredientRow(rowBinding, prefill)
         if (renderAdapters) renderIngredientAdapters()
+    }
+
+    private fun showIngredientDialog() {
+        val dialogBinding = DialogSelectIngredientBinding.inflate(layoutInflater)
+        ingredientDialogBinding = dialogBinding
+        ingredientDialogSelectedId = ingredients.firstOrNull()?.id
+
+        dialogBinding.buttonSearchIngredientDialog.setOnClickListener {
+            viewModel.loadIngredients(dialogBinding.inputIngredientSearchDialog.text.toString().trim().ifBlank { null })
+        }
+        dialogBinding.inputIngredientSearchDialog.setOnEditorActionListener { _, actionId, _ ->
+            if (actionId == EditorInfo.IME_ACTION_SEARCH) {
+                viewModel.loadIngredients(dialogBinding.inputIngredientSearchDialog.text.toString().trim().ifBlank { null })
+                true
+            } else {
+                false
+            }
+        }
+        dialogBinding.buttonCancelIngredientDialog.setOnClickListener {
+            ingredientDialog?.dismiss()
+        }
+        dialogBinding.buttonAddIngredientDialog.setOnClickListener {
+            val selectedId = ingredientDialogSelectedId
+            val amount = dialogBinding.inputDialogAmount.text.toString().trim().toDoubleOrNull()
+            val unit = dialogBinding.inputDialogUnit.text.toString().trim().ifBlank { null }
+            if (selectedId == null || amount == null || amount < MIN_POSITIVE_AMOUNT) {
+                Toast.makeText(requireContext(), R.string.create_ingredient_error, Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            addIngredientRow(
+                PostIngredientRequest(
+                    ingredientId = selectedId,
+                    quantityValue = amount,
+                    unit = unit
+                )
+            )
+            ingredientDialog?.dismiss()
+        }
+
+        renderIngredientDialogList()
+
+        ingredientDialog = MaterialAlertDialogBuilder(requireContext())
+            .setView(dialogBinding.root)
+            .setOnDismissListener {
+                ingredientDialogBinding = null
+                ingredientDialogSelectedId = null
+                ingredientDialog = null
+            }
+            .create()
+            .also { it.show() }
     }
 
     private fun addStepRow(prefill: RecipeStepRequest? = null) {
@@ -415,7 +585,6 @@ class CreatePostFragment : Fragment() {
         val isRecipe = selectedPostType == POST_TYPE_RECIPE
         binding.recipeSection.isVisible = isRecipe
         if (isRecipe) {
-            if (ingredientRows.isEmpty()) addIngredientRow()
             if (stepRows.isEmpty()) addStepRow()
         } else {
             ingredientRows.clear()
@@ -629,33 +798,16 @@ class CreatePostFragment : Fragment() {
         val isRecipe = selectedPostType == POST_TYPE_RECIPE
 
         val ingredientRequests = if (isRecipe) {
-            val list = mutableListOf<PostIngredientRequest>()
-            var invalidAmount = false
-            ingredientRows.forEach { row ->
-                val selectedId = ingredientSelection[row]
-                val amount = row.inputAmount.text.toString().trim().toDoubleOrNull()
-                val unit = row.inputUnit.text.toString().trim().ifBlank { null }
-                if (selectedId != null) {
-                    if (amount == null || amount < MIN_POSITIVE_AMOUNT) {
-                        invalidAmount = true
-                    } else {
-                        list.add(
-                            PostIngredientRequest(
-                                ingredientId = selectedId,
-                                quantityValue = amount,
-                                unit = unit
-                            )
-                        )
-                    }
-                }
-            }
+            val list = ingredientRows.mapNotNull { ingredientSelection[it] }
+            val invalidAmount = list.any { it.quantityValue == null || it.quantityValue < MIN_POSITIVE_AMOUNT }
+            val hasIngredients = ingredientRows.isNotEmpty()
 
-            if (status != STATUS_DRAFT && (invalidAmount || (ingredientRows.isNotEmpty() && list.isEmpty()))) {
+            if (status != STATUS_DRAFT && (invalidAmount || !hasIngredients)) {
                 binding.textError.isVisible = true
                 binding.textError.text = getString(R.string.create_ingredient_error)
                 return null
             }
-            list
+            list.filter { it.quantityValue != null && it.quantityValue >= MIN_POSITIVE_AMOUNT }
         } else {
             emptyList()
         }
