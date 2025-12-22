@@ -223,10 +223,10 @@ class PublicProfileFragment : Fragment() {
         )
     }
 
-    private fun showUserListDialog(title: String, users: List<UserProfile>, count: Int) {
+    private fun showUserListDialog(title: String, users: List<UserProfile>?, count: Int) {
         usersDialog?.dismiss()
         val dialogBinding = DialogUserListBinding.inflate(layoutInflater)
-        renderUserList(dialogBinding.dialogUserList, users, count, title)
+        renderUserList(dialogBinding.dialogUserList, users ?: emptyList(), count, title)
         usersDialog = MaterialAlertDialogBuilder(requireContext())
             .setTitle(title)
             .setView(dialogBinding.root)

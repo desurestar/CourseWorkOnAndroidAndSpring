@@ -66,6 +66,7 @@ class ProfileFragment : Fragment() {
     private var followersCount: Int = 0
     private var followingCount: Int = 0
     private var postsSubTab: PostsSubTab = PostsSubTab.PUBLISHED
+    private var skipNextRelationsDialog: Boolean = true
     private val pickAvatarLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         if (uri != null) {
             pendingAvatarUri = uri
@@ -155,7 +156,7 @@ class ProfileFragment : Fragment() {
                 showSection(tab.position)
             }
         })
-        tabs.getTabAt(LIKED_TAB_POSITION)?.select()
+        tabs.getTabAt(FOLLOWERS_TAB_POSITION)?.select()
     }
 
     private fun setupPostsSubTabs() {
@@ -241,10 +242,10 @@ class ProfileFragment : Fragment() {
         )
     }
 
-    private fun showUserListDialog(title: String, users: List<UserProfile>, count: Int) {
+    private fun showUserListDialog(title: String, users: List<UserProfile>?, count: Int) {
         usersDialog?.dismiss()
         val dialogBinding = DialogUserListBinding.inflate(layoutInflater)
-        renderUserList(dialogBinding.dialogUserList, users, count, title)
+        renderUserList(dialogBinding.dialogUserList, users ?: emptyList(), count, title)
         usersDialog = MaterialAlertDialogBuilder(requireContext())
             .setTitle(title)
             .setView(dialogBinding.root)
@@ -550,13 +551,18 @@ class ProfileFragment : Fragment() {
     }
 
     private fun showSection(position: Int) {
-        binding.sectionFollowers.isVisible = position == FOLLOWERS_TAB_POSITION
-        binding.sectionFollowing.isVisible = position == FOLLOWING_TAB_POSITION
+        val isFollowersTab = position == FOLLOWERS_TAB_POSITION
+        val isFollowingTab = position == FOLLOWING_TAB_POSITION
+        binding.sectionFollowers.isVisible = isFollowersTab
+        binding.sectionFollowing.isVisible = isFollowingTab
         binding.sectionLiked.isVisible = position == LIKED_TAB_POSITION
-        when (position) {
-            FOLLOWERS_TAB_POSITION -> showFollowersDialog()
-            FOLLOWING_TAB_POSITION -> showFollowingDialog()
+        if (!skipNextRelationsDialog) {
+            when (position) {
+                FOLLOWERS_TAB_POSITION -> showFollowersDialog()
+                FOLLOWING_TAB_POSITION -> showFollowingDialog()
+            }
         }
+        skipNextRelationsDialog = false
     }
 
     private fun updatePostsSectionsVisibility() {
