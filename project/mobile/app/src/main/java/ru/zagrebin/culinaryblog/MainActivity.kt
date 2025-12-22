@@ -49,7 +49,7 @@ import ru.zagrebin.culinaryblog.viewmodel.PostsUiState
 import ru.zagrebin.culinaryblog.data.repository.OFFLINE_LIKE_CACHED
 import ru.zagrebin.culinaryblog.data.repository.OFFLINE_UNLIKE_CACHED
 import ru.zagrebin.culinaryblog.util.renderAvatar
-import ru.zagrebin.culinaryblog.util.applyInfoStyle
+import ru.zagrebin.culinaryblog.util.applyTagStyle
 import ru.zagrebin.culinaryblog.ui.DraftsFragment
 import javax.inject.Inject
 import kotlin.jvm.Volatile
@@ -530,7 +530,9 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
         tags.forEach { tag ->
             val chip = Chip(this)
             chip.text = tag
-            chip.applyInfoStyle()
+            chip.applyTagStyle(availableTags.firstOrNull { it.name == tag }?.color)
+            chip.isCheckable = false
+            chip.isClickable = false
             group.addView(chip)
         }
     }
@@ -614,7 +616,7 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
             chip.text = tag.name
             chip.isCheckable = true
             chip.isChecked = selected.contains(tag.name)
-            chip.applyInfoStyle()
+            chip.applyTagStyle(tag.color)
             chip.setOnCheckedChangeListener { _, isChecked ->
                 if (isChecked) selected.add(tag.name) else selected.remove(tag.name)
             }

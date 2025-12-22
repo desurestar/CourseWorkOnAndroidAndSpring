@@ -10,7 +10,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
-import android.widget.CheckBox
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.view.isVisible
@@ -42,9 +41,11 @@ import ru.zagrebin.culinaryblog.model.RecipeStepRequest
 import ru.zagrebin.culinaryblog.model.STATUS_DRAFT
 import ru.zagrebin.culinaryblog.model.TagItem
 import ru.zagrebin.culinaryblog.util.resolveUrl
+import ru.zagrebin.culinaryblog.util.applyTagStyle
 import ru.zagrebin.culinaryblog.viewmodel.CreatePostViewModel
 import java.text.DecimalFormat
 import javax.inject.Inject
+import com.google.android.material.chip.Chip
 
 @AndroidEntryPoint
 class CreatePostFragment : Fragment() {
@@ -302,13 +303,15 @@ class CreatePostFragment : Fragment() {
         }
 
         tags.forEach { tag ->
-            val checkbox = CheckBox(requireContext())
-            checkbox.text = tag.name
-            checkbox.isChecked = selectedTags.contains(tag.id)
-            checkbox.setOnCheckedChangeListener { _, isChecked ->
+            val chip = Chip(requireContext())
+            chip.text = tag.name
+            chip.isCheckable = true
+            chip.isChecked = selectedTags.contains(tag.id)
+            chip.applyTagStyle(tag.color)
+            chip.setOnCheckedChangeListener { _, isChecked ->
                 if (isChecked) selectedTags.add(tag.id) else selectedTags.remove(tag.id)
             }
-            binding.tagsContainer.addView(checkbox)
+            binding.tagsContainer.addView(chip)
         }
     }
 
