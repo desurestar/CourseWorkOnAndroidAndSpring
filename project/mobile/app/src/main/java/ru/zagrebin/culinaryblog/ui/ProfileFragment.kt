@@ -13,6 +13,7 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
+import android.util.Log
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.core.view.isVisible
@@ -30,25 +31,24 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import android.util.Log
+import java.io.ByteArrayOutputStream
+import javax.inject.Inject
 import kotlin.math.max
-import ru.zagrebin.culinaryblog.databinding.DialogEditProfileBinding
 import ru.zagrebin.culinaryblog.AuthActivity
 import ru.zagrebin.culinaryblog.MainActivity
 import ru.zagrebin.culinaryblog.R
-import ru.zagrebin.culinaryblog.formatDisplayDate
 import ru.zagrebin.culinaryblog.data.storage.TokenStorage
 import ru.zagrebin.culinaryblog.databinding.ActivityProfileBinding
+import ru.zagrebin.culinaryblog.databinding.DialogEditProfileBinding
+import ru.zagrebin.culinaryblog.formatDisplayDate
 import ru.zagrebin.culinaryblog.model.PostCard
 import ru.zagrebin.culinaryblog.model.PostDraft
 import ru.zagrebin.culinaryblog.model.UserProfile
+import ru.zagrebin.culinaryblog.ui.buildUserListDialog
 import ru.zagrebin.culinaryblog.viewmodel.PostViewModel
 import ru.zagrebin.culinaryblog.viewmodel.PostsUiState
 import ru.zagrebin.culinaryblog.viewmodel.ProfileUiState
 import ru.zagrebin.culinaryblog.viewmodel.ProfileViewModel
-import ru.zagrebin.culinaryblog.databinding.DialogUserListBinding
-import javax.inject.Inject
-import java.io.ByteArrayOutputStream
 
 @AndroidEntryPoint
 class ProfileFragment : Fragment() {
@@ -66,7 +66,6 @@ class ProfileFragment : Fragment() {
     private var followersCount: Int = 0
     private var followingCount: Int = 0
     private var postsSubTab: PostsSubTab = PostsSubTab.PUBLISHED
-    private var skipNextRelationsDialog: Boolean = true
     private val pickAvatarLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         if (uri != null) {
             pendingAvatarUri = uri
@@ -146,17 +145,17 @@ class ProfileFragment : Fragment() {
         tabs.addTab(tabs.newTab().setText(R.string.profile_following))
         tabs.addTab(tabs.newTab().setText(R.string.profile_liked))
 
+        tabs.getTabAt(FOLLOWERS_TAB_POSITION)?.select()
+        showSection(FOLLOWERS_TAB_POSITION, showDialog = false)
+
         tabs.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
             override fun onTabSelected(tab: TabLayout.Tab) {
                 showSection(tab.position)
             }
 
             override fun onTabUnselected(tab: TabLayout.Tab) {}
-            override fun onTabReselected(tab: TabLayout.Tab) {
-                showSection(tab.position)
-            }
+            override fun onTabReselected(tab: TabLayout.Tab) {}
         })
-        tabs.getTabAt(FOLLOWERS_TAB_POSITION)?.select()
     }
 
     private fun setupPostsSubTabs() {
@@ -244,14 +243,9 @@ class ProfileFragment : Fragment() {
 
     private fun showUserListDialog(title: String, users: List<UserProfile>?, count: Int) {
         usersDialog?.dismiss()
-        val dialogBinding = DialogUserListBinding.inflate(layoutInflater)
-        renderUserList(dialogBinding.dialogUserList, users ?: emptyList(), count, title)
-        usersDialog = MaterialAlertDialogBuilder(requireContext())
-            .setTitle(title)
-            .setView(dialogBinding.root)
-            .setPositiveButton(android.R.string.ok, null)
-            .setOnDismissListener { usersDialog = null }
-            .show()
+        usersDialog = buildUserListDialog(title, users, count, ::renderUserList) {
+            usersDialog = null
+        }.also { it.show() }
     }
 
     private fun updateProfileInputs(dialogBinding: DialogEditProfileBinding) {
@@ -550,19 +544,18 @@ class ProfileFragment : Fragment() {
         }
     }
 
-    private fun showSection(position: Int) {
+    private fun showSection(position: Int, showDialog: Boolean = true) {
         val isFollowersTab = position == FOLLOWERS_TAB_POSITION
         val isFollowingTab = position == FOLLOWING_TAB_POSITION
         binding.sectionFollowers.isVisible = isFollowersTab
         binding.sectionFollowing.isVisible = isFollowingTab
         binding.sectionLiked.isVisible = position == LIKED_TAB_POSITION
-        if (!skipNextRelationsDialog) {
+        if (showDialog) {
             when (position) {
                 FOLLOWERS_TAB_POSITION -> showFollowersDialog()
                 FOLLOWING_TAB_POSITION -> showFollowingDialog()
             }
         }
-        skipNextRelationsDialog = false
     }
 
     private fun updatePostsSectionsVisibility() {

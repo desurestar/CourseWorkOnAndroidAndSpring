@@ -9,6 +9,7 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -17,23 +18,21 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import coil.load
 import com.google.android.material.tabs.TabLayout
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
-import dagger.hilt.android.AndroidEntryPoint
-import ru.zagrebin.culinaryblog.R
 import ru.zagrebin.culinaryblog.AuthActivity
-import ru.zagrebin.culinaryblog.databinding.FragmentPublicProfileBinding
-import ru.zagrebin.culinaryblog.databinding.DialogUserListBinding
-import ru.zagrebin.culinaryblog.formatDisplayDate
+import ru.zagrebin.culinaryblog.R
 import ru.zagrebin.culinaryblog.data.repository.ProfileRepository
 import ru.zagrebin.culinaryblog.data.storage.TokenStorage
+import ru.zagrebin.culinaryblog.databinding.FragmentPublicProfileBinding
+import ru.zagrebin.culinaryblog.formatDisplayDate
 import ru.zagrebin.culinaryblog.model.PostCard
 import ru.zagrebin.culinaryblog.model.UserProfile
+import ru.zagrebin.culinaryblog.ui.buildUserListDialog
 import ru.zagrebin.culinaryblog.viewmodel.PostViewModel
 import ru.zagrebin.culinaryblog.viewmodel.PostsUiState
 import javax.inject.Inject
-import androidx.appcompat.app.AlertDialog
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
 @AndroidEntryPoint
 class PublicProfileFragment : Fragment() {
@@ -87,8 +86,8 @@ class PublicProfileFragment : Fragment() {
         binding.buttonClose.setOnClickListener {
             (activity as? Host)?.onPublicProfileClose() ?: activity?.onBackPressedDispatcher?.onBackPressed()
         }
-        binding.publicTabs.getTabAt(2)?.select()
-        showSection(2)
+        binding.publicTabs.getTabAt(POSTS_TAB_POSITION)?.select()
+        showSection(POSTS_TAB_POSITION)
     }
 
     override fun onDestroyView() {
@@ -113,8 +112,8 @@ class PublicProfileFragment : Fragment() {
             renderFollowers(followers)
             renderFollowing(following)
             renderPosts(postViewModel.uiState.value)
-            binding.publicTabs.getTabAt(2)?.select()
-            showSection(2)
+            binding.publicTabs.getTabAt(POSTS_TAB_POSITION)?.select()
+            showSection(POSTS_TAB_POSITION)
             loadUserProfile()
             loadSubscriptionStatus()
         }
@@ -132,19 +131,17 @@ class PublicProfileFragment : Fragment() {
             }
 
             override fun onTabUnselected(tab: TabLayout.Tab) {}
-            override fun onTabReselected(tab: TabLayout.Tab) {
-                showSection(tab.position)
-            }
+            override fun onTabReselected(tab: TabLayout.Tab) {}
         })
     }
 
     private fun showSection(position: Int) {
-        binding.publicSectionFollowers.isVisible = position == 0
-        binding.publicSectionFollowing.isVisible = position == 1
-        binding.publicSectionPosts.isVisible = position == 2
+        binding.publicSectionFollowers.isVisible = position == FOLLOWERS_TAB_POSITION
+        binding.publicSectionFollowing.isVisible = position == FOLLOWING_TAB_POSITION
+        binding.publicSectionPosts.isVisible = position == POSTS_TAB_POSITION
         when (position) {
-            0 -> showFollowersDialog()
-            1 -> showFollowingDialog()
+            FOLLOWERS_TAB_POSITION -> showFollowersDialog()
+            FOLLOWING_TAB_POSITION -> showFollowingDialog()
         }
     }
 
@@ -225,14 +222,9 @@ class PublicProfileFragment : Fragment() {
 
     private fun showUserListDialog(title: String, users: List<UserProfile>?, count: Int) {
         usersDialog?.dismiss()
-        val dialogBinding = DialogUserListBinding.inflate(layoutInflater)
-        renderUserList(dialogBinding.dialogUserList, users ?: emptyList(), count, title)
-        usersDialog = MaterialAlertDialogBuilder(requireContext())
-            .setTitle(title)
-            .setView(dialogBinding.root)
-            .setPositiveButton(android.R.string.ok, null)
-            .setOnDismissListener { usersDialog = null }
-            .show()
+        usersDialog = buildUserListDialog(title, users, count, ::renderUserList) {
+            usersDialog = null
+        }.also { it.show() }
     }
 
     private fun renderUserList(container: LinearLayout, users: List<UserProfile>, count: Int, meta: String) {
@@ -375,6 +367,9 @@ class PublicProfileFragment : Fragment() {
     }
 
     companion object {
+        private const val FOLLOWERS_TAB_POSITION = 0
+        private const val FOLLOWING_TAB_POSITION = 1
+        private const val POSTS_TAB_POSITION = 2
         private const val ARG_USER_ID = "arg_user_id"
         private const val ARG_DISPLAY_NAME = "arg_display_name"
         private const val ARG_SUBSCRIBED = "arg_subscribed"
