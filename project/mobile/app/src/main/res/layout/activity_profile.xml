@@ -253,7 +253,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:background="@drawable/bg_profile_posts_tab"
-                    android:text="@string/profile_tab_drafts"
+                    android:text="@string/profile_drafts"
                     android:textColor="@color/profile_posts_tab_text" />
             </LinearLayout>
 

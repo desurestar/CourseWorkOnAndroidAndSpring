@@ -127,12 +127,12 @@ class ProfileFragment : Fragment() {
     }
 
     override fun onDestroyView() {
+        super.onDestroyView()
         editDialog?.dismiss()
         editDialog = null
         pendingAvatarBitmap = null
         pendingAvatarUri = null
         _binding = null
-        super.onDestroyView()
     }
 
     private fun setupTabs() {
@@ -203,16 +203,16 @@ class ProfileFragment : Fragment() {
             updateProfileInputs(dialogBinding)
             profileViewModel.saveProfile()
             editDialog?.dismiss()
+            editDialog = null
         }
         editDialog = MaterialAlertDialogBuilder(requireContext())
             .setTitle(R.string.profile_edit)
             .setView(dialogBinding.root)
             .setNegativeButton(R.string.comments_cancel_reply) { dialog, _ ->
                 dialog.dismiss()
-            }
-            .setOnDismissListener {
                 editDialog = null
             }
+            .setOnCancelListener { editDialog = null }
             .create().also { dialog ->
                 dialog.show()
                 dialogBinding.editDisplayName.requestFocus()
@@ -220,9 +220,11 @@ class ProfileFragment : Fragment() {
     }
 
     private fun updateProfileInputs(dialogBinding: DialogEditProfileBinding) {
-        profileViewModel.displayName.value = dialogBinding.editDisplayName.text?.toString().orEmpty()
-        profileViewModel.username.value = dialogBinding.editUsername.text?.toString().orEmpty()
-        profileViewModel.email.value = dialogBinding.editEmail.text?.toString().orEmpty()
+        profileViewModel.applyEditableFields(
+            dialogBinding.editDisplayName.text?.toString().orEmpty(),
+            dialogBinding.editUsername.text?.toString().orEmpty(),
+            dialogBinding.editEmail.text?.toString().orEmpty()
+        )
     }
 
     private fun setupInputs() {
