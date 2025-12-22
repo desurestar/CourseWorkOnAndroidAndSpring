@@ -1,6 +1,5 @@
 package ru.zagrebin.culinaryblog
 
-import java.util.ArrayDeque
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -8,6 +7,7 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import java.util.concurrent.atomic.AtomicInteger
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -45,8 +45,8 @@ class PostViewModelTest {
         val article = samplePost(2L, "article")
         val repository = FakePostRepository(
             publishedResponses = listOf(
-                ResponseSpec(delayMillis = 50, posts = listOf(recipe)), // initial load
-                ResponseSpec(delayMillis = 0, posts = listOf(recipe, article)) // loadAllPosts
+                ResponseSpec(delayMillis = INITIAL_LOAD_DELAY, posts = listOf(recipe)), // initial load
+                ResponseSpec(delayMillis = IMMEDIATE_DELAY, posts = listOf(recipe, article)) // loadAllPosts
             )
         )
 
@@ -79,6 +79,11 @@ class PostViewModelTest {
         calories = null,
         cookingTimeMinutes = null
     )
+
+    private companion object {
+        const val INITIAL_LOAD_DELAY = 50L
+        const val IMMEDIATE_DELAY = 0L
+    }
 }
 
 private data class ResponseSpec(
@@ -91,14 +96,15 @@ private class FakePostRepository(
     private val cachedPosts: List<PostCard> = emptyList()
 ) : PostRepository {
 
-    private val responses = ArrayDeque(publishedResponses)
+    private val responses = publishedResponses.toList()
+    private val nextIndex = AtomicInteger(0)
 
     override suspend fun getPublishedPosts(
         page: Int,
         pageSize: Int,
         filters: PostFilters?
     ): Result<PaginatedResult<PostCard>> {
-        val spec = responses.removeFirstOrNull() ?: ResponseSpec()
+        val spec = responses.getOrElse(nextIndex.getAndIncrement()) { ResponseSpec() }
         if (spec.delayMillis > 0) delay(spec.delayMillis)
         return Result.success(PaginatedResult(spec.posts, null))
     }

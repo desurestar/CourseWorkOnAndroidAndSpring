@@ -14,6 +14,7 @@ import ru.zagrebin.culinaryblog.model.PostCard
 import ru.zagrebin.culinaryblog.model.PostFilters
 import ru.zagrebin.culinaryblog.model.PostDraft
 import javax.inject.Inject
+import java.util.concurrent.atomic.AtomicInteger
 
 data class PostsUiState(
     val isLoading: Boolean = false,
@@ -35,7 +36,7 @@ class PostViewModel @Inject constructor(
     val uiState: StateFlow<PostsUiState> = _uiState
     private var activeFilters: PostFilters? = null
     private var activePostType: String? = DEFAULT_POST_TYPE
-    private var loadRequestId: Int = 0
+    private val loadRequestId = AtomicInteger(0)
 
     init {
         loadPosts(postType = DEFAULT_POST_TYPE)
@@ -48,7 +49,7 @@ class PostViewModel @Inject constructor(
         postType: String? = activePostType,
         allowAnyType: Boolean = false
     ) {
-        val requestId = ++loadRequestId
+        val requestId = loadRequestId.incrementAndGet()
         val params = resolveLoadParams(filters, postType, allowAnyType)
         activeFilters = params.normalizedFilters
         activePostType = params.resolvedPostType
@@ -67,7 +68,7 @@ class PostViewModel @Inject constructor(
             } else {
                 PostFilters.filter(cached, params.normalizedFilters, params.targetType)
             }
-            if (requestId != loadRequestId) return@launch
+            if (isRequestStale(requestId)) return@launch
             if (cachedFiltered.isNotEmpty()) {
                 _uiState.value = _uiState.value.copy(
                     posts = cachedFiltered,
@@ -78,10 +79,10 @@ class PostViewModel @Inject constructor(
             }
             val res = repository.getPublishedPosts(filters = params.normalizedFilters)
             if (res.isSuccess) {
-                if (requestId != loadRequestId) return@launch
+                if (isRequestStale(requestId)) return@launch
                 val page = res.getOrDefault(PaginatedResult(emptyList(), null))
                 val mergedLikedIds = likedIds + page.items.filter { it.liked }.map { it.id }.toSet()
-                if (requestId != loadRequestId) return@launch
+                if (isRequestStale(requestId)) return@launch
                 _uiState.value = PostsUiState(
                     isLoading = false,
                     isAppending = false,
@@ -92,13 +93,13 @@ class PostViewModel @Inject constructor(
                     offline = false
                 )
             } else {
-                if (requestId != loadRequestId) return@launch
+                if (isRequestStale(requestId)) return@launch
                 val cachedFallback = when (val ex = res.exceptionOrNull()) {
                     is OfflineCacheException -> ex.cached
                     else -> if (cachedFiltered.isNotEmpty()) cachedFiltered else repository.getCachedPosts()
                 }
                 val mergedLikedIds = likedIds + cachedFallback.filter { it.liked }.map { it.id }.toSet()
-                if (requestId != loadRequestId) return@launch
+                if (isRequestStale(requestId)) return@launch
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     isAppending = false,
@@ -188,4 +189,6 @@ class PostViewModel @Inject constructor(
         postType: String?,
         filters: PostFilters?
     ): Boolean = allowAnyType && postType == null && filters == null
+
+    private fun isRequestStale(requestId: Int): Boolean = requestId != loadRequestId.get()
 }

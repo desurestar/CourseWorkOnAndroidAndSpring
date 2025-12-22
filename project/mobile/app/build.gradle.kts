@@ -67,7 +67,7 @@ dependencies {
     implementation(libs.okhttp.logging.interceptor)
 
     implementation(libs.coroutines.android)
-    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.0")
+    testImplementation(libs.coroutines.test)
     implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
 
     // Hilt
