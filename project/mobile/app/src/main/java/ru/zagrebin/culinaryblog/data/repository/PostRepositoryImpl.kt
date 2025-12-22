@@ -162,11 +162,6 @@ class PostRepositoryImpl @Inject constructor(
             val resp = api.createPost(request)
             if (resp.isSuccessful) {
                 val body = resp.body() ?: return@withContext Result.failure(RuntimeException("Empty body"))
-                if (request.status == STATUS_DRAFT) {
-                    cacheDraftLocally(request).onFailure {
-                        Log.w(TAG, it.message ?: "Failed to cache draft locally", it)
-                    }
-                }
                 Result.success(body.toModel())
             } else {
                 Result.failure(RuntimeException("Server error: ${resp.code()}"))
@@ -236,9 +231,11 @@ class PostRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun getDrafts(): Result<List<PostDraft>> = withContext(Dispatchers.IO) {
+    override suspend fun getDrafts(authorId: Long?): Result<List<PostDraft>> = withContext(Dispatchers.IO) {
         try {
-            Result.success(draftDao.getAll().map { it.toDraft(gson) })
+            if (authorId == null) return@withContext Result.success(emptyList())
+            val drafts = draftDao.getByAuthor(authorId).map { it.toDraft(gson) }
+            Result.success(drafts)
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -253,6 +250,35 @@ class PostRepositoryImpl @Inject constructor(
         } catch (e: Exception) {
             Result.failure(e)
         }
+    }
+
+    override suspend fun syncDrafts(authorId: Long): Result<Int> = withContext(Dispatchers.IO) {
+        var synced = 0
+        var lastError: Exception? = null
+        draftDao.getByAuthor(authorId).forEach { entity ->
+            try {
+                val draft = entity.toDraft(gson)
+                val resp = api.createPost(draft.request)
+                if (resp.isSuccessful) {
+                    draftDao.delete(entity.id)
+                    synced++
+                } else {
+                    lastError = RuntimeException("Server error: ${resp.code()}")
+                }
+            } catch (e: Exception) {
+                lastError = e
+            }
+        }
+        val error = lastError
+        return@withContext when {
+            error == null -> Result.success(synced)
+            synced == 0 -> Result.failure(error)
+            else -> Result.failure(RuntimeException("Synced $synced drafts; some failed", error))
+        }
+    }
+
+    override suspend fun clearDrafts(): Result<Unit> = withContext(Dispatchers.IO) {
+        runCatching { draftDao.deleteAll() }
     }
 
     override suspend fun like(postId: Long): Result<Unit> = withContext(Dispatchers.IO) {

@@ -36,6 +36,7 @@ class PostViewModel @Inject constructor(
     val uiState: StateFlow<PostsUiState> = _uiState
     private var activeFilters: PostFilters? = null
     private var activePostType: String? = DEFAULT_POST_TYPE
+    private var currentUserId: Long? = null
     private var currentLoadJob: Job? = null
 
     init {
@@ -61,7 +62,7 @@ class PostViewModel @Inject constructor(
         )
         currentLoadJob = viewModelScope.launch {
             val likedIds = repository.getLikedPostIds().getOrDefault(emptySet())
-            val drafts = repository.getDrafts().getOrDefault(emptyList())
+            val drafts = loadDrafts(currentUserId)
             val cached = repository.getCachedPosts()
             val cachedFiltered = if (params.skipTypeFilters) {
                 cached
@@ -145,11 +146,21 @@ class PostViewModel @Inject constructor(
         }
     }
 
-    fun refreshDrafts() {
+    fun refreshDrafts(sync: Boolean = false) {
         viewModelScope.launch {
-            val drafts = repository.getDrafts().getOrDefault(emptyList())
+            val drafts = loadDrafts(currentUserId, sync)
             _uiState.update { it.copy(drafts = drafts) }
         }
+    }
+
+    fun setCurrentUser(userId: Long?) {
+        if (currentUserId == userId) return
+        currentUserId = userId
+        if (userId == null) {
+            _uiState.update { it.copy(drafts = emptyList()) }
+            return
+        }
+        refreshDrafts(sync = true)
     }
 
     companion object {
@@ -184,4 +195,10 @@ class PostViewModel @Inject constructor(
         postType: String?,
         filters: PostFilters?
     ): Boolean = allowAnyType && postType == null && filters == null
+
+    private suspend fun loadDrafts(authorId: Long?, sync: Boolean = false): List<PostDraft> {
+        if (authorId == null) return emptyList()
+        if (sync) repository.syncDrafts(authorId)
+        return repository.getDrafts(authorId).getOrDefault(emptyList())
+    }
 }

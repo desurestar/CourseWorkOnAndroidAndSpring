@@ -28,8 +28,10 @@ interface PostRepository {
     suspend fun saveDraft(request: PostCreateRequest): Result<PostDraft>
     suspend fun updateDraft(id: Long, request: PostCreateRequest): Result<PostDraft>
     suspend fun deleteDraft(id: Long): Result<Unit>
-    suspend fun getDrafts(): Result<List<PostDraft>>
+    suspend fun getDrafts(authorId: Long? = null): Result<List<PostDraft>>
     suspend fun getDraft(id: Long): Result<PostDraft>
+    suspend fun syncDrafts(authorId: Long): Result<Int>
+    suspend fun clearDrafts(): Result<Unit>
     suspend fun like(postId: Long): Result<Unit>
     suspend fun unlike(postId: Long): Result<Unit>
     suspend fun getLikedPostIds(): Result<Set<Long>>
