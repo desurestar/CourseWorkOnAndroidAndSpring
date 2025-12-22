@@ -45,7 +45,7 @@ class DraftsFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
-        postViewModel.refreshDrafts()
+        postViewModel.refreshDrafts(sync = true)
     }
 
     override fun onDestroyView() {

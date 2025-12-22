@@ -198,6 +198,13 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
         updateBackPressedHandling()
     }
 
+    override fun onResume() {
+        super.onResume()
+        ensureCurrentUserIdLoaded { id ->
+            postViewModel.setCurrentUser(id)
+        }
+    }
+
     private fun applySelection(itemId: Int) {
         val previousTab = currentTab
         val nextTab = when (itemId) {
@@ -764,6 +771,8 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
     override fun onProfileLogout() {
         tokenStorage.clearToken()
         currentUserId = null
+        postViewModel.setCurrentUser(null)
+        lifecycleScope.launch { postRepository.clearDrafts() }
         restoreFeedTab()
     }
 

@@ -17,6 +17,9 @@ interface DraftDao {
     @Query("DELETE FROM drafts WHERE id = :id")
     suspend fun delete(id: Long)
 
+    @Query("DELETE FROM drafts")
+    suspend fun deleteAll()
+
     @Query("SELECT * FROM drafts WHERE id = :id LIMIT 1")
     suspend fun getById(id: Long): DraftEntity?
 }
