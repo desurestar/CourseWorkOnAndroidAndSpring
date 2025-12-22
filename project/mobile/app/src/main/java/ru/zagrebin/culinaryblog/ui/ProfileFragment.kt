@@ -44,6 +44,7 @@ import ru.zagrebin.culinaryblog.databinding.DialogUserListBinding
 import ru.zagrebin.culinaryblog.formatDisplayDate
 import ru.zagrebin.culinaryblog.model.PostCard
 import ru.zagrebin.culinaryblog.model.UserProfile
+import ru.zagrebin.culinaryblog.ui.AdminPanelActivity
 import ru.zagrebin.culinaryblog.ui.buildUserListDialog
 import ru.zagrebin.culinaryblog.viewmodel.PostViewModel
 import ru.zagrebin.culinaryblog.viewmodel.PostsUiState
@@ -153,6 +154,9 @@ class ProfileFragment : Fragment() {
         }
         binding.buttonEditProfile.setOnClickListener {
             showEditProfileDialog()
+        }
+        binding.buttonAdminPanel.setOnClickListener {
+            startActivity(Intent(requireContext(), AdminPanelActivity::class.java))
         }
         binding.buttonFollowers.setOnClickListener { showFollowersDialog() }
         binding.buttonFollowing.setOnClickListener { showFollowingDialog() }
@@ -290,6 +294,7 @@ class ProfileFragment : Fragment() {
             user.id?.let { profileViewModel.loadRelations(it) }
             renderFollowers(profileViewModel.followers.value)
             renderFollowing(profileViewModel.following.value)
+            binding.buttonAdminPanel.isVisible = user.role?.equals("admin", ignoreCase = true) == true
         } else {
             renderUserStub()
             renderAvatar(null, binding.profileName.text?.toString())
@@ -298,6 +303,7 @@ class ProfileFragment : Fragment() {
             likesCount = 0
             renderFollowers(emptyList())
             renderFollowing(emptyList())
+            binding.buttonAdminPanel.isVisible = false
         }
         updateCounters()
     }
