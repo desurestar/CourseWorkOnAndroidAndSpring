@@ -97,7 +97,7 @@ class PostViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     isAppending = false,
-                    posts = PostFilters.filter(cachedFallback, normalizedFilters, targetType),
+                    posts = if (skipTypeFilters) cachedFallback else PostFilters.filter(cachedFallback, normalizedFilters, targetType),
                     nextPage = null,
                     error = res.exceptionOrNull()?.message ?: "Unknown",
                     likedIds = likedIds,
