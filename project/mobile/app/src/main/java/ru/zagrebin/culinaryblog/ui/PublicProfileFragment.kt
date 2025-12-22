@@ -136,7 +136,15 @@ class PublicProfileFragment : Fragment() {
             userId?.let { post.authorId == it } ?: true
         }
         renderPostList(binding.publicPostsList, authorPosts)
+        binding.publicPostsTitle.text = if (authorPosts.isNotEmpty()) {
+            getString(R.string.profile_posts_with_count, authorPosts.size)
+        } else {
+            getString(R.string.profile_posts_empty)
+        }
         binding.publicEmpty.isVisible = authorPosts.isEmpty()
+        if (authorPosts.isEmpty()) {
+            binding.publicEmpty.text = getString(R.string.profile_posts_empty)
+        }
     }
 
     private fun renderPostList(container: LinearLayout, posts: List<PostCard>) {

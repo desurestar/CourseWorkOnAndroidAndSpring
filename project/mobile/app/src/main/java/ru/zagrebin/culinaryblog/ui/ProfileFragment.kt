@@ -40,6 +40,7 @@ import ru.zagrebin.culinaryblog.R
 import ru.zagrebin.culinaryblog.data.storage.TokenStorage
 import ru.zagrebin.culinaryblog.databinding.ActivityProfileBinding
 import ru.zagrebin.culinaryblog.databinding.DialogEditProfileBinding
+import ru.zagrebin.culinaryblog.databinding.DialogUserListBinding
 import ru.zagrebin.culinaryblog.formatDisplayDate
 import ru.zagrebin.culinaryblog.model.PostCard
 import ru.zagrebin.culinaryblog.model.UserProfile
@@ -58,10 +59,12 @@ class ProfileFragment : Fragment() {
     private val profileViewModel: ProfileViewModel by viewModels()
     private var editDialog: AlertDialog? = null
     private var usersDialog: AlertDialog? = null
+    private var likesDialog: AlertDialog? = null
     private var pendingAvatarBitmap: Bitmap? = null
     private var pendingAvatarUri: Uri? = null
     private var followersCount: Int = 0
     private var followingCount: Int = 0
+    private var likesCount: Int = 0
     private val pickAvatarLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         if (uri != null) {
             pendingAvatarUri = uri
@@ -128,6 +131,8 @@ class ProfileFragment : Fragment() {
         editDialog = null
         usersDialog?.dismiss()
         usersDialog = null
+        likesDialog?.dismiss()
+        likesDialog = null
         pendingAvatarBitmap = null
         pendingAvatarUri = null
         _binding = null
@@ -150,6 +155,7 @@ class ProfileFragment : Fragment() {
         }
         binding.buttonFollowers.setOnClickListener { showFollowersDialog() }
         binding.buttonFollowing.setOnClickListener { showFollowingDialog() }
+        binding.buttonLikes.setOnClickListener { showLikedPostsDialog() }
         setupInputs()
         renderFollowers(emptyList())
         renderFollowing(emptyList())
@@ -288,10 +294,11 @@ class ProfileFragment : Fragment() {
             renderAvatar(null, binding.profileName.text?.toString())
             followersCount = 0
             followingCount = 0
+            likesCount = 0
             renderFollowers(emptyList())
             renderFollowing(emptyList())
         }
-        updateFollowCounters()
+        updateCounters()
     }
 
     private fun renderAvatar(avatarUrl: String?, title: String?) {
@@ -425,9 +432,19 @@ class ProfileFragment : Fragment() {
     }
 
     private fun renderPosts(state: PostsUiState) {
+        likesCount = state.likedIds.size
         val posts = filterCurrentUserPosts(state)
         renderPostList(binding.postsList, posts, ::openPost)
+        binding.profilePostsTitle.text = if (posts.isNotEmpty()) {
+            getString(R.string.profile_posts_with_count, posts.size)
+        } else {
+            getString(R.string.profile_posts_empty)
+        }
         binding.profileEmpty.isVisible = posts.isEmpty()
+        if (posts.isEmpty()) {
+            binding.profileEmpty.text = getString(R.string.profile_posts_empty)
+        }
+        updateCounters()
     }
 
     private fun renderPostList(container: LinearLayout, posts: List<PostCard>, onClick: (PostCard) -> Unit) {
@@ -465,16 +482,43 @@ class ProfileFragment : Fragment() {
     }
 
     private fun renderFollowers(users: List<UserProfile>) {
-        updateFollowCounters()
+        updateCounters()
     }
 
     private fun renderFollowing(users: List<UserProfile>) {
-        updateFollowCounters()
+        updateCounters()
     }
 
-    private fun updateFollowCounters() {
+    private fun updateCounters() {
         binding.followersCount.text = followersCount.toString()
         binding.followingCount.text = followingCount.toString()
+        binding.likesCount.text = likesCount.toString()
+    }
+
+    private fun showLikedPostsDialog() {
+        val likedPosts = getLikedPosts(postViewModel.uiState.value)
+        likesDialog?.dismiss()
+        val dialogBinding = DialogUserListBinding.inflate(layoutInflater)
+        if (likedPosts.isEmpty()) {
+            val stub = TextView(requireContext())
+            stub.text = getString(R.string.profile_posts_empty)
+            dialogBinding.dialogUserList.addView(stub)
+        } else {
+            likedPosts.forEach { post ->
+                addMiniPostView(dialogBinding.dialogUserList, post) { openPost(post) }
+            }
+        }
+        likesDialog = MaterialAlertDialogBuilder(requireContext())
+            .setTitle(getString(R.string.profile_liked))
+            .setView(dialogBinding.root)
+            .setPositiveButton(android.R.string.ok, null)
+            .setOnDismissListener { likesDialog = null }
+            .create().also { it.show() }
+    }
+
+    private fun getLikedPosts(state: PostsUiState): List<PostCard> {
+        if (state.likedIds.isEmpty()) return emptyList()
+        return state.posts.filter { state.likedIds.contains(it.id) }
     }
 
     private fun renderUserList(container: LinearLayout, users: List<UserProfile>, count: Int, meta: String) {
