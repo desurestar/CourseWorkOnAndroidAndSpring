@@ -234,9 +234,7 @@ class PostRepositoryImpl @Inject constructor(
     override suspend fun getDrafts(authorId: Long?): Result<List<PostDraft>> = withContext(Dispatchers.IO) {
         try {
             if (authorId == null) return@withContext Result.success(emptyList())
-            val drafts = draftDao.getAll()
-                .filter { it.authorId == authorId }
-                .map { it.toDraft(gson) }
+            val drafts = draftDao.getByAuthor(authorId).map { it.toDraft(gson) }
             Result.success(drafts)
         } catch (e: Exception) {
             Result.failure(e)
@@ -257,24 +255,25 @@ class PostRepositoryImpl @Inject constructor(
     override suspend fun syncDrafts(authorId: Long): Result<Int> = withContext(Dispatchers.IO) {
         var synced = 0
         var lastError: Exception? = null
-        draftDao.getAll()
-            .filter { it.authorId == authorId }
-            .forEach { entity ->
-                try {
-                    val draft = entity.toDraft(gson)
-                    val resp = api.createPost(draft.request)
-                    if (resp.isSuccessful) {
-                        draftDao.delete(entity.id)
-                        synced++
-                    } else {
-                        lastError = RuntimeException("Server error: ${resp.code()}")
-                    }
-                } catch (e: Exception) {
-                    lastError = e
+        draftDao.getByAuthor(authorId).forEach { entity ->
+            try {
+                val draft = entity.toDraft(gson)
+                val resp = api.createPost(draft.request)
+                if (resp.isSuccessful) {
+                    draftDao.delete(entity.id)
+                    synced++
+                } else {
+                    lastError = RuntimeException("Server error: ${resp.code()}")
                 }
+            } catch (e: Exception) {
+                lastError = e
             }
-        return@withContext lastError?.let { if (synced == 0) Result.failure(it) else Result.success(synced) }
-            ?: Result.success(synced)
+        }
+        return@withContext if (synced == 0 && lastError != null) {
+            Result.failure(lastError!!)
+        } else {
+            Result.success(synced)
+        }
     }
 
     override suspend fun clearDrafts(): Result<Unit> = withContext(Dispatchers.IO) {
