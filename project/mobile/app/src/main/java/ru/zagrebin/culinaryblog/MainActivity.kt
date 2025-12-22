@@ -9,6 +9,8 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import android.widget.TextView
+import androidx.activity.OnBackPressedCallback
+import androidx.activity.addCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
@@ -59,6 +61,7 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
     @Volatile private var currentUserId: Long? = null
     private var loadUserIdJob: Job? = null
     private val pendingUserIdCallbacks = mutableListOf<(Long?) -> Unit>()
+    private var backPressedCallback: OnBackPressedCallback? = null
     private val postDetailLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode != Activity.RESULT_OK) return@registerForActivityResult
         val data = result.data ?: return@registerForActivityResult
@@ -172,6 +175,15 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
                 }
             }
         }
+
+        backPressedCallback = onBackPressedDispatcher.addCallback(this, false) {
+            if (isPublicProfileVisible()) {
+                closePublicProfile()
+                return@addCallback
+            }
+            restoreFeedTab()
+        }
+        updateBackPressedHandling()
     }
 
     private fun applySelection(itemId: Int) {
@@ -225,7 +237,15 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
                 }
             }
         }
+        updateBackPressedHandling()
     }
+
+    private fun updateBackPressedHandling() {
+        backPressedCallback?.isEnabled = isPublicProfileVisible() || !currentTab.isFeed()
+    }
+
+    private fun isPublicProfileVisible(): Boolean =
+        supportFragmentManager.findFragmentByTag(PUBLIC_PROFILE_TAG)?.isVisible == true
 
     private fun renderState(state: PostsUiState) {
         if (!currentTab.isFeed()) return
@@ -451,6 +471,7 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
         val existing = supportFragmentManager.findFragmentByTag(PUBLIC_PROFILE_TAG) as? PublicProfileFragment
         existing?.updateUser(userId, displayName, subscribed)
         showFragment(PUBLIC_PROFILE_TAG) { PublicProfileFragment.newInstance(userId, displayName, subscribed) }
+        updateBackPressedHandling()
     }
 
     override fun onPublicProfileClose() {
@@ -462,6 +483,7 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
             supportFragmentManager.commit { remove(it) }
         }
         showFeed()
+        updateBackPressedHandling()
     }
 
     private fun formatType(postType: String?): String =
