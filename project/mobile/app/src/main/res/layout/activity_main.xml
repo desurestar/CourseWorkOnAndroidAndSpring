@@ -108,8 +108,7 @@
                 android:layout_height="wrap_content"
                 android:layout_gravity="end|bottom"
                 android:layout_margin="16dp"
-                android:contentDescription="@string/scroll_to_top"
-                android:text="@string/scroll_to_top"
+
                 android:visibility="gone"
                 app:icon="@drawable/ic_arrow_upward"
                 app:iconPadding="8dp" />
