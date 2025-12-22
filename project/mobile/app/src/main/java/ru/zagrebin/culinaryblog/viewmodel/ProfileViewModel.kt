@@ -139,6 +139,12 @@ class ProfileViewModel @Inject constructor(
         avatarUrl.value = user.avatarUrl
     }
 
+    fun applyEditableFields(displayName: String, username: String, email: String) {
+        this.displayName.value = displayName
+        this.username.value = username
+        this.email.value = email
+    }
+
     fun loadRelations(userId: Long, force: Boolean = false) {
         if (!force && relationsLoadedFor == userId) return
         relationsLoadedFor = userId

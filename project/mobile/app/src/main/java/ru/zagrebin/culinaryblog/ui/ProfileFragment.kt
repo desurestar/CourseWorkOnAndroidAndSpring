@@ -14,6 +14,7 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.core.view.isVisible
 import androidx.core.widget.doAfterTextChanged
 import androidx.fragment.app.Fragment
@@ -22,6 +23,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import coil.load
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.tabs.TabLayout
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
@@ -30,6 +32,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import android.util.Log
 import kotlin.math.max
+import ru.zagrebin.culinaryblog.databinding.DialogEditProfileBinding
 import ru.zagrebin.culinaryblog.AuthActivity
 import ru.zagrebin.culinaryblog.MainActivity
 import ru.zagrebin.culinaryblog.R
@@ -55,6 +58,7 @@ class ProfileFragment : Fragment() {
     private val binding get() = _binding!!
     private val postViewModel: PostViewModel by viewModels()
     private val profileViewModel: ProfileViewModel by viewModels()
+    private var editDialog: AlertDialog? = null
     private var pendingAvatarBitmap: Bitmap? = null
     private var pendingAvatarUri: Uri? = null
     private var followersCount: Int = 0
@@ -124,9 +128,11 @@ class ProfileFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
-        _binding = null
+        editDialog?.dismiss()
+        editDialog = null
         pendingAvatarBitmap = null
         pendingAvatarUri = null
+        _binding = null
     }
 
     private fun setupTabs() {
@@ -170,11 +176,10 @@ class ProfileFragment : Fragment() {
         }
         binding.buttonSaveProfile.setOnClickListener {
             profileViewModel.saveProfile()
+            editDialog?.dismiss()
         }
         binding.buttonEditProfile.setOnClickListener {
-            setEditingVisible(true)
-            binding.editDisplayName.requestFocus()
-            binding.profileScroll.smoothScrollTo(0, binding.editDisplayName.top)
+            showEditProfileDialog()
         }
         setupInputs()
         renderFollowers(emptyList())
@@ -183,6 +188,43 @@ class ProfileFragment : Fragment() {
 
     private fun setEditingVisible(show: Boolean) {
         binding.editSection.isVisible = show
+    }
+
+    private fun showEditProfileDialog() {
+        if (editDialog?.isShowing == true) return
+        val dialogBinding = DialogEditProfileBinding.inflate(layoutInflater)
+        dialogBinding.editDisplayName.setText(profileViewModel.displayName.value)
+        dialogBinding.editUsername.setText(profileViewModel.username.value)
+        dialogBinding.editEmail.setText(profileViewModel.email.value)
+        dialogBinding.buttonChangeAvatar.setOnClickListener {
+            pickAvatarLauncher.launch("image/*")
+        }
+        dialogBinding.buttonSaveProfile.setOnClickListener {
+            updateProfileInputs(dialogBinding)
+            profileViewModel.saveProfile()
+            editDialog?.dismiss()
+            editDialog = null
+        }
+        editDialog = MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.profile_edit)
+            .setView(dialogBinding.root)
+            .setNegativeButton(R.string.comments_cancel_reply) { dialog, _ ->
+                dialog.dismiss()
+                editDialog = null
+            }
+            .setOnCancelListener { editDialog = null }
+            .create().also { dialog ->
+                dialog.show()
+                dialogBinding.editDisplayName.requestFocus()
+            }
+    }
+
+    private fun updateProfileInputs(dialogBinding: DialogEditProfileBinding) {
+        profileViewModel.applyEditableFields(
+            dialogBinding.editDisplayName.text?.toString().orEmpty(),
+            dialogBinding.editUsername.text?.toString().orEmpty(),
+            dialogBinding.editEmail.text?.toString().orEmpty()
+        )
     }
 
     private fun setupInputs() {
