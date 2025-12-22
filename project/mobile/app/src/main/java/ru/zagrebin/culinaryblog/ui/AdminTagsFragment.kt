@@ -105,13 +105,14 @@ class AdminTagsFragment : Fragment() {
             }
             .setNeutralButton(R.string.admin_tags_color_clear) { dialog, _ ->
                 applySelectedColor(null)
+                dialog.dismiss()
             }
             .setNegativeButton(android.R.string.cancel, null)
             .show()
     }
 
     private fun applySelectedColor(color: String?) {
-        selectedColor = color?.uppercase()
+        selectedColor = color?.trim()?.ifEmpty { null }
         val previewColor = parseColorOrDefault(selectedColor)
         binding.adminTagColorPreview.setBackgroundColor(previewColor)
         val label = presetColors.firstOrNull { it.hex.equals(selectedColor, ignoreCase = true) }
