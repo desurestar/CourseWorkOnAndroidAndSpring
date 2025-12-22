@@ -127,9 +127,9 @@ class AdminTagsFragment : Fragment() {
 
     private fun parseColorOrDefault(raw: String?): Int {
         return try {
-            Color.parseColor(raw ?: "#DDDDDD")
+            Color.parseColor(raw ?: DEFAULT_COLOR)
         } catch (e: Exception) {
-            Color.parseColor("#DDDDDD")
+            Color.parseColor(DEFAULT_COLOR)
         }
     }
 
@@ -139,4 +139,8 @@ class AdminTagsFragment : Fragment() {
     }
 
     private data class ColorPreset(val hex: String, val labelRes: Int)
+
+    companion object {
+        private const val DEFAULT_COLOR = "#DDDDDD"
+    }
 }

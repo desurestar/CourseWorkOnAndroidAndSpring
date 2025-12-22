@@ -50,7 +50,7 @@
                 android:layout_width="32dp"
                 android:layout_height="32dp"
                 android:layout_marginEnd="6dp"
-                android:background="@android:color/darker_gray" />
+                android:background="@color/admin_tag_color_placeholder" />
 
             <Button
                 android:id="@+id/buttonPickColor"
