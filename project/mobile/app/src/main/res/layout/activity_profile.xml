@@ -243,14 +243,18 @@
                     android:layout_height="wrap_content"
                     android:layout_marginEnd="8dp"
                     android:layout_weight="1"
-                    android:text="@string/status_published" />
+                    android:background="@drawable/bg_profile_posts_tab"
+                    android:text="@string/profile_tab_published"
+                    android:textColor="@color/profile_posts_tab_text" />
 
                 <Button
                     android:id="@+id/buttonPostsDrafts"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="@string/status_draft" />
+                    android:background="@drawable/bg_profile_posts_tab"
+                    android:text="@string/profile_tab_drafts"
+                    android:textColor="@color/profile_posts_tab_text" />
             </LinearLayout>
 
             <LinearLayout
