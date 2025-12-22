@@ -47,13 +47,11 @@ class PostViewModel @Inject constructor(
         postType: String? = activePostType,
         allowAnyType: Boolean = false
     ) {
-        val resolvedPostType = if (allowAnyType) postType else postType ?: DEFAULT_POST_TYPE
-        val normalizedFilters = if (allowAnyType && postType == null && filters == null) {
-            null
-        } else {
-            val targetType = resolvedPostType ?: DEFAULT_POST_TYPE
-            (filters ?: PostFilters(postType = targetType)).normalizedForType(targetType)
-        }
+        val skipTypeFilters = allowAnyType && postType == null && filters == null
+        val resolvedPostType = if (skipTypeFilters) null else postType ?: DEFAULT_POST_TYPE
+        val targetType = resolvedPostType ?: DEFAULT_POST_TYPE
+        val normalizedFilters = if (skipTypeFilters) null
+        else (filters ?: PostFilters(postType = targetType)).normalizedForType(targetType)
         activeFilters = normalizedFilters
         activePostType = resolvedPostType
         _uiState.value = _uiState.value.copy(
@@ -66,10 +64,10 @@ class PostViewModel @Inject constructor(
             val likedIds = repository.getLikedPostIds().getOrDefault(emptySet())
             val drafts = repository.getDrafts().getOrDefault(emptyList())
             val cached = repository.getCachedPosts()
-            val cachedFiltered = if (allowAnyType && normalizedFilters == null) {
+            val cachedFiltered = if (skipTypeFilters) {
                 cached
             } else {
-                PostFilters.filter(cached, normalizedFilters, resolvedPostType ?: DEFAULT_POST_TYPE)
+                PostFilters.filter(cached, normalizedFilters, targetType)
             }
             if (cachedFiltered.isNotEmpty()) {
                 _uiState.value = _uiState.value.copy(
@@ -99,7 +97,7 @@ class PostViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     isAppending = false,
-                    posts = PostFilters.filter(cachedFallback, normalizedFilters, resolvedPostType ?: DEFAULT_POST_TYPE),
+                    posts = PostFilters.filter(cachedFallback, normalizedFilters, targetType),
                     nextPage = null,
                     error = res.exceptionOrNull()?.message ?: "Unknown",
                     likedIds = likedIds,
