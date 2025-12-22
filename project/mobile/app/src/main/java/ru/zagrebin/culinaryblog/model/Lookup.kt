@@ -1,5 +1,7 @@
 package ru.zagrebin.culinaryblog.model
 
+const val STATUS_DRAFT = "draft"
+
 data class TagItem(
     val id: Long,
     val name: String,

@@ -39,6 +39,7 @@ import ru.zagrebin.culinaryblog.model.PostFull
 import ru.zagrebin.culinaryblog.model.PostIngredientRequest
 import ru.zagrebin.culinaryblog.model.PostUpdateRequest
 import ru.zagrebin.culinaryblog.model.RecipeStepRequest
+import ru.zagrebin.culinaryblog.model.STATUS_DRAFT
 import ru.zagrebin.culinaryblog.model.TagItem
 import ru.zagrebin.culinaryblog.viewmodel.CreatePostViewModel
 import java.text.DecimalFormat
@@ -68,7 +69,7 @@ class CreatePostFragment : Fragment() {
     private var pendingImageTarget: ImageTarget? = null
     private val amountFormatter = DecimalFormat("#.##")
 
-    private val statusValues = listOf(DRAFT_STATUS, "published")
+    private val statusValues = listOf(STATUS_DRAFT, "published")
     private val statusLabels by lazy {
         listOf(getString(R.string.status_draft), getString(R.string.status_published))
     }
@@ -136,7 +137,7 @@ class CreatePostFragment : Fragment() {
             setupBottomNavigation()
         }
         setupStatusSpinner()
-        binding.statusSpinner.setSelection(statusValues.indexOf(DRAFT_STATUS), false)
+        binding.statusSpinner.setSelection(statusValues.indexOf(STATUS_DRAFT), false)
         setupPostTypeSelector()
         setupClicks()
         updateDraftActionsVisibility()
@@ -465,7 +466,7 @@ class CreatePostFragment : Fragment() {
         binding.inputCookingTime.setText(cookingTimeMinutes?.toString().orEmpty())
         binding.inputCalories.setText(calories?.toString().orEmpty())
 
-        val statusIndex = statusValues.indexOf(status ?: DRAFT_STATUS).takeIf { it >= 0 } ?: 0
+        val statusIndex = statusValues.indexOf(status ?: STATUS_DRAFT).takeIf { it >= 0 } ?: 0
         binding.statusSpinner.setSelection(statusIndex, false)
 
         selectedTags.clear()
@@ -523,7 +524,7 @@ class CreatePostFragment : Fragment() {
         applyFormData(
             authorId = post.author?.id ?: viewModel.authorId,
             postType = post.postType ?: POST_TYPE_RECIPE,
-            status = post.status ?: DRAFT_STATUS,
+            status = post.status ?: STATUS_DRAFT,
             title = post.title,
             excerpt = post.excerpt,
             content = post.content,
@@ -552,8 +553,8 @@ class CreatePostFragment : Fragment() {
 
     private fun submit() {
         val isDraftMode = draftId != null && editPostId == null
-        val selectedStatus = statusValues.getOrNull(binding.statusSpinner.selectedItemPosition) ?: DRAFT_STATUS
-        if (isDraftMode && selectedStatus == DRAFT_STATUS) {
+        val selectedStatus = statusValues.getOrNull(binding.statusSpinner.selectedItemPosition) ?: STATUS_DRAFT
+        if (isDraftMode && selectedStatus == STATUS_DRAFT) {
             saveDraftChanges()
             return
         }
@@ -620,7 +621,7 @@ class CreatePostFragment : Fragment() {
         val title = binding.inputTitle.text.toString().trim()
         val excerpt = binding.inputExcerpt.text.toString().trim()
         val content = binding.inputContent.text.toString().trim()
-        val status = if (forceDraftStatus) DRAFT_STATUS else statusValues.getOrNull(binding.statusSpinner.selectedItemPosition) ?: DRAFT_STATUS
+        val status = if (forceDraftStatus) STATUS_DRAFT else statusValues.getOrNull(binding.statusSpinner.selectedItemPosition) ?: STATUS_DRAFT
         val isRecipe = selectedPostType == POST_TYPE_RECIPE
 
         val ingredientRequests = if (isRecipe) {
@@ -645,7 +646,7 @@ class CreatePostFragment : Fragment() {
                 }
             }
 
-            if (status != DRAFT_STATUS && (invalidAmount || (ingredientRows.isNotEmpty() && list.isEmpty()))) {
+            if (status != STATUS_DRAFT && (invalidAmount || (ingredientRows.isNotEmpty() && list.isEmpty()))) {
                 binding.textError.isVisible = true
                 binding.textError.text = getString(R.string.create_ingredient_error)
                 return null
@@ -664,7 +665,7 @@ class CreatePostFragment : Fragment() {
                 )
             }.filter { it.description.isNotBlank() }
 
-            if (status != DRAFT_STATUS && stepRows.isNotEmpty() && steps.isEmpty()) {
+            if (status != STATUS_DRAFT && stepRows.isNotEmpty() && steps.isEmpty()) {
                 binding.textError.isVisible = true
                 binding.textError.text = getString(R.string.create_step_error)
                 return null
@@ -846,7 +847,6 @@ class CreatePostFragment : Fragment() {
     companion object {
         private const val POST_TYPE_RECIPE = "recipe"
         private const val POST_TYPE_ARTICLE = "article"
-        private const val DRAFT_STATUS = "draft"
         private const val MIN_POSITIVE_AMOUNT = 0.01
         private const val INVALID_DRAFT_ID = -1L
         private const val INVALID_EDIT_ID = -1L

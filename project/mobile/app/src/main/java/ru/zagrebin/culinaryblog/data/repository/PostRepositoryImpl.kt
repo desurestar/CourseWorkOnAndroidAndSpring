@@ -1,6 +1,7 @@
 package ru.zagrebin.culinaryblog.data.repository
 
 import android.net.Uri
+import android.util.Log
 import com.google.gson.Gson
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
@@ -27,6 +28,7 @@ import ru.zagrebin.culinaryblog.model.PostIngredientLine
 import ru.zagrebin.culinaryblog.model.PostStep
 import ru.zagrebin.culinaryblog.model.PostTag
 import ru.zagrebin.culinaryblog.model.PostUpdateRequest
+import ru.zagrebin.culinaryblog.model.STATUS_DRAFT
 import ru.zagrebin.culinaryblog.model.TagItem
 
 class PostRepositoryImpl @Inject constructor(
@@ -138,8 +140,10 @@ class PostRepositoryImpl @Inject constructor(
             val resp = api.createPost(request)
             if (resp.isSuccessful) {
                 val body = resp.body() ?: return@withContext Result.failure(RuntimeException("Empty body"))
-                if (request.status == DRAFT_STATUS) {
-                    draftDao.upsert(request.toDraftEntity(gson, draftId = body.id))
+                if (request.status == STATUS_DRAFT) {
+                    cacheDraftLocally(request).onFailure {
+                        Log.w(TAG, it.message ?: "Failed to cache draft locally", it)
+                    }
                 }
                 Result.success(body.toModel())
             } else {
@@ -293,7 +297,22 @@ class PostRepositoryImpl @Inject constructor(
         cookingTimeMinutes = card.cookingTimeMinutes
     )
 
-    companion object {
-        private const val DRAFT_STATUS = "draft"
+    private suspend fun cacheDraftLocally(request: PostCreateRequest): Result<Unit> {
+        val result = runCatching { draftDao.upsert(request.toDraftEntity(gson)) }
+        return result.fold(
+            onSuccess = { Result.success(Unit) },
+            onFailure = {
+                Result.failure(
+                    RuntimeException(
+                        "Draft was created but failed to save locally; it will not appear in profile until cached",
+                        it
+                    )
+                )
+            }
+        )
+    }
+
+    private companion object {
+        const val TAG = "PostRepositoryImpl"
     }
 }
