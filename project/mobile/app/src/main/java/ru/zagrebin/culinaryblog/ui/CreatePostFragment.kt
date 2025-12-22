@@ -621,18 +621,6 @@ class CreatePostFragment : Fragment() {
         val excerpt = binding.inputExcerpt.text.toString().trim()
         val content = binding.inputContent.text.toString().trim()
         val status = if (forceDraftStatus) DRAFT_STATUS else statusValues.getOrNull(binding.statusSpinner.selectedItemPosition) ?: DRAFT_STATUS
-        if (forceDraftStatus) {
-            if (title.isBlank() && excerpt.isBlank() && content.isBlank()) {
-                binding.textError.isVisible = true
-                binding.textError.text = getString(R.string.create_fill_required)
-                return null
-            }
-        } else if (status == DRAFT_STATUS && (title.isBlank() || excerpt.isBlank() || content.isBlank())) {
-            binding.textError.isVisible = true
-            binding.textError.text = getString(R.string.create_fill_required)
-            return null
-        }
-
         val isRecipe = selectedPostType == POST_TYPE_RECIPE
 
         val ingredientRequests = if (isRecipe) {
@@ -657,7 +645,7 @@ class CreatePostFragment : Fragment() {
                 }
             }
 
-            if (invalidAmount || (ingredientRows.isNotEmpty() && list.isEmpty())) {
+            if (status != DRAFT_STATUS && (invalidAmount || (ingredientRows.isNotEmpty() && list.isEmpty()))) {
                 binding.textError.isVisible = true
                 binding.textError.text = getString(R.string.create_ingredient_error)
                 return null
@@ -676,7 +664,7 @@ class CreatePostFragment : Fragment() {
                 )
             }.filter { it.description.isNotBlank() }
 
-            if (stepRows.isNotEmpty() && steps.isEmpty()) {
+            if (status != DRAFT_STATUS && stepRows.isNotEmpty() && steps.isEmpty()) {
                 binding.textError.isVisible = true
                 binding.textError.text = getString(R.string.create_step_error)
                 return null
