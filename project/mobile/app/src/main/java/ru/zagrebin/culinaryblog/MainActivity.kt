@@ -186,11 +186,7 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
                 }
             }
         }
-        ensureTagsLoaded {
-            if (currentTab.isFeed() && availableTags.isNotEmpty()) {
-                renderState(latestState)
-            }
-        }
+        ensureTagsLoaded()
 
         backPressedCallback = onBackPressedDispatcher.addCallback(this, false) {
             if (isPublicProfileVisible()) {
@@ -644,7 +640,14 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
         tagsLoadingJob = lifecycleScope.launch {
             val result = postRepository.getTags()
             if (result.isSuccess) {
-                availableTags = result.getOrDefault(emptyList())
+                val loaded = result.getOrDefault(emptyList())
+                val wasEmpty = availableTags.isEmpty()
+                val isFeedTab = currentTab.isFeed()
+                availableTags = loaded
+                if (wasEmpty && loaded.isNotEmpty() && isFeedTab) {
+                    val state = latestState
+                    runOnUiThread { renderState(state) }
+                }
             }
             tagsLoadingJob = null
             onComplete()
