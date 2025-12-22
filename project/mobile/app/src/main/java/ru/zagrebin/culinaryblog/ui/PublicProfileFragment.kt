@@ -23,6 +23,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import ru.zagrebin.culinaryblog.R
 import ru.zagrebin.culinaryblog.AuthActivity
 import ru.zagrebin.culinaryblog.databinding.FragmentPublicProfileBinding
+import ru.zagrebin.culinaryblog.databinding.DialogUserListBinding
 import ru.zagrebin.culinaryblog.formatDisplayDate
 import ru.zagrebin.culinaryblog.data.repository.ProfileRepository
 import ru.zagrebin.culinaryblog.data.storage.TokenStorage
@@ -31,6 +32,8 @@ import ru.zagrebin.culinaryblog.model.UserProfile
 import ru.zagrebin.culinaryblog.viewmodel.PostViewModel
 import ru.zagrebin.culinaryblog.viewmodel.PostsUiState
 import javax.inject.Inject
+import androidx.appcompat.app.AlertDialog
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
 @AndroidEntryPoint
 class PublicProfileFragment : Fragment() {
@@ -44,6 +47,7 @@ class PublicProfileFragment : Fragment() {
     private var userId: Long? = null
     private var displayName: String? = null
     private var subscribed: Boolean = false
+    private var usersDialog: AlertDialog? = null
     private var followersCount: Int = 0
     private var followingCount: Int = 0
     private var followers: List<UserProfile> = emptyList()
@@ -89,6 +93,8 @@ class PublicProfileFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
+        usersDialog?.dismiss()
+        usersDialog = null
         _binding = null
     }
 
@@ -126,7 +132,9 @@ class PublicProfileFragment : Fragment() {
             }
 
             override fun onTabUnselected(tab: TabLayout.Tab) {}
-            override fun onTabReselected(tab: TabLayout.Tab) {}
+            override fun onTabReselected(tab: TabLayout.Tab) {
+                showSection(tab.position)
+            }
         })
     }
 
@@ -134,6 +142,10 @@ class PublicProfileFragment : Fragment() {
         binding.publicSectionFollowers.isVisible = position == 0
         binding.publicSectionFollowing.isVisible = position == 1
         binding.publicSectionPosts.isVisible = position == 2
+        when (position) {
+            0 -> showFollowersDialog()
+            1 -> showFollowingDialog()
+        }
     }
 
     private fun observePosts() {
@@ -193,6 +205,34 @@ class PublicProfileFragment : Fragment() {
 
     private fun renderFollowing(users: List<UserProfile>) {
         renderUserList(binding.publicFollowingList, users, followingCount, getString(R.string.profile_following))
+    }
+
+    private fun showFollowersDialog() {
+        showUserListDialog(
+            getString(R.string.profile_followers),
+            followers,
+            followersCount
+        )
+    }
+
+    private fun showFollowingDialog() {
+        showUserListDialog(
+            getString(R.string.profile_following),
+            following,
+            followingCount
+        )
+    }
+
+    private fun showUserListDialog(title: String, users: List<UserProfile>, count: Int) {
+        usersDialog?.dismiss()
+        val dialogBinding = DialogUserListBinding.inflate(layoutInflater)
+        renderUserList(dialogBinding.dialogUserList, users, count, title)
+        usersDialog = MaterialAlertDialogBuilder(requireContext())
+            .setTitle(title)
+            .setView(dialogBinding.root)
+            .setPositiveButton(android.R.string.ok, null)
+            .setOnDismissListener { usersDialog = null }
+            .show()
     }
 
     private fun renderUserList(container: LinearLayout, users: List<UserProfile>, count: Int, meta: String) {

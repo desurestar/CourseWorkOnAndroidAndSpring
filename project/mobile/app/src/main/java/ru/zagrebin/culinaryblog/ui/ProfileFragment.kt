@@ -46,6 +46,7 @@ import ru.zagrebin.culinaryblog.viewmodel.PostViewModel
 import ru.zagrebin.culinaryblog.viewmodel.PostsUiState
 import ru.zagrebin.culinaryblog.viewmodel.ProfileUiState
 import ru.zagrebin.culinaryblog.viewmodel.ProfileViewModel
+import ru.zagrebin.culinaryblog.databinding.DialogUserListBinding
 import javax.inject.Inject
 import java.io.ByteArrayOutputStream
 
@@ -59,6 +60,7 @@ class ProfileFragment : Fragment() {
     private val postViewModel: PostViewModel by viewModels()
     private val profileViewModel: ProfileViewModel by viewModels()
     private var editDialog: AlertDialog? = null
+    private var usersDialog: AlertDialog? = null
     private var pendingAvatarBitmap: Bitmap? = null
     private var pendingAvatarUri: Uri? = null
     private var followersCount: Int = 0
@@ -130,6 +132,8 @@ class ProfileFragment : Fragment() {
         super.onDestroyView()
         editDialog?.dismiss()
         editDialog = null
+        usersDialog?.dismiss()
+        usersDialog = null
         pendingAvatarBitmap = null
         pendingAvatarUri = null
         _binding = null
@@ -147,9 +151,11 @@ class ProfileFragment : Fragment() {
             }
 
             override fun onTabUnselected(tab: TabLayout.Tab) {}
-            override fun onTabReselected(tab: TabLayout.Tab) {}
+            override fun onTabReselected(tab: TabLayout.Tab) {
+                showSection(tab.position)
+            }
         })
-        tabs.getTabAt(FOLLOWERS_TAB_POSITION)?.select()
+        tabs.getTabAt(LIKED_TAB_POSITION)?.select()
     }
 
     private fun setupPostsSubTabs() {
@@ -217,6 +223,34 @@ class ProfileFragment : Fragment() {
                 dialog.show()
                 dialogBinding.editDisplayName.requestFocus()
             }
+    }
+
+    private fun showFollowersDialog() {
+        showUserListDialog(
+            getString(R.string.profile_followers),
+            profileViewModel.followers.value,
+            followersCount
+        )
+    }
+
+    private fun showFollowingDialog() {
+        showUserListDialog(
+            getString(R.string.profile_following),
+            profileViewModel.following.value,
+            followingCount
+        )
+    }
+
+    private fun showUserListDialog(title: String, users: List<UserProfile>, count: Int) {
+        usersDialog?.dismiss()
+        val dialogBinding = DialogUserListBinding.inflate(layoutInflater)
+        renderUserList(dialogBinding.dialogUserList, users, count, title)
+        usersDialog = MaterialAlertDialogBuilder(requireContext())
+            .setTitle(title)
+            .setView(dialogBinding.root)
+            .setPositiveButton(android.R.string.ok, null)
+            .setOnDismissListener { usersDialog = null }
+            .show()
     }
 
     private fun updateProfileInputs(dialogBinding: DialogEditProfileBinding) {
@@ -519,6 +553,10 @@ class ProfileFragment : Fragment() {
         binding.sectionFollowers.isVisible = position == FOLLOWERS_TAB_POSITION
         binding.sectionFollowing.isVisible = position == FOLLOWING_TAB_POSITION
         binding.sectionLiked.isVisible = position == LIKED_TAB_POSITION
+        when (position) {
+            FOLLOWERS_TAB_POSITION -> showFollowersDialog()
+            FOLLOWING_TAB_POSITION -> showFollowingDialog()
+        }
     }
 
     private fun updatePostsSectionsVisibility() {
