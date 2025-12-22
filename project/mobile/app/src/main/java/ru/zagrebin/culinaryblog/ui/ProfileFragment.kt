@@ -127,7 +127,6 @@ class ProfileFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
-        editDialog?.setOnDismissListener(null)
         editDialog?.dismiss()
         editDialog = null
         pendingAvatarBitmap = null
@@ -192,20 +191,22 @@ class ProfileFragment : Fragment() {
 
     private fun showEditProfileDialog() {
         if (editDialog?.isShowing == true) return
-        val parent = binding.editSection.parent as? ViewGroup ?: return
-        val index = parent.indexOfChild(binding.editSection)
-        parent.removeView(binding.editSection)
+        val editSection = binding.editSection
+        val parent = editSection.parent as? ViewGroup ?: return
+        val index = parent.indexOfChild(editSection)
+        val originalLayoutParams = editSection.layoutParams
+        parent.removeView(editSection)
         setEditingVisible(true)
         editDialog = MaterialAlertDialogBuilder(requireContext())
             .setTitle(R.string.profile_edit)
-            .setView(binding.editSection)
+            .setView(editSection)
             .setNegativeButton(R.string.comments_cancel_reply) { dialog, _ ->
                 dialog.dismiss()
             }
             .setOnDismissListener {
-                if (binding.editSection.parent == null) {
-                    parent.addView(binding.editSection, index)
-                }
+                (editSection.parent as? ViewGroup)?.removeView(editSection)
+                editSection.layoutParams = originalLayoutParams
+                parent.addView(editSection, index)
                 setEditingVisible(false)
                 editDialog = null
             }
