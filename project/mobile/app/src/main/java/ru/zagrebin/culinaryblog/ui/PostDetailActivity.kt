@@ -111,7 +111,7 @@ class PostDetailActivity : AppCompatActivity() {
 
     private fun renderPreview(post: PostCard) {
         val isRecipe = normalizePostType(post.postType) == RECIPE_POST_TYPE
-        isLiked = false
+        isLiked = post.liked
 
         binding.authorName.text =
             post.authorName?.ifBlank { getString(R.string.author_unknown) }

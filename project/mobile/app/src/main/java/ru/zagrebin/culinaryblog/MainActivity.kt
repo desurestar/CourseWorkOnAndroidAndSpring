@@ -367,7 +367,7 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
             }
             cardBinding.viewsText.text =
                 getString(R.string.views_format, post.viewsCount ?: 0L)
-            val likedPreviously = likedPostIds.contains(post.id)
+            val likedPreviously = likedPostIds.contains(post.id) || post.liked
             var currentLikes = post.likesCount
             var hasLiked = likedPreviously
             updateLikesView(cardBinding.likesText, hasLiked, currentLikes)

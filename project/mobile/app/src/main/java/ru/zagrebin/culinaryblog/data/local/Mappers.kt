@@ -32,7 +32,7 @@ fun PostCard.toEntity(): PostEntity = PostEntity(
     publishedAt = publishedAt,
     tags = tags?.let { tagsGson.toJson(it.toList()) },
     viewsCount = viewsCount,
-    liked = false
+    liked = liked
 )
 
 fun PostEntity.toModel(): PostCard = PostCard(
@@ -48,7 +48,8 @@ fun PostEntity.toModel(): PostCard = PostCard(
     authorName = authorName,
     publishedAt = publishedAt,
     tags = tags?.let { tagsGson.fromJson<List<String>>(it, tagListType) }?.filter { it.isNotBlank() }?.toSet(),
-    viewsCount = viewsCount
+    viewsCount = viewsCount,
+    liked = liked
 )
 
 fun DraftEntity.toDraft(gson: Gson): PostDraft {

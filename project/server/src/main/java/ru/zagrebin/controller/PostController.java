@@ -41,7 +41,8 @@ public class PostController {
             @RequestParam(name = "cooking_time_max", required = false) Integer cookingTimeMax,
             @RequestParam(name = "calories_min", required = false) Integer caloriesMin,
             @RequestParam(name = "calories_max", required = false) Integer caloriesMax,
-            @RequestParam(name = "tags", required = false) List<String> tags
+            @RequestParam(name = "tags", required = false) List<String> tags,
+            @AuthenticationPrincipal UserPrincipal principal
     ) {
         int pageIndex = Math.max(page - 1, 0);
         Pageable pageable = PageRequest.of(pageIndex, pageSize);
@@ -55,6 +56,9 @@ public class PostController {
                 .build()
                 .normalize();
         Page<PostCardDto> posts = postService.getPostsPageByStatus("published", pageable, filters);
+        if (principal != null) {
+            posts.forEach(dto -> dto.setLiked(likeService.isLiked(dto.getId(), principal.getId())));
+        }
 
         String next = null;
         if (posts.hasNext()) {

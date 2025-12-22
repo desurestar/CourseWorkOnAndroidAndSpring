@@ -15,5 +15,6 @@ data class PostCardDto(
         val authorAvatarUrl: String? = null,
         val publishedAt: String?,
         val tags: Set<String>?,
-        val viewsCount: Long?
+        val viewsCount: Long?,
+        val liked: Boolean? = null
 )

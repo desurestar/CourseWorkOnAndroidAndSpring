@@ -76,12 +76,13 @@ class PostViewModel @Inject constructor(
             val res = repository.getPublishedPosts(filters = params.normalizedFilters)
             if (res.isSuccess) {
                 val page = res.getOrDefault(PaginatedResult(emptyList(), null))
+                val mergedLikedIds = likedIds + page.items.filter { it.liked }.map { it.id }.toSet()
                 _uiState.value = PostsUiState(
                     isLoading = false,
                     isAppending = false,
                     posts = page.items,
                     nextPage = page.nextPage,
-                    likedIds = likedIds,
+                    likedIds = mergedLikedIds,
                     drafts = drafts,
                     offline = false
                 )
@@ -90,13 +91,14 @@ class PostViewModel @Inject constructor(
                     is OfflineCacheException -> ex.cached
                     else -> if (cachedFiltered.isNotEmpty()) cachedFiltered else repository.getCachedPosts()
                 }
+                val mergedLikedIds = likedIds + cachedFallback.filter { it.liked }.map { it.id }.toSet()
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     isAppending = false,
                     posts = if (params.skipTypeFilters) cachedFallback else PostFilters.filter(cachedFallback, params.normalizedFilters, params.targetType),
                     nextPage = null,
                     error = res.exceptionOrNull()?.message ?: "Unknown",
-                    likedIds = likedIds,
+                    likedIds = mergedLikedIds,
                     drafts = drafts,
                     offline = true
                 )
@@ -121,10 +123,12 @@ class PostViewModel @Inject constructor(
             if (res.isSuccess) {
                 val page = res.getOrDefault(PaginatedResult(emptyList(), null))
                 _uiState.update { current ->
+                    val mergedLikedIds = current.likedIds + page.items.filter { it.liked }.map { it.id }.toSet()
                     current.copy(
                         isAppending = false,
                         posts = current.posts + page.items,
-                        nextPage = page.nextPage
+                        nextPage = page.nextPage,
+                        likedIds = mergedLikedIds
                     )
                 }
             } else {
