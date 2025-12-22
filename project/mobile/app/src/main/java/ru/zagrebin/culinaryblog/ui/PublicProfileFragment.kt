@@ -100,7 +100,7 @@ class PublicProfileFragment : Fragment() {
     fun updateUser(userId: Long?, displayName: String?, subscribed: Boolean?) {
         val userChanged = this.userId != userId
         this.userId = userId
-        this.displayName = displayName ?: this.displayName
+        displayName?.let { this.displayName = it }
         subscribed?.let { this.subscribed = it }
         if (userChanged) {
             email = null
@@ -269,7 +269,7 @@ class PublicProfileFragment : Fragment() {
             result.onSuccess { profile ->
                 followersCount = profile.followersCount
                 followingCount = profile.followingCount
-                email = profile.email ?: profile.username
+                email = profile.email
                 avatarUrl = profile.avatarUrl
                 if (!profile.displayName.isNullOrBlank()) {
                     displayName = profile.displayName
