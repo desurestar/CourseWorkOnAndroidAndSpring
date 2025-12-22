@@ -161,11 +161,20 @@ class PostViewModel @Inject constructor(
         postType: String?,
         allowAnyType: Boolean
     ): LoadParams {
-        val skipTypeFilters = allowAnyType && postType == null && filters == null
+        val skipTypeFilters = shouldSkipTypeFiltering(allowAnyType, postType, filters)
         val resolvedPostType = if (skipTypeFilters) null else postType ?: DEFAULT_POST_TYPE
         val targetType = resolvedPostType ?: DEFAULT_POST_TYPE
-        val normalizedFilters = if (skipTypeFilters) null
-        else (filters ?: PostFilters(postType = targetType)).normalizedForType(targetType)
+        val normalizedFilters = if (skipTypeFilters) {
+            null
+        } else {
+            (filters ?: PostFilters(postType = targetType)).normalizedForType(targetType)
+        }
         return LoadParams(skipTypeFilters, normalizedFilters, targetType, resolvedPostType)
     }
+
+    private fun shouldSkipTypeFiltering(
+        allowAnyType: Boolean,
+        postType: String?,
+        filters: PostFilters?
+    ): Boolean = allowAnyType && postType == null && filters == null
 }
