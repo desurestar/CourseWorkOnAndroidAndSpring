@@ -122,6 +122,14 @@
             android:layout_marginTop="10dp"
             android:text="@string/profile_edit" />
 
+        <Button
+            android:id="@+id/buttonAdminPanel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="@string/profile_open_admin"
+            android:visibility="gone" />
+
         <LinearLayout
             android:id="@+id/profileCounters"
             android:layout_width="match_parent"

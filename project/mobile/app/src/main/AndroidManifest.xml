@@ -55,6 +55,11 @@
             android:exported="false"
             android:label="@string/app_name"
             android:theme="@style/Theme.CulinaryBlog" />
+        <activity
+            android:name=".ui.AdminActivity"
+            android:exported="false"
+            android:label="@string/admin_panel_title"
+            android:theme="@style/Theme.CulinaryBlog" />
     </application>
 
 </manifest>

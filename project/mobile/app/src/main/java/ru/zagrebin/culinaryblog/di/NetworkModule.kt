@@ -14,9 +14,11 @@ import ru.zagrebin.culinaryblog.BuildConfig
 import ru.zagrebin.culinaryblog.data.local.dao.DraftDao
 import ru.zagrebin.culinaryblog.data.local.dao.PostDao
 import ru.zagrebin.culinaryblog.data.local.dao.UserProfileDao
+import ru.zagrebin.culinaryblog.data.remote.api.AdminApi
 import ru.zagrebin.culinaryblog.data.remote.api.AuthApi
 import ru.zagrebin.culinaryblog.data.remote.api.PostApi
 import ru.zagrebin.culinaryblog.data.remote.api.UserApi
+import ru.zagrebin.culinaryblog.data.repository.AdminRepository
 import ru.zagrebin.culinaryblog.data.repository.ProfileRepository
 import ru.zagrebin.culinaryblog.data.repository.ProfileRepositoryImpl
 import ru.zagrebin.culinaryblog.data.repository.PostRepository
@@ -78,6 +80,10 @@ object NetworkModule {
     fun provideUserApi(retrofit: Retrofit): UserApi =
         retrofit.create(UserApi::class.java)
 
+    @Provides
+    fun provideAdminApi(retrofit: Retrofit): AdminApi =
+        retrofit.create(AdminApi::class.java)
+
 
     @Provides
     fun providePostApi(retrofit: Retrofit): PostApi =
@@ -103,4 +109,10 @@ object NetworkModule {
         userProfileDao: UserProfileDao,
         userApi: UserApi
     ): ProfileRepository = ProfileRepositoryImpl(authApi, postRepository, userProfileDao, userApi)
+
+    @Provides
+    @Singleton
+    fun provideAdminRepository(
+        adminApi: AdminApi
+    ): AdminRepository = AdminRepository(adminApi)
 }

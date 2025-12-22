@@ -53,6 +53,7 @@ import ru.zagrebin.culinaryblog.util.applyTagStyle
 import ru.zagrebin.culinaryblog.ui.DraftsFragment
 import javax.inject.Inject
 import kotlin.jvm.Volatile
+import ru.zagrebin.culinaryblog.ui.AdminActivity
 
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragment.Host, PublicProfileFragment.Host {
@@ -761,6 +762,10 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
 
     override fun onOpenUserProfile(userId: Long, displayName: String?, subscribed: Boolean?) {
         openPublicProfile(userId, displayName, subscribed)
+    }
+
+    override fun onOpenAdminPanel() {
+        startActivity(Intent(this, AdminActivity::class.java))
     }
 
     private fun restoreFeedTab() {

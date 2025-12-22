@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:padding="8dp"
+    android:gravity="center_vertical"
+    android:background="@drawable/bg_profile_posts_tab"
+    android:layout_marginBottom="6dp">
+
+    <View
+        android:id="@+id/adminTagColor"
+        android:layout_width="16dp"
+        android:layout_height="16dp"
+        android:layout_marginEnd="8dp"
+        android:background="@drawable/bg_avatar_placeholder" />
+
+    <TextView
+        android:id="@+id/adminTagName"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:textColor="@color/recipe_primary"
+        android:textStyle="bold" />
+
+    <Button
+        android:id="@+id/buttonDeleteTag"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/admin_delete" />
+</LinearLayout>

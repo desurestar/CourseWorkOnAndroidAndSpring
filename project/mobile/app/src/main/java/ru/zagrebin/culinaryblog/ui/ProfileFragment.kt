@@ -156,6 +156,9 @@ class ProfileFragment : Fragment() {
         binding.buttonFollowers.setOnClickListener { showFollowersDialog() }
         binding.buttonFollowing.setOnClickListener { showFollowingDialog() }
         binding.buttonLikes.setOnClickListener { showLikedPostsDialog() }
+        binding.buttonAdminPanel.setOnClickListener {
+            (activity as? Host)?.onOpenAdminPanel()
+        }
         setupInputs()
         renderFollowers(emptyList())
         renderFollowing(emptyList())
@@ -289,6 +292,7 @@ class ProfileFragment : Fragment() {
             user.id?.let { profileViewModel.loadRelations(it) }
             renderFollowers(profileViewModel.followers.value)
             renderFollowing(profileViewModel.following.value)
+            binding.buttonAdminPanel.isVisible = user.role?.equals("admin", ignoreCase = true) == true
         } else {
             renderUserStub()
             renderAvatar(null, binding.profileName.text?.toString())
@@ -297,6 +301,7 @@ class ProfileFragment : Fragment() {
             likesCount = 0
             renderFollowers(emptyList())
             renderFollowing(emptyList())
+            binding.buttonAdminPanel.isVisible = false
         }
         updateCounters()
     }
@@ -623,6 +628,7 @@ class ProfileFragment : Fragment() {
         fun onProfileRequiresAuth()
         fun onProfileLogout()
         fun onOpenUserProfile(userId: Long, displayName: String?, subscribed: Boolean?)
+        fun onOpenAdminPanel()
     }
 
     private fun openUser(user: UserProfile) {

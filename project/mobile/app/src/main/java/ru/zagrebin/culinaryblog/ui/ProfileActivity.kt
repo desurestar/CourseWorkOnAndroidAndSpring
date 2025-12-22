@@ -5,6 +5,7 @@ import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.commit
 import dagger.hilt.android.AndroidEntryPoint
+import ru.zagrebin.culinaryblog.ui.AdminActivity
 import ru.zagrebin.culinaryblog.AuthActivity
 import ru.zagrebin.culinaryblog.MainActivity
 import ru.zagrebin.culinaryblog.R
@@ -43,6 +44,10 @@ class ProfileActivity : AppCompatActivity(), ProfileFragment.Host {
                 .putExtra(MainActivity.EXTRA_TARGET_USER_NAME, displayName)
                 .putExtra(MainActivity.EXTRA_TARGET_USER_SUBSCRIBED, subscribed ?: false)
         )
+    }
+
+    override fun onOpenAdminPanel() {
+        startActivity(Intent(this, AdminActivity::class.java))
     }
 
     companion object {
