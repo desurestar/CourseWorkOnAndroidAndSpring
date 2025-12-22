@@ -79,6 +79,7 @@ class PublicProfileFragment : Fragment() {
         renderSubscription()
         renderCounters()
         observePosts()
+        postViewModel.loadAllPosts()
         loadUserProfile()
         loadSubscriptionStatus()
 

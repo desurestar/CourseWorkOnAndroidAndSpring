@@ -118,6 +118,7 @@ class ProfileFragment : Fragment() {
         observeRelations()
         renderUserStub()
         observePosts()
+        postViewModel.loadAllPosts()
     }
 
     override fun onResume() {

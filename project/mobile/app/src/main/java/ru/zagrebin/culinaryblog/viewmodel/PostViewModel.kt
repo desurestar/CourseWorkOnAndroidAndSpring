@@ -40,6 +40,64 @@ class PostViewModel @Inject constructor(
         loadPosts(postType = DEFAULT_POST_TYPE)
     }
 
+    fun loadAllPosts() {
+        activeFilters = null
+        activePostType = null
+        _uiState.value = _uiState.value.copy(
+            isLoading = true,
+            isAppending = false,
+            error = null,
+            nextPage = 1
+        )
+        viewModelScope.launch {
+            val likedIds = repository.getLikedPostIds().getOrDefault(emptySet())
+            val drafts = repository.getDrafts().getOrDefault(emptyList())
+            val cached = repository.getCachedPosts()
+            if (cached.isNotEmpty()) {
+                _uiState.value = _uiState.value.copy(
+                    posts = cached,
+                    likedIds = likedIds,
+                    drafts = drafts,
+                    offline = false
+                )
+            } else {
+                _uiState.value = _uiState.value.copy(
+                    likedIds = likedIds,
+                    drafts = drafts,
+                    offline = false
+                )
+            }
+            val res = repository.getPublishedPosts()
+            if (res.isSuccess) {
+                val page = res.getOrDefault(PaginatedResult(emptyList(), null))
+                _uiState.value = PostsUiState(
+                    isLoading = false,
+                    isAppending = false,
+                    posts = page.items,
+                    nextPage = page.nextPage,
+                    likedIds = likedIds,
+                    drafts = drafts,
+                    offline = false
+                )
+            } else {
+                val cachedFallback = when (val ex = res.exceptionOrNull()) {
+                    is OfflineCacheException -> ex.cached
+                    else -> cached
+                }
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    isAppending = false,
+                    posts = cachedFallback,
+                    nextPage = null,
+                    error = res.exceptionOrNull()?.message ?: "Unknown",
+                    likedIds = likedIds,
+                    drafts = drafts,
+                    offline = true
+                )
+            }
+        }
+    }
+
     fun loadPosts(filters: PostFilters? = activeFilters, postType: String? = activePostType) {
         val resolvedPostType = postType ?: DEFAULT_POST_TYPE
         val normalizedFilters = (filters ?: PostFilters(postType = resolvedPostType)).normalizedForType(resolvedPostType)
