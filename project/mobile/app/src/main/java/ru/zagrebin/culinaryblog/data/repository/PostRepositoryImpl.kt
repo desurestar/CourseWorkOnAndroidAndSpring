@@ -270,7 +270,7 @@ class PostRepositoryImpl @Inject constructor(
             }
         }
         return@withContext if (synced == 0 && lastError != null) {
-            Result.failure(lastError!!)
+            Result.failure(lastError)
         } else {
             Result.success(synced)
         }
