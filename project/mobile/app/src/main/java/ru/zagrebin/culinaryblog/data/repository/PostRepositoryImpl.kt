@@ -138,6 +138,9 @@ class PostRepositoryImpl @Inject constructor(
             val resp = api.createPost(request)
             if (resp.isSuccessful) {
                 val body = resp.body() ?: return@withContext Result.failure(RuntimeException("Empty body"))
+                if (request.status == DRAFT_STATUS) {
+                    draftDao.upsert(request.toDraftEntity(gson, draftId = body.id))
+                }
                 Result.success(body.toModel())
             } else {
                 Result.failure(RuntimeException("Server error: ${resp.code()}"))
@@ -290,4 +293,7 @@ class PostRepositoryImpl @Inject constructor(
         cookingTimeMinutes = card.cookingTimeMinutes
     )
 
+    companion object {
+        private const val DRAFT_STATUS = "draft"
+    }
 }
