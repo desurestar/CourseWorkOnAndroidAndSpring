@@ -269,10 +269,11 @@ class PostRepositoryImpl @Inject constructor(
                 lastError = e
             }
         }
-        return@withContext if (synced == 0 && lastError != null) {
-            Result.failure(lastError)
-        } else {
-            Result.success(synced)
+        val error = lastError
+        return@withContext when {
+            error == null -> Result.success(synced)
+            synced == 0 -> Result.failure(error)
+            else -> Result.failure(RuntimeException("Synced $synced drafts; some failed", error))
         }
     }
 
