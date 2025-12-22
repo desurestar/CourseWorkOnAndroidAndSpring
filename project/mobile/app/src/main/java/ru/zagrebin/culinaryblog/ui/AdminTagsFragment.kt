@@ -11,6 +11,7 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import androidx.core.content.ContextCompat
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
@@ -26,6 +27,7 @@ class AdminTagsFragment : Fragment() {
     private val binding get() = _binding!!
     private val viewModel: AdminTagsViewModel by viewModels()
     private var selectedColor: String? = null
+    private val defaultColorInt by lazy { ContextCompat.getColor(requireContext(), R.color.admin_tag_color_placeholder) }
     private val presetColors by lazy {
         listOf(
             ColorPreset("#F44336", R.string.admin_color_red),
@@ -127,9 +129,9 @@ class AdminTagsFragment : Fragment() {
 
     private fun parseColorOrDefault(raw: String?): Int {
         return try {
-            Color.parseColor(raw ?: DEFAULT_COLOR)
+            raw?.let { Color.parseColor(it) } ?: defaultColorInt
         } catch (e: Exception) {
-            Color.parseColor(DEFAULT_COLOR)
+            defaultColorInt
         }
     }
 
@@ -139,8 +141,4 @@ class AdminTagsFragment : Fragment() {
     }
 
     private data class ColorPreset(val hex: String, val labelRes: Int)
-
-    companion object {
-        private const val DEFAULT_COLOR = "#DDDDDD"
-    }
 }
