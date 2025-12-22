@@ -13,9 +13,9 @@
         android:icon="@drawable/ic_nav_create"
         android:title="@string/nav_create" />
     <item
-        android:id="@+id/menu_messenger"
-        android:icon="@drawable/ic_nav_messenger"
-        android:title="@string/nav_messenger" />
+        android:id="@+id/menu_drafts"
+        android:icon="@drawable/ic_nav_drafts"
+        android:title="@string/nav_drafts" />
     <item
         android:id="@+id/menu_profile"
         android:icon="@drawable/ic_nav_profile"

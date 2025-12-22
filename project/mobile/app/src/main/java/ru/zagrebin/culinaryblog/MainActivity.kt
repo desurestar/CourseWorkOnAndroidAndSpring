@@ -46,6 +46,7 @@ import ru.zagrebin.culinaryblog.data.repository.OFFLINE_LIKE_CACHED
 import ru.zagrebin.culinaryblog.data.repository.OFFLINE_UNLIKE_CACHED
 import ru.zagrebin.culinaryblog.util.renderAvatar
 import ru.zagrebin.culinaryblog.util.applyInfoStyle
+import ru.zagrebin.culinaryblog.ui.DraftsFragment
 import javax.inject.Inject
 import kotlin.jvm.Volatile
 
@@ -143,7 +144,7 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
         }
 
         binding.bottomNavigation.setOnItemSelectedListener { item ->
-            if ((item.itemId == R.id.menu_create || item.itemId == R.id.menu_profile) &&
+            if ((item.itemId == R.id.menu_create || item.itemId == R.id.menu_profile || item.itemId == R.id.menu_drafts) &&
                 tokenStorage.getToken().isNullOrBlank()
             ) {
                 startActivity(Intent(this, AuthActivity::class.java))
@@ -155,6 +156,7 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
         val initialTab = intent.getStringExtra(EXTRA_TARGET_TAB)
         binding.bottomNavigation.selectedItemId = when (initialTab) {
             EXTRA_TAB_ARTICLES -> R.id.menu_articles
+            EXTRA_TAB_DRAFTS -> R.id.menu_drafts
             else -> DEFAULT_TAB_ID
         }
         applySelection(binding.bottomNavigation.selectedItemId)
@@ -193,6 +195,7 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
             R.id.menu_articles -> ContentTab.ARTICLES
             R.id.menu_create -> ContentTab.CREATE
             R.id.menu_profile -> ContentTab.PROFILE
+            R.id.menu_drafts -> ContentTab.DRAFTS
             else -> ContentTab.OTHER
         }
 
@@ -218,6 +221,10 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
                 showFragment(CREATE_TAG) { CreatePostFragment.newInstance() }
             }
 
+            ContentTab.DRAFTS -> {
+                showFragment(DRAFTS_TAG) { DraftsFragment() }
+            }
+
             ContentTab.PROFILE -> {
                 showFragment(PROFILE_TAG) { ProfileFragment() }
             }
@@ -231,10 +238,7 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
                 binding.swipeRefresh.isRefreshing = false
                 binding.buttonScrollTop.isVisible = false
                 binding.feedTitle.isVisible = false
-                binding.stubText.text = when (itemId) {
-                    R.id.menu_messenger -> getString(R.string.messenger_stub_message)
-                    else -> getString(R.string.view_stub_message)
-                }
+                binding.stubText.text = getString(R.string.view_stub_message)
             }
         }
         updateBackPressedHandling()
@@ -433,7 +437,7 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
     private fun showFragment(tag: String, provider: () -> Fragment) {
         val transaction = supportFragmentManager.beginTransaction()
         supportFragmentManager.fragments
-            .filter { it.tag == CREATE_TAG || it.tag == PROFILE_TAG || it.tag == PUBLIC_PROFILE_TAG }
+            .filter { it.tag == CREATE_TAG || it.tag == PROFILE_TAG || it.tag == PUBLIC_PROFILE_TAG || it.tag == DRAFTS_TAG }
             .forEach { transaction.hide(it) }
         val fragment = supportFragmentManager.findFragmentByTag(tag) ?: provider()
         if (fragment.isAdded) {
@@ -453,7 +457,7 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
 
     private fun hideFragments() {
         val transaction = supportFragmentManager.beginTransaction()
-        val targets = supportFragmentManager.fragments.filter { it.tag == CREATE_TAG || it.tag == PROFILE_TAG || it.tag == PUBLIC_PROFILE_TAG }
+        val targets = supportFragmentManager.fragments.filter { it.tag == CREATE_TAG || it.tag == PROFILE_TAG || it.tag == PUBLIC_PROFILE_TAG || it.tag == DRAFTS_TAG }
         targets.forEach { transaction.hide(it) }
         if (targets.isNotEmpty()) transaction.commit()
     }
@@ -528,6 +532,7 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
         ARTICLES,
         CREATE,
         PROFILE,
+        DRAFTS,
         OTHER
     }
 
@@ -640,10 +645,12 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
         private const val CREATE_TAG = "create_tab_fragment"
         private const val PROFILE_TAG = "profile_tab_fragment"
         private const val PUBLIC_PROFILE_TAG = "public_profile_fragment"
+        private const val DRAFTS_TAG = "drafts_tab_fragment"
         private val DEFAULT_TAB_ID = R.id.menu_recipes
         const val EXTRA_TARGET_TAB = "extra_target_tab"
         const val EXTRA_TAB_RECIPES = "tab_recipes"
         const val EXTRA_TAB_ARTICLES = "tab_articles"
+        const val EXTRA_TAB_DRAFTS = "tab_drafts"
         const val EXTRA_TARGET_USER_ID = "extra_target_user_id"
         const val EXTRA_TARGET_USER_NAME = "extra_target_user_name"
         const val EXTRA_TARGET_USER_SUBSCRIBED = "extra_target_user_subscribed"

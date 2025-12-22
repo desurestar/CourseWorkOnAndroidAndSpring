@@ -7,13 +7,14 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
-import android.util.Log
+
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.core.view.isVisible
@@ -25,7 +26,6 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import coil.load
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import com.google.android.material.tabs.TabLayout
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collectLatest
@@ -42,7 +42,6 @@ import ru.zagrebin.culinaryblog.databinding.ActivityProfileBinding
 import ru.zagrebin.culinaryblog.databinding.DialogEditProfileBinding
 import ru.zagrebin.culinaryblog.formatDisplayDate
 import ru.zagrebin.culinaryblog.model.PostCard
-import ru.zagrebin.culinaryblog.model.PostDraft
 import ru.zagrebin.culinaryblog.model.UserProfile
 import ru.zagrebin.culinaryblog.ui.buildUserListDialog
 import ru.zagrebin.culinaryblog.viewmodel.PostViewModel
@@ -52,8 +51,6 @@ import ru.zagrebin.culinaryblog.viewmodel.ProfileViewModel
 
 @AndroidEntryPoint
 class ProfileFragment : Fragment() {
-
-    private enum class PostsSubTab { PUBLISHED, DRAFTS }
 
     private var _binding: ActivityProfileBinding? = null
     private val binding get() = _binding!!
@@ -65,7 +62,6 @@ class ProfileFragment : Fragment() {
     private var pendingAvatarUri: Uri? = null
     private var followersCount: Int = 0
     private var followingCount: Int = 0
-    private var postsSubTab: PostsSubTab = PostsSubTab.PUBLISHED
     private val pickAvatarLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         if (uri != null) {
             pendingAvatarUri = uri
@@ -113,8 +109,6 @@ class ProfileFragment : Fragment() {
         } else {
             setupBottomNavigation()
         }
-        setupTabs()
-        setupPostsSubTabs()
         setupActions()
         setEditingVisible(false)
         observeProfile()
@@ -139,39 +133,6 @@ class ProfileFragment : Fragment() {
         _binding = null
     }
 
-    private fun setupTabs() {
-        val tabs = binding.profileTabs
-        tabs.addTab(tabs.newTab().setText(R.string.profile_followers))
-        tabs.addTab(tabs.newTab().setText(R.string.profile_following))
-        tabs.addTab(tabs.newTab().setText(R.string.profile_liked))
-
-        tabs.getTabAt(FOLLOWERS_TAB_POSITION)?.select()
-        showSection(FOLLOWERS_TAB_POSITION, showDialog = false)
-
-        tabs.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
-            override fun onTabSelected(tab: TabLayout.Tab) {
-                showSection(tab.position)
-            }
-
-            override fun onTabUnselected(tab: TabLayout.Tab) {}
-            override fun onTabReselected(tab: TabLayout.Tab) {}
-        })
-    }
-
-    private fun setupPostsSubTabs() {
-        selectPostsSubTab(postsSubTab)
-        binding.buttonPostsPublished.setOnClickListener { selectPostsSubTab(PostsSubTab.PUBLISHED) }
-        binding.buttonPostsDrafts.setOnClickListener { selectPostsSubTab(PostsSubTab.DRAFTS) }
-    }
-
-    private fun selectPostsSubTab(target: PostsSubTab) {
-        postsSubTab = target
-        binding.buttonPostsPublished.isSelected = target == PostsSubTab.PUBLISHED
-        binding.buttonPostsDrafts.isSelected = target == PostsSubTab.DRAFTS
-        updatePostsSectionsVisibility()
-        renderPosts(postViewModel.uiState.value)
-    }
-
     private fun setupActions() {
         binding.buttonLogout.setOnClickListener {
             tokenStorage.clearToken()
@@ -187,6 +148,8 @@ class ProfileFragment : Fragment() {
         binding.buttonEditProfile.setOnClickListener {
             showEditProfileDialog()
         }
+        binding.buttonFollowers.setOnClickListener { showFollowersDialog() }
+        binding.buttonFollowing.setOnClickListener { showFollowingDialog() }
         setupInputs()
         renderFollowers(emptyList())
         renderFollowing(emptyList())
@@ -328,6 +291,7 @@ class ProfileFragment : Fragment() {
             renderFollowers(emptyList())
             renderFollowing(emptyList())
         }
+        updateFollowCounters()
     }
 
     private fun renderAvatar(avatarUrl: String?, title: String?) {
@@ -462,11 +426,8 @@ class ProfileFragment : Fragment() {
 
     private fun renderPosts(state: PostsUiState) {
         val posts = filterCurrentUserPosts(state)
-        val liked = state.posts.filter { state.likedIds.contains(it.id) }
         renderPostList(binding.postsList, posts, ::openPost)
-        renderPostList(binding.likedList, liked, ::openPost)
-        renderDraftList(binding.draftsList, state.drafts)
-        updatePostsEmptyState(posts, state)
+        binding.profileEmpty.isVisible = posts.isEmpty()
     }
 
     private fun renderPostList(container: LinearLayout, posts: List<PostCard>, onClick: (PostCard) -> Unit) {
@@ -474,14 +435,6 @@ class ProfileFragment : Fragment() {
         if (posts.isEmpty()) return
         posts.forEach { post ->
             addMiniPostView(container, post) { onClick(post) }
-        }
-    }
-
-    private fun renderDraftList(container: LinearLayout, drafts: List<PostDraft>) {
-        container.removeAllViews()
-        if (drafts.isEmpty()) return
-        drafts.forEach { draft ->
-            addMiniPostView(container, draft.toCard()) { openDraft(draft) }
         }
     }
 
@@ -512,11 +465,16 @@ class ProfileFragment : Fragment() {
     }
 
     private fun renderFollowers(users: List<UserProfile>) {
-        renderUserList(binding.followersList, users, followersCount, getString(R.string.profile_followers))
+        updateFollowCounters()
     }
 
     private fun renderFollowing(users: List<UserProfile>) {
-        renderUserList(binding.followingList, users, followingCount, getString(R.string.profile_following))
+        updateFollowCounters()
+    }
+
+    private fun updateFollowCounters() {
+        binding.followersCount.text = followersCount.toString()
+        binding.followingCount.text = followingCount.toString()
     }
 
     private fun renderUserList(container: LinearLayout, users: List<UserProfile>, count: Int, meta: String) {
@@ -544,36 +502,10 @@ class ProfileFragment : Fragment() {
         }
     }
 
-    private fun showSection(position: Int, showDialog: Boolean = true) {
-        val isFollowersTab = position == FOLLOWERS_TAB_POSITION
-        val isFollowingTab = position == FOLLOWING_TAB_POSITION
-        binding.sectionFollowers.isVisible = isFollowersTab
-        binding.sectionFollowing.isVisible = isFollowingTab
-        binding.sectionLiked.isVisible = position == LIKED_TAB_POSITION
-        if (showDialog) {
-            when (position) {
-                FOLLOWERS_TAB_POSITION -> showFollowersDialog()
-                FOLLOWING_TAB_POSITION -> showFollowingDialog()
-            }
-        }
-    }
-
-    private fun updatePostsSectionsVisibility() {
-        binding.postsList.isVisible = postsSubTab == PostsSubTab.PUBLISHED
-        binding.sectionDrafts.isVisible = postsSubTab == PostsSubTab.DRAFTS
-    }
-
     private fun filterCurrentUserPosts(state: PostsUiState): List<PostCard> {
         val currentUserId = profileViewModel.uiState.value.user?.id
         return state.posts.filter { post ->
             currentUserId?.let { post.authorId == it } ?: true
-        }
-    }
-
-    private fun updatePostsEmptyState(posts: List<PostCard>, state: PostsUiState) {
-        binding.profileEmpty.isVisible = when (postsSubTab) {
-            PostsSubTab.PUBLISHED -> posts.isEmpty()
-            PostsSubTab.DRAFTS -> state.drafts.isEmpty()
         }
     }
 
@@ -588,13 +520,6 @@ class ProfileFragment : Fragment() {
     private fun openPost(post: PostCard) {
         val intent = Intent(requireContext(), PostDetailActivity::class.java)
         intent.putExtra(PostDetailActivity.EXTRA_POST, post)
-        startActivity(intent)
-    }
-
-    private fun openDraft(draft: PostDraft) {
-        val intent = Intent(requireContext(), CreatePostActivity::class.java)
-            .putExtra(CreatePostActivity.EXTRA_DRAFT_ID, draft.id)
-            .putExtra(CreatePostActivity.EXTRA_AUTHOR_ID, draft.request.authorId)
         startActivity(intent)
     }
 
@@ -620,6 +545,15 @@ class ProfileFragment : Fragment() {
                     true
                 }
 
+                R.id.menu_drafts -> {
+                    startActivity(
+                        Intent(requireContext(), MainActivity::class.java)
+                            .putExtra(MainActivity.EXTRA_TARGET_TAB, MainActivity.EXTRA_TAB_DRAFTS)
+                    )
+                    activity?.finish()
+                    true
+                }
+
                 R.id.menu_create -> {
                     startActivity(Intent(requireContext(), CreatePostActivity::class.java))
                     activity?.finish()
@@ -639,10 +573,6 @@ class ProfileFragment : Fragment() {
         private const val CROP_ASPECT = 1
         private const val CROP_OUTPUT = 512
         private const val JPEG_QUALITY = 90
-        // Tab order: followers (0), following (1), liked (2)
-        private const val FOLLOWERS_TAB_POSITION = 0
-        private const val FOLLOWING_TAB_POSITION = 1
-        private const val LIKED_TAB_POSITION = 2
     }
 
     interface Host {
