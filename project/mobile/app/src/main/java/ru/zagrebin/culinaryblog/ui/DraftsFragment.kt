@@ -20,7 +20,6 @@ import kotlinx.coroutines.launch
 import ru.zagrebin.culinaryblog.R
 import ru.zagrebin.culinaryblog.databinding.FragmentDraftsBinding
 import ru.zagrebin.culinaryblog.model.PostDraft
-import ru.zagrebin.culinaryblog.ui.CreatePostActivity
 import ru.zagrebin.culinaryblog.viewmodel.PostViewModel
 
 @AndroidEntryPoint
@@ -42,7 +41,6 @@ class DraftsFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         observeDrafts()
-        postViewModel.refreshDrafts()
     }
 
     override fun onResume() {

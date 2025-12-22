@@ -7,13 +7,14 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.util.Log
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
+
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.core.view.isVisible
@@ -464,12 +465,10 @@ class ProfileFragment : Fragment() {
     }
 
     private fun renderFollowers(users: List<UserProfile>) {
-        followersCount = max(followersCount, users.size)
         updateFollowCounters()
     }
 
     private fun renderFollowing(users: List<UserProfile>) {
-        followingCount = max(followingCount, users.size)
         updateFollowCounters()
     }
 

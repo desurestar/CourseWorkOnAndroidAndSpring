@@ -20,7 +20,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:text="@string/profile_empty"
+        android:text="@string/drafts_stub_message"
         android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
         android:textColor="@color/text_caption"
         android:visibility="gone" />
