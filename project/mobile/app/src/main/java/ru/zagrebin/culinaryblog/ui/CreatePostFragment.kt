@@ -11,8 +11,9 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
 import android.widget.ArrayAdapter
-import android.widget.Toast
 import android.widget.RadioButton
+import android.widget.Toast
+
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.core.view.isVisible
@@ -21,6 +22,7 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+
 import coil.load
 import com.google.android.material.chip.Chip
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -28,6 +30,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+
 import ru.zagrebin.culinaryblog.AuthActivity
 import ru.zagrebin.culinaryblog.MainActivity
 import ru.zagrebin.culinaryblog.R
@@ -62,7 +65,7 @@ class CreatePostFragment : Fragment() {
     @Inject lateinit var tokenStorage: TokenStorage
 
     private val ingredientRows = mutableListOf<ItemIngredientRowBinding>()
-    private val ingredientSelection = mutableMapOf<ItemIngredientRowBinding, PostIngredientRequest>()
+    private val ingredientRequestMap = mutableMapOf<ItemIngredientRowBinding, PostIngredientRequest>()
     private val stepRows = mutableListOf<ItemStepRowBinding>()
     private val selectedTags = mutableSetOf<Long>()
     private var lastShownDraftKey: Pair<Long, Long>? = null
@@ -168,7 +171,7 @@ class CreatePostFragment : Fragment() {
         super.onDestroyView()
         _binding = null
         ingredientRows.clear()
-        ingredientSelection.clear()
+        ingredientRequestMap.clear()
         stepRows.clear()
         selectedTags.clear()
         tagDialog?.dismiss()
@@ -413,7 +416,7 @@ class CreatePostFragment : Fragment() {
 
     private fun renderIngredientAdapters() {
         ingredientRows.forEach { row ->
-            ingredientSelection[row]?.let { renderIngredientRow(row, it) }
+            ingredientRequestMap[row]?.let { renderIngredientRow(row, it) }
         }
         renderIngredientDialogList()
     }
@@ -436,7 +439,7 @@ class CreatePostFragment : Fragment() {
         group.removeAllViews()
         if (ingredients.isEmpty()) {
             val placeholder = android.widget.TextView(requireContext()).apply {
-                text = getString(R.string.create_loading_ingredients)
+                text = getString(R.string.create_ingredients_empty)
             }
             group.addView(placeholder)
             dialogBinding.textSelectedIngredient.text = getString(R.string.create_selected_ingredient)
@@ -474,17 +477,23 @@ class CreatePostFragment : Fragment() {
 
     private fun formatAmount(value: Double?): String = value?.let { amountFormatter.format(it) } ?: ""
 
-    private fun addIngredientRow(prefill: PostIngredientRequest, renderAdapters: Boolean = true) {
+    private fun isValidAmount(amount: Double?): Boolean = amount != null && amount >= MIN_POSITIVE_AMOUNT
+
+    private fun addIngredientRow(prefill: PostIngredientRequest? = null, renderAdapters: Boolean = true) {
+        val ingredientData = prefill ?: run {
+            showIngredientDialog()
+            return
+        }
         val rowBinding = ItemIngredientRowBinding.inflate(layoutInflater, binding.ingredientsContainer, false)
         rowBinding.buttonRemoveIngredient.setOnClickListener {
             binding.ingredientsContainer.removeView(rowBinding.root)
             ingredientRows.remove(rowBinding)
-            ingredientSelection.remove(rowBinding)
+            ingredientRequestMap.remove(rowBinding)
         }
         ingredientRows.add(rowBinding)
         binding.ingredientsContainer.addView(rowBinding.root)
-        ingredientSelection[rowBinding] = prefill
-        renderIngredientRow(rowBinding, prefill)
+        ingredientRequestMap[rowBinding] = ingredientData
+        renderIngredientRow(rowBinding, ingredientData)
         if (renderAdapters) renderIngredientAdapters()
     }
 
@@ -509,12 +518,13 @@ class CreatePostFragment : Fragment() {
         }
         dialogBinding.buttonAddIngredientDialog.setOnClickListener {
             val selectedId = ingredientDialogSelectedId
-            val amount = dialogBinding.inputDialogAmount.text.toString().trim().toDoubleOrNull()
+            val amountValue = dialogBinding.inputDialogAmount.text.toString().trim().toDoubleOrNull()
             val unit = dialogBinding.inputDialogUnit.text.toString().trim().ifBlank { null }
-            if (selectedId == null || amount == null || amount < MIN_POSITIVE_AMOUNT) {
+            if (selectedId == null || !isValidAmount(amountValue)) {
                 Toast.makeText(requireContext(), R.string.create_ingredient_error, Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
+            val amount = amountValue ?: return@setOnClickListener
             addIngredientRow(
                 PostIngredientRequest(
                     ingredientId = selectedId,
@@ -588,7 +598,7 @@ class CreatePostFragment : Fragment() {
             if (stepRows.isEmpty()) addStepRow()
         } else {
             ingredientRows.clear()
-            ingredientSelection.clear()
+            ingredientRequestMap.clear()
             stepRows.clear()
             binding.ingredientsContainer.removeAllViews()
             binding.stepsContainer.removeAllViews()
@@ -647,7 +657,7 @@ class CreatePostFragment : Fragment() {
         renderTags()
 
         ingredientRows.clear()
-        ingredientSelection.clear()
+        ingredientRequestMap.clear()
         binding.ingredientsContainer.removeAllViews()
         ingredients.forEach { addIngredientRow(it, renderAdapters = false) }
         renderIngredientAdapters()
@@ -680,7 +690,7 @@ class CreatePostFragment : Fragment() {
     }
 
     private fun applyPost(post: PostFull) {
-        val ingredientRequests = post.ingredients.map {
+        val ingredientRequestList = post.ingredients.map {
             PostIngredientRequest(
                 ingredientId = it.ingredientId,
                 quantityValue = it.quantityValue,
@@ -705,7 +715,7 @@ class CreatePostFragment : Fragment() {
             cookingTimeMinutes = post.cookingTimeMinutes,
             calories = post.calories,
             tagIds = post.tags.map { it.id },
-            ingredients = ingredientRequests,
+            ingredients = ingredientRequestList,
             steps = stepRequests
         )
     }
@@ -797,17 +807,17 @@ class CreatePostFragment : Fragment() {
         val status = if (forceDraftStatus) STATUS_DRAFT else statusValues.getOrNull(binding.statusSpinner.selectedItemPosition) ?: STATUS_DRAFT
         val isRecipe = selectedPostType == POST_TYPE_RECIPE
 
-        val ingredientRequests = if (isRecipe) {
-            val list = ingredientRows.mapNotNull { ingredientSelection[it] }
-            val invalidAmount = list.any { it.quantityValue == null || it.quantityValue < MIN_POSITIVE_AMOUNT }
-            val hasIngredients = ingredientRows.isNotEmpty()
+        val ingredientRequestsResult = if (isRecipe) {
+            val list = ingredientRows.mapNotNull { ingredientRequestMap[it] }
+            val validIngredients = list.filter { isValidAmount(it.quantityValue) }
+            val hasValidIngredients = validIngredients.isNotEmpty()
 
-            if (status != STATUS_DRAFT && (invalidAmount || !hasIngredients)) {
+            if (status != STATUS_DRAFT && !hasValidIngredients) {
                 binding.textError.isVisible = true
                 binding.textError.text = getString(R.string.create_ingredient_error)
                 return null
             }
-            list.filter { it.quantityValue != null && it.quantityValue >= MIN_POSITIVE_AMOUNT }
+            validIngredients
         } else {
             emptyList()
         }
@@ -842,7 +852,7 @@ class CreatePostFragment : Fragment() {
             calories = binding.inputCalories.text.toString().trim().toIntOrNull(),
             authorId = viewModel.authorId,
             tagIds = selectedTags.toList(),
-            ingredients = ingredientRequests,
+            ingredients = ingredientRequestsResult,
             steps = stepRequests
         )
         binding.textError.isVisible = false
