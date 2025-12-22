@@ -189,6 +189,16 @@
                 android:layout_marginTop="10dp"
                 android:orientation="vertical">
 
+                <TextView
+                    android:id="@+id/publicPostsTitle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/profile_posts"
+                    android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1"
+                    android:textColor="@color/recipe_primary"
+                    android:textStyle="bold"
+                    android:paddingBottom="8dp" />
+
                 <LinearLayout
                     android:id="@+id/publicPostsList"
                     android:layout_width="match_parent"

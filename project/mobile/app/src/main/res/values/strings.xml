@@ -124,7 +124,10 @@
     <string name="profile_followers">Подписчики</string>
     <string name="profile_following">Подписки</string>
     <string name="profile_posts">Посты</string>
+    <string name="profile_posts_with_count">Посты (%1$d)</string>
+    <string name="profile_posts_empty">Публикаций нет</string>
     <string name="profile_liked">Понравившиеся</string>
+    <string name="profile_likes">Лайки</string>
     <string name="profile_drafts">Черновики</string>
     <string name="profile_tab_published">Опубликованные</string>
     <string name="profile_logout">Выйти</string>
