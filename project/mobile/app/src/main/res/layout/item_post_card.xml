@@ -139,35 +139,59 @@
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 
-                <TextView
-                    android:id="@+id/cookingTime"
+                <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginEnd="8dp"
-                    android:drawablePadding="@dimen/create_horizontal_space"
-                    android:drawableStart="@drawable/ic_time_outline"
-                    android:drawableTint="@color/recipe_primary"
-                    android:ellipsize="end"
-                    android:maxLines="1"
-                    android:text="@string/cooking_time_placeholder"
-                    android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
-                    android:textColor="@color/recipe_primary"
-                    android:gravity="center_vertical"/>
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
 
-                <TextView
-                    android:id="@+id/calories"
+                    <ImageView
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:contentDescription="@null"
+                        app:srcCompat="@drawable/ic_time_outline"
+                        app:tint="@color/recipe_primary" />
+
+                    <TextView
+                        android:id="@+id/cookingTime"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="@dimen/create_horizontal_space"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:text="@string/cooking_time_placeholder"
+                        android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
+                        android:textColor="@color/recipe_primary"
+                        android:gravity="center_vertical" />
+                </LinearLayout>
+
+                <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginEnd="8dp"
-                    android:drawablePadding="@dimen/create_horizontal_space"
-                    android:drawableStart="@drawable/ic_fire"
-                    android:drawableTint="@color/recipe_primary"
-                    android:ellipsize="end"
-                    android:maxLines="1"
-                    android:text="@string/calories_placeholder"
-                    android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
-                    android:textColor="@color/recipe_primary"
-                    android:gravity="center_vertical"/>
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <ImageView
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:contentDescription="@null"
+                        app:srcCompat="@drawable/ic_fire"
+                        app:tint="@color/recipe_primary" />
+
+                    <TextView
+                        android:id="@+id/calories"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="@dimen/create_horizontal_space"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:text="@string/calories_placeholder"
+                        android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
+                        android:textColor="@color/recipe_primary"
+                        android:gravity="center_vertical" />
+                </LinearLayout>
             </LinearLayout>
 
             <LinearLayout
@@ -177,34 +201,58 @@
                 android:gravity="end|center_vertical"
                 android:orientation="horizontal">
 
-                <TextView
-                    android:id="@+id/viewsText"
+                <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:drawablePadding="@dimen/create_horizontal_space"
-                    android:drawableStart="@drawable/ic_visibility"
-                    android:drawableTint="@color/recipe_primary"
-                    android:ellipsize="end"
-                    android:maxLines="1"
-                    android:text="@string/views_placeholder"
-                    android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
-                    android:textColor="@color/text_muted"
-                    android:gravity="center_vertical"/>
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
 
-                <TextView
-                    android:id="@+id/likesText"
+                    <ImageView
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:contentDescription="@null"
+                        app:srcCompat="@drawable/ic_visibility"
+                        app:tint="@color/recipe_primary" />
+
+                    <TextView
+                        android:id="@+id/viewsText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="@dimen/create_horizontal_space"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:text="@string/views_placeholder"
+                        android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
+                        android:textColor="@color/text_muted"
+                        android:gravity="center_vertical" />
+                </LinearLayout>
+
+                <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="8dp"
-                    android:drawablePadding="@dimen/create_horizontal_space"
-                    android:drawableStart="@drawable/ic_favorite_border"
-                    android:drawableTint="@color/recipe_primary"
-                    android:ellipsize="end"
-                    android:maxLines="1"
-                    android:text="@string/likes_placeholder"
-                    android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
-                    android:textColor="@color/text_muted"
-                    android:gravity="center_vertical"/>
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <ImageView
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:contentDescription="@null"
+                        app:srcCompat="@drawable/ic_favorite_border"
+                        app:tint="@color/recipe_primary" />
+
+                    <TextView
+                        android:id="@+id/likesText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="@dimen/create_horizontal_space"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:text="@string/likes_placeholder"
+                        android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
+                        android:textColor="@color/text_muted"
+                        android:gravity="center_vertical" />
+                </LinearLayout>
             </LinearLayout>
         </LinearLayout>
     </LinearLayout>
