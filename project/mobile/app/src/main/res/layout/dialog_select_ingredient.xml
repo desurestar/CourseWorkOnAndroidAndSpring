@@ -35,7 +35,7 @@
 
     <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="300dp"
+        android:layout_height="@dimen/ingredient_dialog_list_height"
         android:layout_marginTop="8dp"
         android:scrollbars="vertical">
 
