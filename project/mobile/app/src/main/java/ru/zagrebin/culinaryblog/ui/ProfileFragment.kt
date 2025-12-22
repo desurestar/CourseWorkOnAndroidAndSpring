@@ -32,6 +32,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import android.util.Log
 import kotlin.math.max
+import ru.zagrebin.culinaryblog.databinding.DialogEditProfileBinding
 import ru.zagrebin.culinaryblog.AuthActivity
 import ru.zagrebin.culinaryblog.MainActivity
 import ru.zagrebin.culinaryblog.R
@@ -191,28 +192,32 @@ class ProfileFragment : Fragment() {
 
     private fun showEditProfileDialog() {
         if (editDialog?.isShowing == true) return
-        val editSection = binding.editSection
-        val parent = editSection.parent as? ViewGroup ?: return
-        val index = parent.indexOfChild(editSection)
-        val originalLayoutParams = editSection.layoutParams
-        parent.removeView(editSection)
-        setEditingVisible(true)
+        val dialogBinding = DialogEditProfileBinding.inflate(layoutInflater)
+        dialogBinding.editDisplayName.setText(profileViewModel.displayName.value)
+        dialogBinding.editUsername.setText(profileViewModel.username.value)
+        dialogBinding.editEmail.setText(profileViewModel.email.value)
+        dialogBinding.buttonChangeAvatar.setOnClickListener {
+            pickAvatarLauncher.launch("image/*")
+        }
+        dialogBinding.buttonSaveProfile.setOnClickListener {
+            profileViewModel.displayName.value = dialogBinding.editDisplayName.text?.toString().orEmpty()
+            profileViewModel.username.value = dialogBinding.editUsername.text?.toString().orEmpty()
+            profileViewModel.email.value = dialogBinding.editEmail.text?.toString().orEmpty()
+            profileViewModel.saveProfile()
+            editDialog?.dismiss()
+        }
         editDialog = MaterialAlertDialogBuilder(requireContext())
             .setTitle(R.string.profile_edit)
-            .setView(editSection)
+            .setView(dialogBinding.root)
             .setNegativeButton(R.string.comments_cancel_reply) { dialog, _ ->
                 dialog.dismiss()
             }
             .setOnDismissListener {
-                (editSection.parent as? ViewGroup)?.removeView(editSection)
-                editSection.layoutParams = originalLayoutParams
-                parent.addView(editSection, index)
-                setEditingVisible(false)
                 editDialog = null
             }
             .create().also { dialog ->
                 dialog.show()
-                binding.editDisplayName.requestFocus()
+                dialogBinding.editDisplayName.requestFocus()
             }
     }
 
