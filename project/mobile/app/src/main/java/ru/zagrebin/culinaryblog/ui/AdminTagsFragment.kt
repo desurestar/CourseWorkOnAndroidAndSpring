@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.annotation.ColorRes
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -27,19 +28,8 @@ class AdminTagsFragment : Fragment() {
     private val binding get() = _binding!!
     private val viewModel: AdminTagsViewModel by viewModels()
     private var selectedColor: String? = null
-    private val defaultColorInt by lazy { ContextCompat.getColor(requireContext(), R.color.admin_tag_color_placeholder) }
-    private val presetColors by lazy {
-        listOf(
-            ColorPreset("#F44336", R.string.admin_color_red),
-            ColorPreset("#FF9800", R.string.admin_color_orange),
-            ColorPreset("#FFEB3B", R.string.admin_color_yellow),
-            ColorPreset("#4CAF50", R.string.admin_color_green),
-            ColorPreset("#009688", R.string.admin_color_teal),
-            ColorPreset("#2196F3", R.string.admin_color_blue),
-            ColorPreset("#9C27B0", R.string.admin_color_purple),
-            ColorPreset("#9E9E9E", R.string.admin_color_gray)
-        )
-    }
+    private var defaultColorInt: Int = Color.parseColor("#DDDDDD")
+    private var presetColors: List<ColorPreset> = emptyList()
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -52,6 +42,8 @@ class AdminTagsFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        defaultColorInt = ContextCompat.getColor(requireContext(), R.color.admin_tag_color_placeholder)
+        presetColors = buildPresetColors()
         binding.buttonSearchTags.setOnClickListener {
             viewModel.load(binding.adminTagSearch.text?.toString()?.trim())
         }
@@ -116,6 +108,17 @@ class AdminTagsFragment : Fragment() {
     private fun buildColorLabels(): List<String> =
         presetColors.map { getString(R.string.admin_tags_color_item, getString(it.labelRes), it.hex.uppercase()) }
 
+    private fun buildPresetColors(): List<ColorPreset> = listOf(
+        ColorPreset(colorHex(R.color.admin_tag_color_red), R.string.admin_color_red),
+        ColorPreset(colorHex(R.color.admin_tag_color_orange), R.string.admin_color_orange),
+        ColorPreset(colorHex(R.color.admin_tag_color_yellow), R.string.admin_color_yellow),
+        ColorPreset(colorHex(R.color.admin_tag_color_green), R.string.admin_color_green),
+        ColorPreset(colorHex(R.color.admin_tag_color_teal), R.string.admin_color_teal),
+        ColorPreset(colorHex(R.color.admin_tag_color_blue), R.string.admin_color_blue),
+        ColorPreset(colorHex(R.color.admin_tag_color_purple), R.string.admin_color_purple),
+        ColorPreset(colorHex(R.color.admin_tag_color_gray), R.string.admin_color_gray)
+    )
+
     private fun applySelectedColor(color: String?) {
         selectedColor = normalizeColor(color)
         val previewColor = parseColorOrDefault(selectedColor)
@@ -141,4 +144,9 @@ class AdminTagsFragment : Fragment() {
     }
 
     private data class ColorPreset(val hex: String, val labelRes: Int)
+
+    private fun colorHex(@ColorRes resId: Int): String {
+        val intColor = ContextCompat.getColor(requireContext(), resId)
+        return String.format("#%06X", 0xFFFFFF and intColor)
+    }
 }

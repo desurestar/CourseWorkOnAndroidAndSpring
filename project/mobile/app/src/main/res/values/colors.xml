@@ -19,4 +19,12 @@
     <color name="text_empty">#8A7A66</color>
     <color name="error">#F44336</color>
     <color name="admin_tag_color_placeholder">#DDDDDD</color>
+    <color name="admin_tag_color_red">#F44336</color>
+    <color name="admin_tag_color_orange">#FF9800</color>
+    <color name="admin_tag_color_yellow">#FFEB3B</color>
+    <color name="admin_tag_color_green">#4CAF50</color>
+    <color name="admin_tag_color_teal">#009688</color>
+    <color name="admin_tag_color_blue">#2196F3</color>
+    <color name="admin_tag_color_purple">#9C27B0</color>
+    <color name="admin_tag_color_gray">#9E9E9E</color>
 </resources>
