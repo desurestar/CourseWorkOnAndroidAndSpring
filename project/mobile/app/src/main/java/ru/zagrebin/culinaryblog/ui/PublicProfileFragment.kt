@@ -9,6 +9,7 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -17,17 +18,18 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import coil.load
 import com.google.android.material.tabs.TabLayout
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
-import dagger.hilt.android.AndroidEntryPoint
-import ru.zagrebin.culinaryblog.R
 import ru.zagrebin.culinaryblog.AuthActivity
-import ru.zagrebin.culinaryblog.databinding.FragmentPublicProfileBinding
-import ru.zagrebin.culinaryblog.formatDisplayDate
+import ru.zagrebin.culinaryblog.R
 import ru.zagrebin.culinaryblog.data.repository.ProfileRepository
 import ru.zagrebin.culinaryblog.data.storage.TokenStorage
+import ru.zagrebin.culinaryblog.databinding.FragmentPublicProfileBinding
+import ru.zagrebin.culinaryblog.formatDisplayDate
 import ru.zagrebin.culinaryblog.model.PostCard
 import ru.zagrebin.culinaryblog.model.UserProfile
+import ru.zagrebin.culinaryblog.ui.buildUserListDialog
 import ru.zagrebin.culinaryblog.viewmodel.PostViewModel
 import ru.zagrebin.culinaryblog.viewmodel.PostsUiState
 import javax.inject.Inject
@@ -44,6 +46,7 @@ class PublicProfileFragment : Fragment() {
     private var userId: Long? = null
     private var displayName: String? = null
     private var subscribed: Boolean = false
+    private var usersDialog: AlertDialog? = null
     private var followersCount: Int = 0
     private var followingCount: Int = 0
     private var followers: List<UserProfile> = emptyList()
@@ -83,12 +86,14 @@ class PublicProfileFragment : Fragment() {
         binding.buttonClose.setOnClickListener {
             (activity as? Host)?.onPublicProfileClose() ?: activity?.onBackPressedDispatcher?.onBackPressed()
         }
-        binding.publicTabs.getTabAt(2)?.select()
-        showSection(2)
+        binding.publicTabs.getTabAt(POSTS_TAB_POSITION)?.select()
+        showSection(POSTS_TAB_POSITION)
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
+        usersDialog?.dismiss()
+        usersDialog = null
         _binding = null
     }
 
@@ -107,8 +112,8 @@ class PublicProfileFragment : Fragment() {
             renderFollowers(followers)
             renderFollowing(following)
             renderPosts(postViewModel.uiState.value)
-            binding.publicTabs.getTabAt(2)?.select()
-            showSection(2)
+            binding.publicTabs.getTabAt(POSTS_TAB_POSITION)?.select()
+            showSection(POSTS_TAB_POSITION)
             loadUserProfile()
             loadSubscriptionStatus()
         }
@@ -131,9 +136,13 @@ class PublicProfileFragment : Fragment() {
     }
 
     private fun showSection(position: Int) {
-        binding.publicSectionFollowers.isVisible = position == 0
-        binding.publicSectionFollowing.isVisible = position == 1
-        binding.publicSectionPosts.isVisible = position == 2
+        binding.publicSectionFollowers.isVisible = position == FOLLOWERS_TAB_POSITION
+        binding.publicSectionFollowing.isVisible = position == FOLLOWING_TAB_POSITION
+        binding.publicSectionPosts.isVisible = position == POSTS_TAB_POSITION
+        when (position) {
+            FOLLOWERS_TAB_POSITION -> showFollowersDialog()
+            FOLLOWING_TAB_POSITION -> showFollowingDialog()
+        }
     }
 
     private fun observePosts() {
@@ -193,6 +202,29 @@ class PublicProfileFragment : Fragment() {
 
     private fun renderFollowing(users: List<UserProfile>) {
         renderUserList(binding.publicFollowingList, users, followingCount, getString(R.string.profile_following))
+    }
+
+    private fun showFollowersDialog() {
+        showUserListDialog(
+            getString(R.string.profile_followers),
+            followers,
+            followersCount
+        )
+    }
+
+    private fun showFollowingDialog() {
+        showUserListDialog(
+            getString(R.string.profile_following),
+            following,
+            followingCount
+        )
+    }
+
+    private fun showUserListDialog(title: String, users: List<UserProfile>?, count: Int) {
+        usersDialog?.dismiss()
+        usersDialog = buildUserListDialog(title, users, count, ::renderUserList) {
+            usersDialog = null
+        }.also { it.show() }
     }
 
     private fun renderUserList(container: LinearLayout, users: List<UserProfile>, count: Int, meta: String) {
@@ -335,6 +367,9 @@ class PublicProfileFragment : Fragment() {
     }
 
     companion object {
+        private const val FOLLOWERS_TAB_POSITION = 0
+        private const val FOLLOWING_TAB_POSITION = 1
+        private const val POSTS_TAB_POSITION = 2
         private const val ARG_USER_ID = "arg_user_id"
         private const val ARG_DISPLAY_NAME = "arg_display_name"
         private const val ARG_SUBSCRIBED = "arg_subscribed"

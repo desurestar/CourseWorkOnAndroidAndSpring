@@ -13,6 +13,7 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
+import android.util.Log
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.core.view.isVisible
@@ -30,24 +31,24 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import android.util.Log
+import java.io.ByteArrayOutputStream
+import javax.inject.Inject
 import kotlin.math.max
-import ru.zagrebin.culinaryblog.databinding.DialogEditProfileBinding
 import ru.zagrebin.culinaryblog.AuthActivity
 import ru.zagrebin.culinaryblog.MainActivity
 import ru.zagrebin.culinaryblog.R
-import ru.zagrebin.culinaryblog.formatDisplayDate
 import ru.zagrebin.culinaryblog.data.storage.TokenStorage
 import ru.zagrebin.culinaryblog.databinding.ActivityProfileBinding
+import ru.zagrebin.culinaryblog.databinding.DialogEditProfileBinding
+import ru.zagrebin.culinaryblog.formatDisplayDate
 import ru.zagrebin.culinaryblog.model.PostCard
 import ru.zagrebin.culinaryblog.model.PostDraft
 import ru.zagrebin.culinaryblog.model.UserProfile
+import ru.zagrebin.culinaryblog.ui.buildUserListDialog
 import ru.zagrebin.culinaryblog.viewmodel.PostViewModel
 import ru.zagrebin.culinaryblog.viewmodel.PostsUiState
 import ru.zagrebin.culinaryblog.viewmodel.ProfileUiState
 import ru.zagrebin.culinaryblog.viewmodel.ProfileViewModel
-import javax.inject.Inject
-import java.io.ByteArrayOutputStream
 
 @AndroidEntryPoint
 class ProfileFragment : Fragment() {
@@ -59,6 +60,7 @@ class ProfileFragment : Fragment() {
     private val postViewModel: PostViewModel by viewModels()
     private val profileViewModel: ProfileViewModel by viewModels()
     private var editDialog: AlertDialog? = null
+    private var usersDialog: AlertDialog? = null
     private var pendingAvatarBitmap: Bitmap? = null
     private var pendingAvatarUri: Uri? = null
     private var followersCount: Int = 0
@@ -130,6 +132,8 @@ class ProfileFragment : Fragment() {
         super.onDestroyView()
         editDialog?.dismiss()
         editDialog = null
+        usersDialog?.dismiss()
+        usersDialog = null
         pendingAvatarBitmap = null
         pendingAvatarUri = null
         _binding = null
@@ -141,6 +145,9 @@ class ProfileFragment : Fragment() {
         tabs.addTab(tabs.newTab().setText(R.string.profile_following))
         tabs.addTab(tabs.newTab().setText(R.string.profile_liked))
 
+        tabs.getTabAt(FOLLOWERS_TAB_POSITION)?.select()
+        showSection(FOLLOWERS_TAB_POSITION, showDialog = false)
+
         tabs.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
             override fun onTabSelected(tab: TabLayout.Tab) {
                 showSection(tab.position)
@@ -149,7 +156,6 @@ class ProfileFragment : Fragment() {
             override fun onTabUnselected(tab: TabLayout.Tab) {}
             override fun onTabReselected(tab: TabLayout.Tab) {}
         })
-        tabs.getTabAt(FOLLOWERS_TAB_POSITION)?.select()
     }
 
     private fun setupPostsSubTabs() {
@@ -217,6 +223,29 @@ class ProfileFragment : Fragment() {
                 dialog.show()
                 dialogBinding.editDisplayName.requestFocus()
             }
+    }
+
+    private fun showFollowersDialog() {
+        showUserListDialog(
+            getString(R.string.profile_followers),
+            profileViewModel.followers.value,
+            followersCount
+        )
+    }
+
+    private fun showFollowingDialog() {
+        showUserListDialog(
+            getString(R.string.profile_following),
+            profileViewModel.following.value,
+            followingCount
+        )
+    }
+
+    private fun showUserListDialog(title: String, users: List<UserProfile>?, count: Int) {
+        usersDialog?.dismiss()
+        usersDialog = buildUserListDialog(title, users, count, ::renderUserList) {
+            usersDialog = null
+        }.also { it.show() }
     }
 
     private fun updateProfileInputs(dialogBinding: DialogEditProfileBinding) {
@@ -515,10 +544,18 @@ class ProfileFragment : Fragment() {
         }
     }
 
-    private fun showSection(position: Int) {
-        binding.sectionFollowers.isVisible = position == FOLLOWERS_TAB_POSITION
-        binding.sectionFollowing.isVisible = position == FOLLOWING_TAB_POSITION
+    private fun showSection(position: Int, showDialog: Boolean = true) {
+        val isFollowersTab = position == FOLLOWERS_TAB_POSITION
+        val isFollowingTab = position == FOLLOWING_TAB_POSITION
+        binding.sectionFollowers.isVisible = isFollowersTab
+        binding.sectionFollowing.isVisible = isFollowingTab
         binding.sectionLiked.isVisible = position == LIKED_TAB_POSITION
+        if (showDialog) {
+            when (position) {
+                FOLLOWERS_TAB_POSITION -> showFollowersDialog()
+                FOLLOWING_TAB_POSITION -> showFollowingDialog()
+            }
+        }
     }
 
     private fun updatePostsSectionsVisibility() {
