@@ -11,6 +11,7 @@ import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import ru.zagrebin.culinaryblog.BuildConfig
+import ru.zagrebin.culinaryblog.data.remote.api.AdminApi
 import ru.zagrebin.culinaryblog.data.local.dao.DraftDao
 import ru.zagrebin.culinaryblog.data.local.dao.PostDao
 import ru.zagrebin.culinaryblog.data.local.dao.UserProfileDao
@@ -21,6 +22,8 @@ import ru.zagrebin.culinaryblog.data.repository.ProfileRepository
 import ru.zagrebin.culinaryblog.data.repository.ProfileRepositoryImpl
 import ru.zagrebin.culinaryblog.data.repository.PostRepository
 import ru.zagrebin.culinaryblog.data.repository.PostRepositoryImpl
+import ru.zagrebin.culinaryblog.data.repository.AdminRepository
+import ru.zagrebin.culinaryblog.data.repository.AdminRepositoryImpl
 import ru.zagrebin.culinaryblog.data.storage.TokenStorage
 import javax.inject.Singleton
 
@@ -78,6 +81,10 @@ object NetworkModule {
     fun provideUserApi(retrofit: Retrofit): UserApi =
         retrofit.create(UserApi::class.java)
 
+    @Provides
+    fun provideAdminApi(retrofit: Retrofit): AdminApi =
+        retrofit.create(AdminApi::class.java)
+
 
     @Provides
     fun providePostApi(retrofit: Retrofit): PostApi =
@@ -94,6 +101,12 @@ object NetworkModule {
         draftDao: DraftDao,
         gson: Gson
     ): PostRepository = PostRepositoryImpl(api, postDao, draftDao, gson)
+
+    @Provides
+    @Singleton
+    fun provideAdminRepository(
+        api: AdminApi
+    ): AdminRepository = AdminRepositoryImpl(api)
 
     @Provides
     @Singleton
