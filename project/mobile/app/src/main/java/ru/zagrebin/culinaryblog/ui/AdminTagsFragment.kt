@@ -56,7 +56,7 @@ class AdminTagsFragment : Fragment() {
         binding.buttonAddTag.setOnClickListener {
             val name = binding.adminTagName.text?.toString()?.trim().orEmpty()
             if (name.isNotEmpty()) {
-                viewModel.add(name, selectedColor)
+                viewModel.add(name, normalizeColor(selectedColor))
                 binding.adminTagName.setText("")
                 applySelectedColor(null)
             }
@@ -95,7 +95,7 @@ class AdminTagsFragment : Fragment() {
     }
 
     private fun showColorPickerDialog() {
-        val labels = presetColors.map { getString(R.string.admin_tags_color_item, getString(it.labelRes), it.hex.uppercase()) }
+        val labels = buildColorLabels()
         val selectedIndex = presetColors.indexOfFirst { it.hex.equals(selectedColor, ignoreCase = true) }
         MaterialAlertDialogBuilder(requireContext())
             .setTitle(R.string.admin_tags_color_picker_title)
@@ -111,14 +111,19 @@ class AdminTagsFragment : Fragment() {
             .show()
     }
 
+    private fun buildColorLabels(): List<String> =
+        presetColors.map { getString(R.string.admin_tags_color_item, getString(it.labelRes), it.hex.uppercase()) }
+
     private fun applySelectedColor(color: String?) {
-        selectedColor = color?.trim()?.ifEmpty { null }
+        selectedColor = normalizeColor(color)
         val previewColor = parseColorOrDefault(selectedColor)
         binding.adminTagColorPreview.setBackgroundColor(previewColor)
         val label = presetColors.firstOrNull { it.hex.equals(selectedColor, ignoreCase = true) }
             ?.let { getString(it.labelRes) }
         binding.buttonPickColor.text = label ?: selectedColor ?: getString(R.string.admin_tags_color_default)
     }
+
+    private fun normalizeColor(color: String?): String? = color?.trim()?.ifEmpty { null }
 
     private fun parseColorOrDefault(raw: String?): Int {
         return try {
