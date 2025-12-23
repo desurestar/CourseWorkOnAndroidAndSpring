@@ -1,6 +1,5 @@
 package ru.zagrebin.service;
 
-import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import ru.zagrebin.dto.PostCardDto;
@@ -10,12 +9,6 @@ import ru.zagrebin.dto.PostFullDto;
 import ru.zagrebin.dto.PostUpdateDto;
 
 public interface PostService {
-    List<PostCardDto> getAllPublishedPosts();
-
-    default Page<PostCardDto> getPostsPageByStatus(String status, Pageable pageable) {
-        return getPostsPageByStatus(status, pageable, null);
-    }
-
     Page<PostCardDto> getPostsPageByStatus(String status, Pageable pageable, PostFilterRequest filters);
 
     PostFullDto getFullPost(Long postId, Long currentUserId);

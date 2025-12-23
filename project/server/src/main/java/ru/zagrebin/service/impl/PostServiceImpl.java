@@ -55,19 +55,6 @@ public class PostServiceImpl implements PostService {
      */
     @Override
     @Transactional(readOnly = true)
-    public List<PostCardDto> getAllPublishedPosts() {
-        return postRepository.findByStatusOrderByCreatedAtDesc("published")
-                .stream()
-                .map(PostMapper::toCard)
-                .collect(Collectors.toList());
-    }
-
-    /**
-     * Новая реализация: пагинация + двухэтапная загрузка (IDs -> fetch by entity graph).
-     * Возвращает страницу PostCardDto, сохраняя порядок по createdAt desc (через ids).
-     */
-    @Override
-    @Transactional(readOnly = true)
     public Page<PostCardDto> getPostsPageByStatus(String status, Pageable pageable, PostFilterRequest filters) {
         PostFilterRequest normalized = filters == null ? new PostFilterRequest().normalize() : filters.normalize();
         boolean tagsEmpty = !normalized.hasTags();

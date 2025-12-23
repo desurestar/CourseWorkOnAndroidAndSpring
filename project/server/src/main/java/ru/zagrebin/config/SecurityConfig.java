@@ -52,6 +52,7 @@ public class SecurityConfig {
                         .requestMatchers("/media/**").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/posts/**").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/tags/**", "/api/ingredients/**").permitAll()
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

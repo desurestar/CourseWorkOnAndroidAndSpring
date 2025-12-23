@@ -69,10 +69,4 @@ public class LikeServiceImpl implements LikeService {
         if (postId == null || userId == null) return false;
         return postLikeRepository.existsById(new PostLikeId(postId, userId));
     }
-
-    @Override
-    @Transactional(readOnly = true)
-    public long countLikes(Long postId) {
-        return postLikeRepository.countByIdPostId(postId);
-    }
 }
