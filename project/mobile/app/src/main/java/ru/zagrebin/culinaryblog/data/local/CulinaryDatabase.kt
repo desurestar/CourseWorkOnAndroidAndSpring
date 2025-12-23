@@ -11,7 +11,7 @@ import ru.zagrebin.culinaryblog.data.local.entity.UserProfileEntity
 
 @Database(
     entities = [PostEntity::class, DraftEntity::class, UserProfileEntity::class],
-    version = 1
+    version = 2
 )
 abstract class CulinaryDatabase : RoomDatabase() {
     abstract fun postDao(): PostDao

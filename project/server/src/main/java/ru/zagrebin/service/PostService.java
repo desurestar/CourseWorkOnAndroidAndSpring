@@ -23,4 +23,6 @@ public interface PostService {
     PostFullDto update(Long postId, PostUpdateDto dto, Long currentUserId);
 
     void delete(Long postId, Long currentUserId);
+
+    Page<PostCardDto> getMyDrafts(Long currentUserId, Pageable pageable);
 }

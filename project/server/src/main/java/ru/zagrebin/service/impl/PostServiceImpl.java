@@ -132,9 +132,31 @@ public class PostServiceImpl implements PostService {
         }
         var author = userRepository.findById(currentUserId)
                 .orElseThrow(() -> new EntityNotFoundException("User not found: " + currentUserId));
-        // При создании: можно загружать файлы через fileStorageService если нужно
+        
+        // Idempotent upsert: if clientId provided, check for existing post
+        if (dto.getClientId() != null && !dto.getClientId().isBlank()) {
+            Optional<Post> existing = postRepository.findByAuthorIdAndClientId(currentUserId, dto.getClientId());
+            if (existing.isPresent()) {
+                // Update existing post instead of creating new one
+                Post existingPost = existing.get();
+                existingPost.setPostType(dto.getPostType());
+                existingPost.setStatus(PostStatus.from(dto.getStatus()));
+                existingPost.setTitle(dto.getTitle());
+                existingPost.setExcerpt(dto.getExcerpt());
+                existingPost.setContent(dto.getContent());
+                existingPost.setCoverUrl(dto.getCoverUrl());
+                existingPost.setCookingTimeMinutes(dto.getCookingTimeMinutes());
+                existingPost.setCalories(dto.getCalories());
+                // Update tags, ingredients, steps via assembler helper
+                postAssembler.updateCollections(existingPost, dto);
+                Post saved = postRepository.save(existingPost);
+                log.info("Updated existing post via clientId: {}", dto.getClientId());
+                return PostMapper.toCard(saved);
+            }
+        }
+        
+        // Create new post
         Post created = postAssembler.createFromDto(dto, author);
-        // Сохраняем сущность (assembler должен заполнить необходимые поля)
         Post saved = postRepository.save(created);
         return PostMapper.toCard(saved);
     }
@@ -200,6 +222,16 @@ public class PostServiceImpl implements PostService {
         }
 
         postRepository.deleteById(postId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<PostCardDto> getMyDrafts(Long currentUserId, Pageable pageable) {
+        if (currentUserId == null) {
+            throw new AccessDeniedException("Требуется авторизация");
+        }
+        Page<Post> drafts = postRepository.findByAuthorIdAndStatus(currentUserId, PostStatus.DRAFT, pageable);
+        return drafts.map(PostMapper::toCard);
     }
 
     private boolean isAdmin(User user) {

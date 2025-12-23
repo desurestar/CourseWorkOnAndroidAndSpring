@@ -25,8 +25,20 @@ class TokenStorage @Inject constructor(@ApplicationContext private val context: 
         prefs.edit { putString("access_token", token) }
     }
 
+    fun saveUserId(userId: Long) {
+        prefs.edit { putLong("user_id", userId) }
+    }
+
+    fun getUserId(): Long? {
+        val id = prefs.getLong("user_id", -1)
+        return if (id == -1L) null else id
+    }
+
     fun clearToken() {
-        prefs.edit { remove("access_token") }
+        prefs.edit { 
+            remove("access_token")
+            remove("user_id")
+        }
     }
 
     // Backward-compatible alias, kept to avoid crashes if called from old code paths

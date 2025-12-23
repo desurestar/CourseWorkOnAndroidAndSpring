@@ -6,7 +6,9 @@ import ru.zagrebin.culinaryblog.util.resolveUrl
 data class PostDraft(
     val id: Long,
     val updatedAt: Long,
-    val request: PostCreateRequest
+    val request: PostCreateRequest,
+    val syncState: String = "PENDING",
+    val serverId: Long? = null
 ) {
     fun toCard(): PostCard = PostCard(
         id = id,

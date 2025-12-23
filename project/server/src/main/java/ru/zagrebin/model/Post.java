@@ -84,6 +84,9 @@ public class Post {
     @Column(name = "cooking_time_minutes")
     private Integer cookingTimeMinutes;
 
+    @Column(name = "client_id", length = 36)
+    private String clientId;
+
     @PrePersist
     public void prePersist() {
         OffsetDateTime now = OffsetDateTime.now();
