@@ -64,6 +64,7 @@ class PostViewModel @Inject constructor(
         currentLoadJob = viewModelScope.launch {
             val likedIds = repository.getLikedPostIds().getOrDefault(emptySet())
             val drafts = loadDrafts(currentUserId)
+            val serverDrafts = loadServerDrafts()
             val cached = repository.getCachedPosts()
             val cachedFiltered = if (params.skipTypeFilters) {
                 cached
@@ -75,6 +76,7 @@ class PostViewModel @Inject constructor(
                     posts = cachedFiltered,
                     likedIds = likedIds,
                     drafts = drafts,
+                    serverDrafts = serverDrafts,
                     offline = false
                 )
             }
@@ -89,6 +91,7 @@ class PostViewModel @Inject constructor(
                     nextPage = page.nextPage,
                     likedIds = mergedLikedIds,
                     drafts = drafts,
+                    serverDrafts = serverDrafts,
                     offline = false
                 )
             } else {
@@ -105,6 +108,7 @@ class PostViewModel @Inject constructor(
                     error = res.exceptionOrNull()?.message ?: "Unknown",
                     likedIds = mergedLikedIds,
                     drafts = drafts,
+                    serverDrafts = serverDrafts,
                     offline = true
                 )
             }
