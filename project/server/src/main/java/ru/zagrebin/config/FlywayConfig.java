@@ -15,7 +15,7 @@ import java.util.Arrays;
 @Configuration
 public class FlywayConfig {
     private static final Logger log = LoggerFactory.getLogger(FlywayConfig.class);
-    @Value("${app.flyway.auto-repair-enabled:true}")
+    @Value("${app.flyway.auto-repair-enabled:false}")
     private boolean autoRepairEnabled;
     @Value("${app.flyway.prod-profiles:prod}")
     private String prodProfiles;
@@ -38,7 +38,12 @@ public class FlywayConfig {
                 log.warn("Flyway validation failed ({}). Auto-repair is enabled for non-production profiles; attempting repair before re-running migrations.",
                         ex.getMessage());
                 flyway.repair();
-                flyway.validate();
+                try {
+                    flyway.validate();
+                } catch (Exception validationAfterRepairEx) {
+                    log.error("Flyway validation failed after repair attempt", validationAfterRepairEx);
+                    throw validationAfterRepairEx;
+                }
                 flyway.migrate();
                 log.info("Flyway repair completed successfully; migrations re-applied after validation error.");
             }
