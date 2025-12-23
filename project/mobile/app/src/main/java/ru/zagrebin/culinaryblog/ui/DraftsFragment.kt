@@ -7,6 +7,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
+import android.util.Log
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
@@ -118,10 +119,7 @@ class DraftsFragment : Fragment(), RefreshableTab {
         } else {
             coverView.setImageDrawable(null)
         }
-        // Server drafts are not clickable for editing local drafts
-        view.setOnClickListener { 
-            // Could navigate to post detail if needed
-        }
+        view.setOnClickListener { openServerDraft(draft) }
         binding.draftsList.addView(view)
     }
     
@@ -165,5 +163,28 @@ class DraftsFragment : Fragment(), RefreshableTab {
             .putExtra(CreatePostActivity.EXTRA_DRAFT_ID, draft.id)
             .putExtra(CreatePostActivity.EXTRA_AUTHOR_ID, draft.request.authorId)
         startActivity(intent)
+    }
+
+    private fun openServerDraft(draft: PostCard) {
+        // Server draft ids come from backend and should be positive longs
+        if (draft.id < MIN_DRAFT_ID) {
+            Log.w(TAG, "Cannot open server draft with invalid id: ${draft.id}")
+            return
+        }
+        val intent = Intent(requireContext(), CreatePostActivity::class.java)
+            .putExtra(CreatePostActivity.EXTRA_EDIT_POST_ID, draft.id)
+        val authorId = draft.authorId
+        if (authorId != null) {
+            intent.putExtra(CreatePostActivity.EXTRA_AUTHOR_ID, authorId)
+        } else {
+            Log.w(TAG, "Server draft ${draft.id} missing authorId, will use logged-in user")
+        }
+        startActivity(intent)
+    }
+
+    private companion object {
+        const val TAG = "DraftsFragment"
+        // Minimum acceptable server draft identifier
+        const val MIN_DRAFT_ID = 1L
     }
 }
