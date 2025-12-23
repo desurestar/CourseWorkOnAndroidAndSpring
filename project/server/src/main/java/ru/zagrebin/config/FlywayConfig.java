@@ -75,5 +75,4 @@ public class FlywayConfig {
         flyway.validate();
         flyway.migrate();
     }
-
 }
