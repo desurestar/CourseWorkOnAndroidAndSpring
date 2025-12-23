@@ -11,6 +11,7 @@ spring:
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/blogDB}
     username: ${DB_USERNAME:postgres}
+    # Development default; override via DB_PASSWORD in any non-local environment
     password: ${DB_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
 
