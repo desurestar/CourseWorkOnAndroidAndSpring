@@ -5,6 +5,8 @@ import org.slf4j.LoggerFactory;
 import org.flywaydb.core.api.exception.FlywayValidateException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.flyway.FlywayMigrationStrategy;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -13,6 +15,11 @@ public class FlywayConfig {
     private static final Logger log = LoggerFactory.getLogger(FlywayConfig.class);
     @Value("${app.flyway.auto-repair-enabled:true}")
     private boolean autoRepairEnabled;
+    private final Environment environment;
+
+    public FlywayConfig(Environment environment) {
+        this.environment = environment;
+    }
 
     @Bean
     public FlywayMigrationStrategy flywayMigrationStrategy() {
@@ -20,10 +27,12 @@ public class FlywayConfig {
             try {
                 flyway.migrate();
             } catch (FlywayValidateException ex) {
-                if (!autoRepairEnabled) {
+                boolean repairAllowed = autoRepairEnabled && !environment.acceptsProfiles(Profiles.of("prod"));
+                if (!repairAllowed) {
                     throw ex;
                 }
-                log.warn("Flyway validation failed ({}). Auto-repair is enabled; attempting repair before re-running migrations.", ex.getMessage());
+                log.warn("Flyway validation failed ({}). Auto-repair is enabled for non-production profiles; attempting repair before re-running migrations.",
+                        ex.getClass().getSimpleName());
                 flyway.repair();
                 try {
                     flyway.migrate();
