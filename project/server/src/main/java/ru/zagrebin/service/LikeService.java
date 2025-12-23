@@ -9,7 +9,4 @@ public interface LikeService {
 
     // проверить, залайкнул ли пользователь пост
     boolean isLiked(Long postId, Long userId);
-
-    // получить количество лайков (обычно можно брать из post.likesCount, но иногда полезно считать)
-    long countLikes(Long postId);
 }

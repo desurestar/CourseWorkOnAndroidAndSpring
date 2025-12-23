@@ -15,12 +15,6 @@ import ru.zagrebin.model.Post;
 @Repository
 public interface PostRepository extends JpaRepository<Post, Long> {
 
-    @EntityGraph(attributePaths = {"author", "tags"})
-    List<Post> findByStatusOrderByCreatedAtDesc(String status);
-
-    @Query("select p.id from Post p where p.status = :status order by p.createdAt desc")
-    List<Long> findIdsByStatusOrderByCreatedAtDesc(@Param("status") String status, Pageable pageable);
-
     @Query("""
         select p.id from Post p
         where p.status = :status
