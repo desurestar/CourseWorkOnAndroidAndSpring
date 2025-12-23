@@ -11,11 +11,3 @@ buildscript {
         classpath("com.google.dagger:hilt-android-gradle-plugin:2.47")
     }
 }
-
-allprojects {
-    repositories {
-        google()
-        mavenCentral()
-        maven { url = uri("https://jitpack.io") }
-    }
-}

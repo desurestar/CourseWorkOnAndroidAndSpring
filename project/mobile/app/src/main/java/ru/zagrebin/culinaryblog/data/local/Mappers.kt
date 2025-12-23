@@ -75,7 +75,9 @@ fun DraftEntity.toDraft(gson: Gson): PostDraft {
         updatedAt = updatedAt,
         request = request,
         syncState = syncState,
-        serverId = serverId
+        serverId = serverId,
+        coverLocalUri = coverLocalUri,
+        stepsImagesJson = stepsImagesJson
     )
 }
 
@@ -89,17 +91,19 @@ fun PostDraft.toEntity(gson: Gson): DraftEntity = DraftEntity(
     excerpt = request.excerpt,
     content = request.content,
     coverUrl = request.coverUrl,
+    coverLocalUri = coverLocalUri,
     cookingTimeMinutes = request.cookingTimeMinutes,
     calories = request.calories,
     authorId = request.authorId,
     tagIds = request.tagIds.joinToString(tagSeparator),
     ingredientsJson = gson.toJson(request.ingredients),
     stepsJson = gson.toJson(request.steps),
+    stepsImagesJson = stepsImagesJson,
     syncState = syncState,
     updatedAt = updatedAt
 )
 
-fun PostCreateRequest.toDraftEntity(gson: Gson, draftId: Long = 0): DraftEntity = DraftEntity(
+fun PostCreateRequest.toDraftEntity(gson: Gson, draftId: Long = 0, coverLocalUri: String? = null, stepsImagesJson: String? = null): DraftEntity = DraftEntity(
     id = draftId,
     clientId = clientId ?: UUID.randomUUID().toString(),
     serverId = null,
@@ -109,12 +113,14 @@ fun PostCreateRequest.toDraftEntity(gson: Gson, draftId: Long = 0): DraftEntity 
     excerpt = excerpt,
     content = content,
     coverUrl = coverUrl,
+    coverLocalUri = coverLocalUri,
     cookingTimeMinutes = cookingTimeMinutes,
     calories = calories,
     authorId = authorId,
     tagIds = tagIds.joinToString(tagSeparator),
     ingredientsJson = gson.toJson(ingredients),
     stepsJson = gson.toJson(steps),
+    stepsImagesJson = stepsImagesJson,
     syncState = "PENDING",
     updatedAt = System.currentTimeMillis()
 )

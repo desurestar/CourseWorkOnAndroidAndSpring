@@ -1,8 +1,10 @@
 package ru.zagrebin.culinaryblog.data.repository
 
+import android.content.Context
 import android.net.Uri
 import android.util.Log
 import com.google.gson.Gson
+import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -29,10 +31,12 @@ import ru.zagrebin.culinaryblog.model.PostIngredientLine
 import ru.zagrebin.culinaryblog.model.PostStep
 import ru.zagrebin.culinaryblog.model.PostTag
 import ru.zagrebin.culinaryblog.model.PostUpdateRequest
+import ru.zagrebin.culinaryblog.model.RecipeStepRequest
 import ru.zagrebin.culinaryblog.model.STATUS_DRAFT
 import ru.zagrebin.culinaryblog.model.TagItem
 
 class PostRepositoryImpl @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val api: PostApi,
     private val postDao: PostDao,
     private val draftDao: DraftDao,
@@ -287,15 +291,73 @@ class PostRepositoryImpl @Inject constructor(
         
         pendingDrafts.forEach { entity ->
             try {
+                draftDao.updateSyncState(entity.id, "IN_SYNC", System.currentTimeMillis())
+                
+                // Step 1: Upload images if they are local URIs
+                var coverUrl = entity.coverUrl
+                var updatedSteps = entity.stepsJson
+                
+                // Upload cover image if it's a local URI
+                if (entity.coverLocalUri != null && !entity.coverLocalUri.startsWith("http")) {
+                    Log.d(TAG, "Uploading cover image for draft ${entity.id}")
+                    val uploadResult = uploadLocalImage(entity.coverLocalUri, "cover")
+                    if (uploadResult.isSuccess) {
+                        coverUrl = uploadResult.getOrNull()
+                        Log.d(TAG, "Cover uploaded successfully: $coverUrl")
+                    } else {
+                        Log.w(TAG, "Failed to upload cover image, using original URL")
+                    }
+                }
+                
+                // Upload step images if they exist
+                if (entity.stepsImagesJson != null) {
+                    val stepsImages = gson.fromJson<Map<String, String>>(
+                        entity.stepsImagesJson,
+                        object : com.google.gson.reflect.TypeToken<Map<String, String>>() {}.type
+                    ) ?: emptyMap()
+                    
+                    if (stepsImages.isNotEmpty()) {
+                        Log.d(TAG, "Uploading ${stepsImages.size} step images for draft ${entity.id}")
+                        val steps = gson.fromJson<List<RecipeStepRequest>>(
+                            entity.stepsJson,
+                            object : com.google.gson.reflect.TypeToken<List<RecipeStepRequest>>() {}.type
+                        ) ?: emptyList()
+                        
+                        val updatedStepsList = steps.mapIndexed { index, step ->
+                            val localUri = stepsImages[index.toString()]
+                            if (localUri != null && !localUri.startsWith("http")) {
+                                val uploadResult = uploadLocalImage(localUri, "step")
+                                if (uploadResult.isSuccess) {
+                                    val remoteUrl = uploadResult.getOrNull()
+                                    Log.d(TAG, "Step $index image uploaded: $remoteUrl")
+                                    step.copy(imageUrl = remoteUrl)
+                                } else {
+                                    Log.w(TAG, "Failed to upload step $index image")
+                                    step
+                                }
+                            } else {
+                                step
+                            }
+                        }
+                        updatedSteps = gson.toJson(updatedStepsList)
+                    }
+                }
+                
+                // Step 2: Create the draft with uploaded image URLs
                 val draft = entity.toDraft(gson)
-                // Ensure clientId is set in the request
-                val requestWithClientId = draft.request.copy(
-                    clientId = draft.request.clientId ?: entity.clientId
+                val stepsFromUpdated = gson.fromJson<List<RecipeStepRequest>>(
+                    updatedSteps,
+                    object : com.google.gson.reflect.TypeToken<List<RecipeStepRequest>>() {}.type
+                ) ?: draft.request.steps
+                
+                val requestWithImages = draft.request.copy(
+                    clientId = draft.request.clientId ?: entity.clientId,
+                    coverUrl = coverUrl,
+                    steps = stepsFromUpdated
                 )
                 
-                draftDao.updateSyncState(entity.id, "IN_SYNC", System.currentTimeMillis())
-                Log.d(TAG, "Syncing draft ${entity.id} with clientId: ${requestWithClientId.clientId}")
-                val resp = api.createPost(requestWithClientId)
+                Log.d(TAG, "Syncing draft ${entity.id} with clientId: ${requestWithImages.clientId}")
+                val resp = api.createPost(requestWithImages)
                 
                 if (resp.isSuccessful) {
                     val postCard = resp.body()
@@ -331,6 +393,45 @@ class PostRepositoryImpl @Inject constructor(
                 Log.w(TAG, "Partially synced $synced drafts, but some failed", error)
                 Result.failure(RuntimeException("Synced $synced drafts; some failed", error))
             }
+        }
+    }
+    
+    /**
+     * Upload a local image URI to the server and return the remote URL.
+     * @param localUri The local URI (content:// or file://)
+     * @param type The image type (cover or step)
+     * @return Result with the remote URL if successful
+     */
+    private suspend fun uploadLocalImage(localUri: String, type: String): Result<String> = withContext(Dispatchers.IO) {
+        try {
+            val uri = Uri.parse(localUri)
+            val inputStream = context.contentResolver.openInputStream(uri)
+                ?: return@withContext Result.failure(RuntimeException("Cannot open input stream for $localUri"))
+            
+            val bytes = inputStream.use { it.readBytes() }
+            val mimeType = context.contentResolver.getType(uri) ?: "image/jpeg"
+            val fileName = "draft_image_${System.currentTimeMillis()}.${mimeType.substringAfter("/")}"
+            
+            Log.d(TAG, "Uploading local image: $localUri, type: $type, size: ${bytes.size} bytes")
+            
+            val requestBody = bytes.toRequestBody(mimeType.toMediaTypeOrNull())
+            val part = MultipartBody.Part.createFormData("file", fileName, requestBody)
+            val resp = api.upload(type, part)
+            
+            if (resp.isSuccessful) {
+                val body = resp.body()
+                if (body != null) {
+                    Log.d(TAG, "Successfully uploaded image: ${body.url}")
+                    Result.success(body.url)
+                } else {
+                    Result.failure(RuntimeException("Empty response body for image upload"))
+                }
+            } else {
+                Result.failure(RuntimeException("Server error: ${resp.code()}"))
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to upload local image: $localUri", e)
+            Result.failure(e)
         }
     }
 
