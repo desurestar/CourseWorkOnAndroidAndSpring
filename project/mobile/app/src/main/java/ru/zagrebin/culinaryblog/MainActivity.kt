@@ -7,8 +7,8 @@ import android.os.Bundle
 import android.util.Log
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Toast
 import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.addCallback
 import androidx.activity.result.contract.ActivityResultContracts
@@ -27,79 +27,89 @@ import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.Job
-import java.util.EnumMap
-import ru.zagrebin.culinaryblog.AuthActivity
+import kotlinx.coroutines.launch
+import ru.zagrebin.culinaryblog.data.repository.OFFLINE_LIKE_CACHED
+import ru.zagrebin.culinaryblog.data.repository.OFFLINE_UNLIKE_CACHED
+import ru.zagrebin.culinaryblog.data.repository.PostRepository
+import ru.zagrebin.culinaryblog.data.repository.ProfileRepository
+import ru.zagrebin.culinaryblog.data.storage.TokenStorage
 import ru.zagrebin.culinaryblog.databinding.ActivityMainBinding
 import ru.zagrebin.culinaryblog.databinding.DialogFiltersBinding
 import ru.zagrebin.culinaryblog.databinding.ItemPostCardBinding
-import ru.zagrebin.culinaryblog.data.repository.PostRepository
-import ru.zagrebin.culinaryblog.data.repository.ProfileRepository
 import ru.zagrebin.culinaryblog.model.PostCard
 import ru.zagrebin.culinaryblog.model.PostFilters
-import ru.zagrebin.culinaryblog.data.storage.TokenStorage
 import ru.zagrebin.culinaryblog.model.TagItem
 import ru.zagrebin.culinaryblog.ui.CreatePostFragment
+import ru.zagrebin.culinaryblog.ui.DraftsFragment
 import ru.zagrebin.culinaryblog.ui.PostDetailActivity
 import ru.zagrebin.culinaryblog.ui.ProfileFragment
 import ru.zagrebin.culinaryblog.ui.PublicProfileFragment
 import ru.zagrebin.culinaryblog.ui.RefreshableTab
+import ru.zagrebin.culinaryblog.util.applyTagStyle
+import ru.zagrebin.culinaryblog.util.renderAvatar
 import ru.zagrebin.culinaryblog.viewmodel.PostViewModel
 import ru.zagrebin.culinaryblog.viewmodel.PostsUiState
-import ru.zagrebin.culinaryblog.data.repository.OFFLINE_LIKE_CACHED
-import ru.zagrebin.culinaryblog.data.repository.OFFLINE_UNLIKE_CACHED
-import ru.zagrebin.culinaryblog.util.renderAvatar
-import ru.zagrebin.culinaryblog.util.applyTagStyle
-import ru.zagrebin.culinaryblog.ui.DraftsFragment
 import javax.inject.Inject
 import kotlin.jvm.Volatile
+import java.util.EnumMap
 
 @AndroidEntryPoint
-class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragment.Host, PublicProfileFragment.Host {
+class MainActivity :
+    AppCompatActivity(),
+    CreatePostFragment.Host,
+    ProfileFragment.Host,
+    PublicProfileFragment.Host {
 
     private lateinit var binding: ActivityMainBinding
     private val postViewModel: PostViewModel by viewModels()
     private var latestState: PostsUiState = PostsUiState(isLoading = true)
+
     @Inject lateinit var tokenStorage: TokenStorage
     @Inject lateinit var postRepository: PostRepository
     @Inject lateinit var profileRepository: ProfileRepository
+
     @Volatile private var currentUserId: Long? = null
     private var loadUserIdJob: Job? = null
     private val pendingUserIdCallbacks = mutableListOf<(Long?) -> Unit>()
     private var backPressedCallback: OnBackPressedCallback? = null
-    private val postDetailLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-        if (result.resultCode != Activity.RESULT_OK) return@registerForActivityResult
-        val data = result.data ?: return@registerForActivityResult
-        val postId = data.getLongExtra(PostDetailActivity.EXTRA_RESULT_POST_ID, -1L)
-        val deleted = data.getBooleanExtra(PostDetailActivity.EXTRA_RESULT_DELETED, false)
-        if (deleted && postId > 0 && currentTab.isFeed()) {
-            latestState = latestState.copy(
-                posts = latestState.posts.filterNot { it.id == postId },
-                likedIds = latestState.likedIds.toMutableSet().apply { remove(postId) }
-            )
-            renderState(latestState)
-            return@registerForActivityResult
-        }
-        if (
-            postId <= 0 ||
-            !currentTab.isFeed() ||
-            !data.hasExtra(PostDetailActivity.EXTRA_RESULT_LIKED) ||
-            !data.hasExtra(PostDetailActivity.EXTRA_RESULT_LIKES_COUNT)
-        ) return@registerForActivityResult
 
-        val liked = data.getBooleanExtra(PostDetailActivity.EXTRA_RESULT_LIKED, false)
-        val likesCount = data.getIntExtra(PostDetailActivity.EXTRA_RESULT_LIKES_COUNT, -1)
-        if (likesCount < 0) return@registerForActivityResult
-        val updatedPosts = latestState.posts.map { post ->
-            if (post.id == postId) post.copy(likesCount = likesCount) else post
+    private val postDetailLauncher =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode != Activity.RESULT_OK) return@registerForActivityResult
+            val data = result.data ?: return@registerForActivityResult
+            val postId = data.getLongExtra(PostDetailActivity.EXTRA_RESULT_POST_ID, -1L)
+            val deleted = data.getBooleanExtra(PostDetailActivity.EXTRA_RESULT_DELETED, false)
+
+            if (deleted && postId > 0 && currentTab.isFeed()) {
+                latestState = latestState.copy(
+                    posts = latestState.posts.filterNot { it.id == postId },
+                    likedIds = latestState.likedIds.toMutableSet().apply { remove(postId) }
+                )
+                renderState(latestState)
+                return@registerForActivityResult
+            }
+
+            if (
+                postId <= 0 ||
+                !currentTab.isFeed() ||
+                !data.hasExtra(PostDetailActivity.EXTRA_RESULT_LIKED) ||
+                !data.hasExtra(PostDetailActivity.EXTRA_RESULT_LIKES_COUNT)
+            ) return@registerForActivityResult
+
+            val liked = data.getBooleanExtra(PostDetailActivity.EXTRA_RESULT_LIKED, false)
+            val likesCount = data.getIntExtra(PostDetailActivity.EXTRA_RESULT_LIKES_COUNT, -1)
+            if (likesCount < 0) return@registerForActivityResult
+
+            val updatedPosts = latestState.posts.map { post ->
+                if (post.id == postId) post.copy(likesCount = likesCount) else post
+            }
+            val updatedLikedIds = latestState.likedIds.toMutableSet().apply {
+                if (liked) add(postId) else remove(postId)
+            }
+            latestState = latestState.copy(posts = updatedPosts, likedIds = updatedLikedIds)
+            renderState(latestState)
         }
-        val updatedLikedIds = latestState.likedIds.toMutableSet().apply {
-            if (liked) add(postId) else remove(postId)
-        }
-        latestState = latestState.copy(posts = updatedPosts, likedIds = updatedLikedIds)
-        renderState(latestState)
-    }
 
     private var currentTab: ContentTab = ContentTab.RECIPES
     private val feedScrollPositions = EnumMap<ContentTab, Int>(ContentTab::class.java)
@@ -119,8 +129,10 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
         scrollTopBaseBottomMargin =
             (binding.buttonScrollTop.layoutParams as ViewGroup.MarginLayoutParams).bottomMargin
+
         binding.buttonFilters.setOnClickListener { showFiltersDialog() }
         updateFiltersButtonState()
 
@@ -129,17 +141,22 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
             likedPostIds.addAll(saved.toList())
         }
 
-        binding.swipeRefresh.setOnRefreshListener { postViewModel.loadPosts(filtersForCurrentTab(), currentPostType()) }
+        binding.swipeRefresh.setOnRefreshListener {
+            postViewModel.loadPosts(filtersForCurrentTab(), currentPostType())
+        }
         binding.swipeRefresh.setOnChildScrollUpCallback { _, _ ->
             !(currentTab.isFeed() && !binding.postsScroll.canScrollVertically(-1))
         }
-        binding.buttonRetry.setOnClickListener { postViewModel.loadPosts(filtersForCurrentTab(), currentPostType()) }
+        binding.buttonRetry.setOnClickListener {
+            postViewModel.loadPosts(filtersForCurrentTab(), currentPostType())
+        }
 
         binding.postsScroll.setOnScrollChangeListener { v, _, scrollY, _, _ ->
             val isFeedTab = currentTab.isFeed()
             val atBottom = isFeedTab && scrollY > 0 && !v.canScrollVertically(1)
             binding.buttonScrollTop.isVisible = isFeedTab && scrollY > scrollTopThresholdPx
             updateScrollTopButtonMargin(atBottom)
+
             if (
                 isFeedTab &&
                 !latestState.isLoading &&
@@ -150,6 +167,7 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
                 postViewModel.loadNextPage()
             }
         }
+
         binding.buttonScrollTop.setOnClickListener {
             binding.postsScroll.smoothScrollTo(0, 0)
         }
@@ -164,13 +182,16 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
             applySelection(item.itemId)
             true
         }
+
         val initialTab = intent.getStringExtra(EXTRA_TARGET_TAB)
         binding.bottomNavigation.selectedItemId = when (initialTab) {
             EXTRA_TAB_ARTICLES -> R.id.menu_articles
             EXTRA_TAB_DRAFTS -> R.id.menu_drafts
             else -> DEFAULT_TAB_ID
         }
+
         applySelection(binding.bottomNavigation.selectedItemId)
+
         val targetUserId = intent.getLongExtra(EXTRA_TARGET_USER_ID, -1L)
         if (targetUserId > 0) {
             openPublicProfile(
@@ -188,6 +209,7 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
                 }
             }
         }
+
         ensureTagsLoaded()
         
         // Monitor network connectivity and trigger draft sync
@@ -255,18 +277,19 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
 
         when (currentTab) {
             ContentTab.RECIPES, ContentTab.ARTICLES -> showFeed()
+
             ContentTab.CREATE -> {
                 showFragment(CREATE_TAG) { CreatePostFragment.newInstance() }
             }
 
             ContentTab.DRAFTS -> {
-                val fragment = showFragment(DRAFTS_TAG) { DraftsFragment() }
-                refreshFragment(fragment)
+                showFragment(DRAFTS_TAG) { DraftsFragment() }
+                // ВАЖНО: НЕ вызывать refreshFragment() здесь — он выполнится через runOnCommit в showFragment()
             }
 
             ContentTab.PROFILE -> {
-                val fragment = showFragment(PROFILE_TAG) { ProfileFragment() }
-                refreshFragment(fragment)
+                showFragment(PROFILE_TAG) { ProfileFragment() }
+                // ВАЖНО: НЕ вызывать refreshFragment() здесь — он выполнится через runOnCommit в showFragment()
             }
 
             ContentTab.OTHER -> {
@@ -313,6 +336,7 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
             !state.isLoading && !state.isAppending && state.error == null && filteredPosts.isEmpty()
 
         renderPosts(filteredPosts)
+
         if (restoreFeedScroll && !scrollRestoreScheduled) {
             scrollRestoreScheduled = true
             val targetScrollY = feedScrollPositions[currentTab] ?: 0
@@ -341,10 +365,14 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
     private fun renderPosts(posts: List<PostCard>) {
         binding.postsContainer.removeAllViews()
         val iconPadding = resources.getDimensionPixelSize(R.dimen.create_horizontal_space)
+
         fun updateLikesView(view: TextView, liked: Boolean, count: Int, animate: Boolean = false) {
             view.text = getString(R.string.likes_format, count)
             val icon = if (liked) R.drawable.ic_favorite else R.drawable.ic_favorite_border
-            val tint = ContextCompat.getColor(this, if (liked) R.color.text_error else R.color.recipe_primary)
+            val tint = ContextCompat.getColor(
+                this,
+                if (liked) R.color.text_error else R.color.recipe_primary
+            )
             view.setCompoundDrawablesWithIntrinsicBounds(icon, 0, 0, 0)
             view.compoundDrawablePadding = iconPadding
             TextViewCompat.setCompoundDrawableTintList(view, ColorStateList.valueOf(tint))
@@ -356,18 +384,22 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
             )
             if (animate) animateLike(view)
         }
+
         posts.forEach { post ->
             val cardBinding = ItemPostCardBinding.inflate(
                 layoutInflater,
                 binding.postsContainer,
                 false
             )
+
             cardBinding.postType.text = formatType(post.postType)
             cardBinding.authorName.text =
                 post.authorName?.ifBlank { getString(R.string.author_unknown) }
                     ?: getString(R.string.author_unknown)
+
             val openAuthor = View.OnClickListener { openAuthorProfile(post) }
             cardBinding.authorName.setOnClickListener(openAuthor)
+
             val avatarUrl = post.authorAvatarUrl?.takeIf { it.isNotBlank() }
             renderAvatar(cardBinding.avatarImage, cardBinding.avatarInitial, avatarUrl, post.authorName)
             if (avatarUrl != null) {
@@ -377,10 +409,15 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
                 cardBinding.avatarImage.setOnClickListener(null)
                 cardBinding.avatarInitial.setOnClickListener(openAuthor)
             }
+
             cardBinding.publishedAt.text =
                 formatDisplayDate(post.publishedAt) ?: getString(R.string.published_unknown)
-            cardBinding.postTitle.text = post.title.ifBlank { getString(R.string.card_title_placeholder) }
-            cardBinding.postExcerpt.text = post.excerpt.ifBlank { getString(R.string.card_excerpt_placeholder) }
+
+            cardBinding.postTitle.text =
+                post.title.ifBlank { getString(R.string.card_title_placeholder) }
+            cardBinding.postExcerpt.text =
+                post.excerpt.ifBlank { getString(R.string.card_excerpt_placeholder) }
+
             bindTags(cardBinding.tagsGroup, post.tags)
 
             val isRecipe = normalizePostType(post.postType) == DEFAULT_POST_TYPE
@@ -388,14 +425,16 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
             cardBinding.recipeMeta.isVisible = hasRecipeMeta
             cardBinding.cookingTime.isVisible = hasRecipeMeta && post.cookingTimeMinutes != null
             cardBinding.calories.isVisible = hasRecipeMeta && post.calories != null
+
             post.cookingTimeMinutes?.let {
                 cardBinding.cookingTime.text = getString(R.string.cooking_time_format, it)
             }
             post.calories?.let {
                 cardBinding.calories.text = getString(R.string.calories_format, it)
             }
-            cardBinding.viewsText.text =
-                getString(R.string.views_format, post.viewsCount ?: 0L)
+
+            cardBinding.viewsText.text = getString(R.string.views_format, post.viewsCount ?: 0L)
+
             val likedPreviously = likedPostIds.contains(post.id) || post.liked
             var currentLikes = post.likesCount
             var hasLiked = likedPreviously
@@ -420,13 +459,16 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
                     }
                     isEnabled = false
                     lifecycleScope.launch {
-                        val result = if (hasLiked) postRepository.unlike(post.id) else postRepository.like(post.id)
+                        val result =
+                            if (hasLiked) postRepository.unlike(post.id) else postRepository.like(post.id)
+
                         val offlineHandled = result.exceptionOrNull()?.message in OFFLINE_CACHE_MESSAGES
                         if (result.isSuccess || offlineHandled) {
                             hasLiked = !hasLiked
                             currentLikes = (currentLikes + if (hasLiked) 1 else -1).coerceAtLeast(0)
                             if (hasLiked) likedPostIds.add(post.id) else likedPostIds.remove(post.id)
                             updateLikesView(cardBinding.likesText, hasLiked, currentLikes, true)
+
                             if (offlineHandled) {
                                 Toast.makeText(
                                     this@MainActivity,
@@ -449,7 +491,6 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
             }
 
             cardBinding.root.setOnClickListener { openPost(post) }
-
             binding.postsContainer.addView(cardBinding.root)
         }
     }
@@ -465,8 +506,6 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
         updateScrollTopButtonMargin(false)
 
         updateFeedTitle()
-
-
         renderState(latestState)
     }
 
@@ -486,12 +525,19 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
         supportFragmentManager.fragments
             .filter { it.tag == CREATE_TAG || it.tag == PROFILE_TAG || it.tag == PUBLIC_PROFILE_TAG || it.tag == DRAFTS_TAG }
             .forEach { transaction.hide(it) }
+
         val fragment = supportFragmentManager.findFragmentByTag(tag) ?: provider()
         if (fragment.isAdded) {
             transaction.show(fragment)
         } else {
             transaction.add(R.id.fragmentContainer, fragment, tag)
         }
+
+        // refresh only AFTER commit (when fragment is attached)
+        transaction.runOnCommit {
+            refreshFragment(fragment)
+        }
+
         transaction.commit()
 
         binding.postsContent.isVisible = false
@@ -512,26 +558,29 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
             ContentTab.DRAFTS -> {
                 supportFragmentManager.findFragmentByTag(DRAFTS_TAG)?.let { refreshFragment(it) }
             }
-
             ContentTab.PROFILE -> {
                 supportFragmentManager.findFragmentByTag(PROFILE_TAG)?.let { refreshFragment(it) }
             }
-
             else -> Unit
         }
     }
 
     private fun hideFragments() {
         val transaction = supportFragmentManager.beginTransaction()
-        val targets = supportFragmentManager.fragments.filter { it.tag == CREATE_TAG || it.tag == PROFILE_TAG || it.tag == PUBLIC_PROFILE_TAG || it.tag == DRAFTS_TAG }
+        val targets = supportFragmentManager.fragments.filter {
+            it.tag == CREATE_TAG || it.tag == PROFILE_TAG || it.tag == PUBLIC_PROFILE_TAG || it.tag == DRAFTS_TAG
+        }
         targets.forEach { transaction.hide(it) }
         if (targets.isNotEmpty()) transaction.commit()
     }
 
     private fun openPublicProfile(userId: Long, displayName: String?, subscribed: Boolean?) {
-        val existing = supportFragmentManager.findFragmentByTag(PUBLIC_PROFILE_TAG) as? PublicProfileFragment
+        val existing =
+            supportFragmentManager.findFragmentByTag(PUBLIC_PROFILE_TAG) as? PublicProfileFragment
         existing?.updateUser(userId, displayName, subscribed)
-        showFragment(PUBLIC_PROFILE_TAG) { PublicProfileFragment.newInstance(userId, displayName, subscribed) }
+        showFragment(PUBLIC_PROFILE_TAG) {
+            PublicProfileFragment.newInstance(userId, displayName, subscribed)
+        }
         updateBackPressedHandling()
     }
 
@@ -608,6 +657,7 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
         val dialogBinding = DialogFiltersBinding.inflate(layoutInflater)
         val filters = filtersForCurrentTab()
         val isRecipeTab = currentPostType() == DEFAULT_POST_TYPE
+
         dialogBinding.recipeFiltersGroup.isVisible = isRecipeTab
         if (isRecipeTab) {
             dialogBinding.inputCookingTimeMin.setText(filters.cookingTimeMin?.toString().orEmpty())
@@ -620,10 +670,13 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
             dialogBinding.inputCaloriesMin.setText("")
             dialogBinding.inputCaloriesMax.setText("")
         }
+
         val selectedTags = filters.tags.toMutableSet()
         renderTagChips(dialogBinding, selectedTags)
         ensureTagsLoaded { renderTagChips(dialogBinding, selectedTags) }
+
         dialogBinding.buttonResetFilters.isVisible = filters.appliedCount(currentPostType()) > 0
+
         val dialog = MaterialAlertDialogBuilder(this)
             .setView(dialogBinding.root)
             .create()
@@ -638,11 +691,13 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
                 caloriesMax = dialogBinding.inputCaloriesMax.text?.toString()?.toIntOrNull(),
                 tags = selectedTags.map { it.trim() }.filter { it.isNotBlank() }.toSet()
             ).normalizedForType(currentPostType())
+
             filtersByTab[currentTab] = updated
             updateFiltersButtonState()
             postViewModel.loadPosts(updated, currentPostType())
             dialog.dismiss()
         }
+
         dialogBinding.buttonResetFilters.setOnClickListener {
             val cleared = PostFilters(postType = currentPostType()).normalizedForType(currentPostType())
             filtersByTab[currentTab] = cleared
@@ -650,6 +705,7 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
             postViewModel.loadPosts(cleared, currentPostType())
             dialog.dismiss()
         }
+
         dialog.show()
     }
 
@@ -660,6 +716,7 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
         binding.tagsProgress.isVisible = loading
         binding.tagsEmpty.isVisible = tags.isEmpty() && !loading
         binding.tagsGroup.isVisible = tags.isNotEmpty()
+
         tags.forEach { tag ->
             val chip = Chip(this)
             chip.text = tag.name
@@ -786,7 +843,8 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
         }
     }
 
-    private fun ContentTab.isFeed(): Boolean = this == ContentTab.RECIPES || this == ContentTab.ARTICLES
+    private fun ContentTab.isFeed(): Boolean =
+        this == ContentTab.RECIPES || this == ContentTab.ARTICLES
 
     override fun onPostCreated(post: PostCard) {
         val targetTabId = if (normalizePostType(post.postType) == ARTICLE_POST_TYPE) {

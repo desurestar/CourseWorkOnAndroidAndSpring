@@ -19,7 +19,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import ru.zagrebin.culinaryblog.R
 import ru.zagrebin.culinaryblog.databinding.FragmentDraftsBinding
-import ru.zagrebin.culinaryblog.ui.RefreshableTab
+import ru.zagrebin.culinaryblog.model.PostCard
 import ru.zagrebin.culinaryblog.model.PostDraft
 import ru.zagrebin.culinaryblog.viewmodel.PostViewModel
 
@@ -45,6 +45,8 @@ class DraftsFragment : Fragment(), RefreshableTab {
     }
 
     override fun refreshContent() {
+        // Safety: refresh can be called from Activity before fragment is attached
+        if (!isAdded) return
         postViewModel.refreshDrafts(sync = true)
     }
 
