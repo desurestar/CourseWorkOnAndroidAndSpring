@@ -36,16 +36,11 @@ public class FlywayConfig {
                     throw ex;
                 }
                 log.warn("Flyway validation failed ({}). Auto-repair is enabled for non-production profiles; attempting repair before re-running migrations.",
-                        ex.getClass().getSimpleName());
+                        ex.getMessage());
                 flyway.repair();
                 flyway.validate();
-                try {
-                    flyway.migrate();
-                    log.info("Flyway repair completed successfully; migrations re-applied after validation error.");
-                } catch (Exception migrateAfterRepairEx) {
-                    log.error("Flyway migrate failed after repair attempt", migrateAfterRepairEx);
-                    throw migrateAfterRepairEx;
-                }
+                flyway.migrate();
+                log.info("Flyway repair completed successfully; migrations re-applied after validation error.");
             }
         };
     }
