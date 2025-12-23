@@ -206,4 +206,6 @@
     <string name="admin_users_delete">Удалить</string>
     <string name="admin_panel_button">Админ-панель</string>
     <string name="admin_error_action">Не удалось выполнить действие</string>
+    <string name="server_drafts_header">Черновики на сервере</string>
+    <string name="local_drafts_header">Локальные черновики</string>
 </resources>

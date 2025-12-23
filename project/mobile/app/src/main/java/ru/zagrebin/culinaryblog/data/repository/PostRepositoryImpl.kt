@@ -252,12 +252,38 @@ class PostRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun getServerDrafts(): Result<List<PostCard>> = withContext(Dispatchers.IO) {
+        return@withContext try {
+            Log.d(TAG, "Fetching server drafts from /api/posts/mine/drafts")
+            val resp = api.getMyDrafts(page = 1, pageSize = 100)
+            if (resp.isSuccessful) {
+                val body = resp.body()
+                if (body == null) {
+                    Log.w(TAG, "Server drafts response body is null")
+                    return@withContext Result.failure(RuntimeException("Empty body"))
+                }
+                val drafts = body.results?.map { it.toModel() } ?: emptyList()
+                Log.d(TAG, "Successfully fetched ${drafts.size} server drafts")
+                Result.success(drafts)
+            } else {
+                val errorMsg = "Server error: ${resp.code()}"
+                Log.e(TAG, "Failed to fetch server drafts: $errorMsg")
+                Result.failure(RuntimeException(errorMsg))
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Exception while fetching server drafts", e)
+            Result.failure(e)
+        }
+    }
+
     override suspend fun syncDrafts(authorId: Long): Result<Int> = withContext(Dispatchers.IO) {
         var synced = 0
         var lastError: Exception? = null
         // Only sync pending or failed drafts
         val pendingDrafts = draftDao.getByAuthorAndSyncState(authorId, "PENDING") +
                            draftDao.getByAuthorAndSyncState(authorId, "FAILED")
+        
+        Log.d(TAG, "Starting sync for ${pendingDrafts.size} pending drafts for user $authorId")
         
         pendingDrafts.forEach { entity ->
             try {
@@ -268,6 +294,7 @@ class PostRepositoryImpl @Inject constructor(
                 )
                 
                 draftDao.updateSyncState(entity.id, "IN_SYNC", System.currentTimeMillis())
+                Log.d(TAG, "Syncing draft ${entity.id} with clientId: ${requestWithClientId.clientId}")
                 val resp = api.createPost(requestWithClientId)
                 
                 if (resp.isSuccessful) {
@@ -275,22 +302,35 @@ class PostRepositoryImpl @Inject constructor(
                     if (postCard != null) {
                         // Mark as synced with server ID
                         draftDao.markSynced(entity.id, postCard.id, "SYNCED", System.currentTimeMillis())
+                        Log.d(TAG, "Successfully synced draft ${entity.id} -> server post ${postCard.id}")
                     }
                     synced++
                 } else {
                     draftDao.updateSyncState(entity.id, "FAILED", System.currentTimeMillis())
-                    lastError = RuntimeException("Server error: ${resp.code()}")
+                    val errorMsg = "Server error: ${resp.code()}"
+                    Log.e(TAG, "Failed to sync draft ${entity.id}: $errorMsg")
+                    lastError = RuntimeException(errorMsg)
                 }
             } catch (e: Exception) {
                 draftDao.updateSyncState(entity.id, "FAILED", System.currentTimeMillis())
+                Log.e(TAG, "Exception syncing draft ${entity.id}", e)
                 lastError = e
             }
         }
         val error = lastError
         return@withContext when {
-            error == null -> Result.success(synced)
-            synced == 0 -> Result.failure(error)
-            else -> Result.failure(RuntimeException("Synced $synced drafts; some failed", error))
+            error == null -> {
+                Log.d(TAG, "Successfully synced $synced drafts")
+                Result.success(synced)
+            }
+            synced == 0 -> {
+                Log.e(TAG, "Failed to sync any drafts", error)
+                Result.failure(error)
+            }
+            else -> {
+                Log.w(TAG, "Partially synced $synced drafts, but some failed", error)
+                Result.failure(RuntimeException("Synced $synced drafts; some failed", error))
+            }
         }
     }
 
