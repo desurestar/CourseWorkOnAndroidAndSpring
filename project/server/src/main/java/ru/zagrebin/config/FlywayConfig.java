@@ -10,19 +10,36 @@ import org.springframework.core.env.Profiles;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import jakarta.annotation.PostConstruct;
 import java.util.Arrays;
 
 @Configuration
 public class FlywayConfig {
     private static final Logger log = LoggerFactory.getLogger(FlywayConfig.class);
+    /**
+     * Enables automatic Flyway repair on validation errors. Should be disabled in production.
+     */
     @Value("${app.flyway.auto-repair-enabled:false}")
     private boolean autoRepairEnabled;
+    /**
+     * Comma-separated list of production profile names that must not attempt automatic repair.
+     */
     @Value("${app.flyway.prod-profiles:prod}")
     private String prodProfiles;
     private final Environment environment;
+    private Profiles productionProfiles;
 
     public FlywayConfig(Environment environment) {
         this.environment = environment;
+    }
+
+    @PostConstruct
+    void initProductionProfiles() {
+        String[] profiles = Arrays.stream(prodProfiles.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .toArray(String[]::new);
+        productionProfiles = Profiles.of(profiles);
     }
 
     @Bean
@@ -32,12 +49,16 @@ public class FlywayConfig {
                 flyway.validate();
                 flyway.migrate();
             } catch (FlywayValidateException ex) {
-                boolean repairAllowed = autoRepairEnabled && !environment.acceptsProfiles(productionProfiles());
+                boolean repairAllowed = autoRepairEnabled && !environment.acceptsProfiles(productionProfiles);
                 if (!repairAllowed) {
+                    if (log.isInfoEnabled()) {
+                        log.info("Flyway auto-repair skipped (enabled: {}, production profiles active: {}).", autoRepairEnabled,
+                                environment.acceptsProfiles(productionProfiles));
+                    }
                     throw ex;
                 }
                 log.warn("Flyway validation failed ({}). Auto-repair is enabled for non-production profiles; attempting repair before re-running migrations.",
-                        ex.getMessage());
+                        ex.getClass().getSimpleName());
                 flyway.repair();
                 try {
                     flyway.validate();
@@ -51,11 +72,4 @@ public class FlywayConfig {
         };
     }
 
-    private Profiles productionProfiles() {
-        String[] profiles = Arrays.stream(prodProfiles.split(","))
-                .map(String::trim)
-                .filter(s -> !s.isEmpty())
-                .toArray(String[]::new);
-        return Profiles.of(profiles);
-    }
 }
