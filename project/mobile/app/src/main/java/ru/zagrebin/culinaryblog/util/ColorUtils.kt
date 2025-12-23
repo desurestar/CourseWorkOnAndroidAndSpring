@@ -17,9 +17,8 @@ object ColorUtils {
      */
     @ColorInt
     fun hexToColor(hex: String?): Int? {
-        if (hex.isNullOrBlank()) return null
         return try {
-            Color.parseColor(hex)
+            hex?.let { Color.parseColor(it) }
         } catch (e: IllegalArgumentException) {
             null
         }

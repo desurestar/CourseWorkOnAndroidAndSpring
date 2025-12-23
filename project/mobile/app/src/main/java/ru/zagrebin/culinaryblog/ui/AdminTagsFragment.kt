@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -41,7 +42,7 @@ class AdminTagsFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        defaultColorInt = requireContext().getColor(R.color.admin_tag_color_placeholder)
+        defaultColorInt = ContextCompat.getColor(requireContext(), R.color.admin_tag_color_placeholder)
         binding.buttonSearchTags.setOnClickListener {
             viewModel.load(binding.adminTagSearch.text?.toString()?.trim())
         }
