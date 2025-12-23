@@ -6,7 +6,7 @@ import ru.zagrebin.model.PostLike;
 import ru.zagrebin.model.PostLikeId;
 
 @Repository
-public interface PostLikeRepository extends JpaRepository<PostLike, Long> {
+public interface PostLikeRepository extends JpaRepository<PostLike, PostLikeId> {
     boolean existsById(PostLikeId postLike);
 
     default boolean existsByPostIdAndUserId(Long postId, Long userId) {

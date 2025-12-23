@@ -36,6 +36,7 @@ import ru.zagrebin.model.Ingredient;
 import ru.zagrebin.model.Post;
 import ru.zagrebin.model.Tag;
 import ru.zagrebin.model.User;
+import ru.zagrebin.model.PostStatus;
 import ru.zagrebin.repository.IngredientRepository;
 import ru.zagrebin.repository.PostRepository;
 import ru.zagrebin.repository.TagRepository;
@@ -47,15 +48,12 @@ import ru.zagrebin.util.UrlHelper;
 
 import java.text.Normalizer;
 import java.util.Locale;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/admin")
 @PreAuthorize("hasRole('ADMIN')")
 public class AdminController {
-
-    private static final Set<String> ALLOWED_STATUSES = Set.of("draft", "published", "archived");
 
     private final PostRepository postRepository;
     private final IngredientRepository ingredientRepository;
@@ -108,7 +106,7 @@ public class AdminController {
                                                          @Valid @RequestBody UpdatePostStatusRequest request) {
         Post post = postRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Post not found: " + id));
-        String normalized = normalizeStatus(request.status());
+        PostStatus normalized = normalizeStatus(request.status());
         post.setStatus(normalized);
         Post saved = postRepository.save(post);
         return ResponseEntity.ok(toAdminPostDto(saved));
@@ -281,7 +279,7 @@ public class AdminController {
                 post.getId(),
                 post.getTitle(),
                 post.getPostType(),
-                post.getStatus(),
+                post.getStatus() != null ? post.getStatus().getValue() : null,
                 post.getCreatedAt() != null ? post.getCreatedAt().toString() : null,
                 UrlHelper.toAbsolute(post.getCoverUrl()),
                 post.getAuthor() != null ? post.getAuthor().getId() : null,
@@ -303,12 +301,8 @@ public class AdminController {
         );
     }
 
-    private String normalizeStatus(String status) {
-        if (status == null) {
-            return "draft";
-        }
-        String normalized = status.trim().toLowerCase(Locale.ROOT);
-        return ALLOWED_STATUSES.contains(normalized) ? normalized : "draft";
+    private PostStatus normalizeStatus(String status) {
+        return PostStatus.from(status);
     }
 
     private String generateSlug(String name) {

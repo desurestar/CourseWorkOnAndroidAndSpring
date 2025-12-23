@@ -1,8 +1,6 @@
 package ru.zagrebin.dto;
 
 import lombok.Data;
-import ru.zagrebin.model.Tag;
-
 import java.util.Set;
 
 @Data

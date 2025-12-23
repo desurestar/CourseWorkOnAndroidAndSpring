@@ -9,7 +9,6 @@ import ru.zagrebin.dto.PostUpdateDto;
 import ru.zagrebin.dto.RecipeStepCreateDto;
 import ru.zagrebin.model.*;
 import ru.zagrebin.repository.IngredientRepository;
-import ru.zagrebin.repository.PostRepository;
 import ru.zagrebin.repository.TagRepository;
 
 import java.util.*;
@@ -20,21 +19,18 @@ public class PostAssembler {
 
     private final TagRepository tagRepository;
     private final IngredientRepository ingredientRepository;
-    private final PostRepository postRepository;
 
     public PostAssembler(TagRepository tagRepository,
-                         IngredientRepository ingredientRepository,
-                         PostRepository postRepository) {
+                         IngredientRepository ingredientRepository) {
         this.tagRepository = tagRepository;
         this.ingredientRepository = ingredientRepository;
-        this.postRepository = postRepository;
     }
 
     @Transactional
     public Post createFromDto(PostCreateDto dto, User author) {
         Post post = new Post();
         post.setPostType(dto.getPostType());
-        post.setStatus(dto.getStatus());
+        post.setStatus(PostStatus.from(dto.getStatus()));
         post.setTitle(dto.getTitle());
         post.setExcerpt(dto.getExcerpt());
         post.setContent(dto.getContent());
@@ -94,12 +90,9 @@ public class PostAssembler {
      * and then synchronize collections.
      */
     @Transactional
-    public Post updateFromDto(Long postId, PostUpdateDto dto) {
-        Post post = postRepository.findByIdWithAllRelations(postId)
-                .orElseThrow(() -> new EntityNotFoundException("Post not found: " + postId));
-
+    public Post updateFromDto(Post post, PostUpdateDto dto) {
         post.setPostType(dto.getPostType());
-        post.setStatus(dto.getStatus());
+        post.setStatus(PostStatus.from(dto.getStatus()));
         post.setTitle(dto.getTitle());
         post.setExcerpt(dto.getExcerpt());
         post.setContent(dto.getContent());
@@ -149,7 +142,6 @@ public class PostAssembler {
             post.getSteps().addAll(steps);
         }
 
-        // save and return
-        return postRepository.save(post);
+        return post;
     }
 }

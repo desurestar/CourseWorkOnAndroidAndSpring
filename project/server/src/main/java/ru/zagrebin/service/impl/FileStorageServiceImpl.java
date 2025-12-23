@@ -4,14 +4,18 @@ import jakarta.annotation.PostConstruct;
 import ru.zagrebin.service.FileStorageService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 
 
 import java.io.IOException;
 import java.net.URI;
 import java.nio.file.*;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -25,6 +29,20 @@ public class FileStorageServiceImpl implements FileStorageService {
     // Публичный префикс URL, например "/media" или полный http://cdn.example.com/media
     @Value("${media.public-url-prefix:/media}")
     private String publicUrlPrefix;
+
+    private static final Set<String> ALLOWED_CONTENT_TYPES = Set.of(
+            "image/jpeg",
+            "image/png",
+            "image/webp"
+    );
+
+    private static final Map<String, String> CONTENT_TYPE_EXTENSIONS = Map.of(
+            "image/jpeg", ".jpg",
+            "image/png", ".png",
+            "image/webp", ".webp"
+    );
+
+    private static final Set<String> ALLOWED_EXTENSIONS = Set.of(".jpg", ".jpeg", ".png", ".webp");
 
     @PostConstruct
     public void init() throws IOException {
@@ -47,9 +65,23 @@ public class FileStorageServiceImpl implements FileStorageService {
             throw new IllegalArgumentException("Invalid file name: " + original);
         }
 
+        String contentType = file.getContentType();
+        if (contentType != null && !ALLOWED_CONTENT_TYPES.contains(contentType.toLowerCase())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unsupported file type");
+        }
+
         String ext = "";
         int idx = original.lastIndexOf('.');
         if (idx > 0) ext = original.substring(idx).toLowerCase();
+        if (!ALLOWED_EXTENSIONS.contains(ext)) {
+            ext = CONTENT_TYPE_EXTENSIONS.getOrDefault(
+                    contentType != null ? contentType.toLowerCase() : "",
+                    null
+            );
+        }
+        if (ext == null || !ALLOWED_EXTENSIONS.contains(ext)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unsupported file extension");
+        }
 
         String filename = UUID.randomUUID().toString() + ext;
         Path subdir = (targetSubdir == null || targetSubdir.isBlank())
@@ -113,13 +145,6 @@ public class FileStorageServiceImpl implements FileStorageService {
             log.warn("Failed to delete file {}: {}", fileUrl, ex.getMessage());
             return false;
         }
-    }
-
-    @Override
-    public Path resolvePath(String relativePath) {
-        if (relativePath.startsWith("/")) relativePath = relativePath.substring(1);
-        Path p = Path.of(mediaRoot).resolve(relativePath).normalize();
-        return p;
     }
 
     private String joinUrl(String a, String b) {

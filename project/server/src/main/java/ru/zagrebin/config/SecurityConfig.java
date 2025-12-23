@@ -26,7 +26,13 @@ import java.util.List;
 @EnableMethodSecurity
 public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
-    private static final List<String> DEFAULT_ALLOWED_ORIGINS = List.of("http://localhost:3000", "http://localhost:5173");
+    private static final List<String> DEFAULT_ALLOWED_ORIGINS = List.of(
+            "http://localhost:3000",
+            "http://localhost:5173",
+            "http://10.0.2.2:8080",
+            "http://10.0.3.2:8080",
+            "http://192.168.4.103:8080"
+    );
     private static final List<String> ALLOWED_METHODS = List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS");
     private static final List<String> ALLOWED_HEADERS = List.of(
             "Authorization", "Content-Type", "Accept", "Origin", "X-Requested-With",
@@ -52,6 +58,7 @@ public class SecurityConfig {
                         .requestMatchers("/media/**").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/posts/**").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/tags/**", "/api/ingredients/**").permitAll()
+                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/uploads/**").authenticated()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )

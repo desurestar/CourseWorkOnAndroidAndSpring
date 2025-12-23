@@ -7,9 +7,10 @@ import ru.zagrebin.dto.PostCreateDto;
 import ru.zagrebin.dto.PostFilterRequest;
 import ru.zagrebin.dto.PostFullDto;
 import ru.zagrebin.dto.PostUpdateDto;
+import ru.zagrebin.model.PostStatus;
 
 public interface PostService {
-    Page<PostCardDto> getPostsPageByStatus(String status, Pageable pageable, PostFilterRequest filters);
+    Page<PostCardDto> getPostsPageByStatus(PostStatus status, Pageable pageable, PostFilterRequest filters);
 
     PostFullDto getFullPost(Long postId, Long currentUserId);
 

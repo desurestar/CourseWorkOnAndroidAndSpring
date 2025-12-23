@@ -11,6 +11,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import ru.zagrebin.model.Post;
+import ru.zagrebin.model.PostStatus;
 
 @Repository
 public interface PostRepository extends JpaRepository<Post, Long> {
@@ -30,21 +31,21 @@ public interface PostRepository extends JpaRepository<Post, Long> {
           )
         order by p.createdAt desc
     """)
-    List<Long> findIdsByFilters(@Param("status") String status,
-                                @Param("postType") String postType,
-                                @Param("cookingTimeMin") Integer cookingTimeMin,
-                                @Param("cookingTimeMax") Integer cookingTimeMax,
-                                @Param("caloriesMin") Integer caloriesMin,
-                                @Param("caloriesMax") Integer caloriesMax,
-                                @Param("tagsEmpty") boolean tagsEmpty,
-                                @Param("tags") List<String> tags,
-                                Pageable pageable);
+    List<Long> findIdsByFilters(@Param("status") PostStatus status,
+                                 @Param("postType") String postType,
+                                 @Param("cookingTimeMin") Integer cookingTimeMin,
+                                 @Param("cookingTimeMax") Integer cookingTimeMax,
+                                 @Param("caloriesMin") Integer caloriesMin,
+                                 @Param("caloriesMax") Integer caloriesMax,
+                                 @Param("tagsEmpty") boolean tagsEmpty,
+                                 @Param("tags") List<String> tags,
+                                 Pageable pageable);
 
     @EntityGraph(attributePaths = {"author", "tags", "ingredients", "ingredients.ingredient", "steps"})
     @Query("select distinct p from Post p where p.id in :ids")
     List<Post> findAllByIdWithEntityGraph(@Param("ids") List<Long> ids);
 
-    long countByStatus(String status);
+    long countByStatus(PostStatus status);
 
     @Query("""
         select count(distinct p.id) from Post p
@@ -60,11 +61,11 @@ public interface PostRepository extends JpaRepository<Post, Long> {
               )
           )
     """)
-    long countByFilters(@Param("status") String status,
-                        @Param("postType") String postType,
-                        @Param("cookingTimeMin") Integer cookingTimeMin,
-                        @Param("cookingTimeMax") Integer cookingTimeMax,
-                        @Param("caloriesMin") Integer caloriesMin,
+    long countByFilters(@Param("status") PostStatus status,
+                         @Param("postType") String postType,
+                         @Param("cookingTimeMin") Integer cookingTimeMin,
+                         @Param("cookingTimeMax") Integer cookingTimeMax,
+                         @Param("caloriesMin") Integer caloriesMin,
                         @Param("caloriesMax") Integer caloriesMax,
                         @Param("tagsEmpty") boolean tagsEmpty,
                         @Param("tags") List<String> tags);

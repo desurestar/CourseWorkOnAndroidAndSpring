@@ -11,6 +11,7 @@ import ru.zagrebin.dto.PostFullDto;
 import ru.zagrebin.model.Post;
 import ru.zagrebin.model.RecipeStep;
 import ru.zagrebin.model.Tag;
+import ru.zagrebin.model.PostStatus;
 import ru.zagrebin.util.UrlHelper;
 
 public final class PostMapper {
@@ -41,7 +42,7 @@ public final class PostMapper {
         PostFullDto dto = new PostFullDto();
         dto.setId(p.getId());
         dto.setPostType(p.getPostType());
-        dto.setStatus(p.getStatus());
+        dto.setStatus(p.getStatus() != null ? p.getStatus().getValue() : PostStatus.DRAFT.getValue());
         dto.setTitle(p.getTitle());
         dto.setExcerpt(p.getExcerpt());
         dto.setContent(p.getContent());

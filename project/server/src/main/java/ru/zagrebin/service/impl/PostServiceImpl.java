@@ -17,6 +17,7 @@ import ru.zagrebin.mapper.PostMapper;
 import ru.zagrebin.model.Post;
 import ru.zagrebin.model.RecipeStep;
 import ru.zagrebin.model.User;
+import ru.zagrebin.model.PostStatus;
 import ru.zagrebin.repository.PostRepository;
 import ru.zagrebin.repository.UserRepository;
 import ru.zagrebin.security.Roles;
@@ -55,7 +56,7 @@ public class PostServiceImpl implements PostService {
      */
     @Override
     @Transactional(readOnly = true)
-    public Page<PostCardDto> getPostsPageByStatus(String status, Pageable pageable, PostFilterRequest filters) {
+    public Page<PostCardDto> getPostsPageByStatus(PostStatus status, Pageable pageable, PostFilterRequest filters) {
         PostFilterRequest normalized = filters == null ? new PostFilterRequest().normalize() : filters.normalize();
         boolean tagsEmpty = !normalized.hasTags();
         List<String> tagNames = normalized.effectiveTags();
@@ -155,7 +156,7 @@ public class PostServiceImpl implements PostService {
             throw new AccessDeniedException("Недостаточно прав для изменения поста");
         }
 
-        Post updated = postAssembler.updateFromDto(postId, dto);
+        Post updated = postAssembler.updateFromDto(existing, dto);
         Post saved = postRepository.save(updated);
 
         boolean isLiked = currentUserId != null && likeService.isLiked(postId, currentUserId);
