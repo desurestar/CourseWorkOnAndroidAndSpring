@@ -39,11 +39,19 @@ object StorageModule {
         }
     }
     
+    private val MIGRATION_2_3 = object : Migration(2, 3) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            // Add new columns for offline image support
+            database.execSQL("ALTER TABLE drafts ADD COLUMN coverLocalUri TEXT")
+            database.execSQL("ALTER TABLE drafts ADD COLUMN stepsImagesJson TEXT")
+        }
+    }
+    
     @Provides
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): CulinaryDatabase =
         Room.databaseBuilder(context, CulinaryDatabase::class.java, "culinary_offline.db")
-            .addMigrations(MIGRATION_1_2)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
             .build()
 
 

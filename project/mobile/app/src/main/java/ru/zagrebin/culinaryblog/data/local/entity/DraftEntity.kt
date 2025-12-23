@@ -14,13 +14,15 @@ data class DraftEntity(
     val excerpt: String,
     val content: String,
     val coverUrl: String?,
+    val coverLocalUri: String?, // Local URI for offline image (file:// or content://)
     val cookingTimeMinutes: Int?,
     val calories: Int?,
     val authorId: Long,
     val tagIds: String,
     val ingredientsJson: String,
     val stepsJson: String,
-    val syncState: String = "PENDING", // PENDING, SYNCED, FAILED
+    val stepsImagesJson: String?, // JSON mapping step index to local URI: {"0": "content://...", "2": "file://..."}
+    val syncState: String = "PENDING", // PENDING, IN_SYNC, SYNCED, FAILED
     val updatedAt: Long = System.currentTimeMillis(),
     val lastSyncAttempt: Long? = null
 )

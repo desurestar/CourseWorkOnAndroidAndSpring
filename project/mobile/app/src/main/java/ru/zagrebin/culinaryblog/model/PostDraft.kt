@@ -8,7 +8,9 @@ data class PostDraft(
     val updatedAt: Long,
     val request: PostCreateRequest,
     val syncState: String = "PENDING",
-    val serverId: Long? = null
+    val serverId: Long? = null,
+    val coverLocalUri: String? = null,
+    val stepsImagesJson: String? = null
 ) {
     fun toCard(): PostCard = PostCard(
         id = id,
