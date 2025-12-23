@@ -203,14 +203,12 @@ No new dependencies added. Uses existing:
 - Kotlin Coroutines & Flow (already present)
 
 ## Known Limitations
-1. Server drafts are read-only in the UI (cannot be edited locally)
-2. Sync state indicators are simple text symbols (not animated)
-3. No progress indicator during sync (happens in background)
-4. No explicit "sync now" button (only pull-to-refresh)
+1. Sync state indicators are simple text symbols (not animated)
+2. No progress indicator during sync (happens in background)
+3. No explicit "sync now" button (only pull-to-refresh)
 
 ## Future Enhancements
-1. Add ability to edit server drafts
-2. Animated sync indicators
-3. Explicit "Sync All" button
-4. Push notifications on successful sync
-5. Conflict resolution if same draft modified locally and on server
+1. Animated sync indicators
+2. Explicit "Sync All" button
+3. Push notifications on successful sync
+4. Conflict resolution if same draft modified locally and on server
