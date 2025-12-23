@@ -41,7 +41,7 @@ class AdminTagsFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        defaultColorInt = Color.parseColor("#DDDDDD")
+        defaultColorInt = requireContext().getColor(R.color.admin_tag_color_placeholder)
         binding.buttonSearchTags.setOnClickListener {
             viewModel.load(binding.adminTagSearch.text?.toString()?.trim())
         }
