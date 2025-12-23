@@ -211,6 +211,20 @@ class MainActivity :
         }
 
         ensureTagsLoaded()
+        
+        // Monitor network connectivity and trigger draft sync
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                ru.zagrebin.culinaryblog.util.NetworkMonitor.observeConnectivity(this@MainActivity).collect { isConnected ->
+                    if (isConnected) {
+                        Log.d(TAG, "Network connected, triggering draft sync")
+                        ru.zagrebin.culinaryblog.worker.DraftSyncScheduler.triggerImmediateSync(this@MainActivity)
+                    } else {
+                        Log.d(TAG, "Network disconnected")
+                    }
+                }
+            }
+        }
 
         backPressedCallback = onBackPressedDispatcher.addCallback(this, false) {
             if (isPublicProfileVisible()) {

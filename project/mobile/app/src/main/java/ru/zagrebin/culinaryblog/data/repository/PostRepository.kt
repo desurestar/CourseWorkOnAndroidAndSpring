@@ -30,6 +30,7 @@ interface PostRepository {
     suspend fun deleteDraft(id: Long): Result<Unit>
     suspend fun getDrafts(authorId: Long? = null): Result<List<PostDraft>>
     suspend fun getDraft(id: Long): Result<PostDraft>
+    suspend fun getServerDrafts(): Result<List<PostCard>>
     suspend fun syncDrafts(authorId: Long): Result<Int>
     suspend fun clearDrafts(): Result<Unit>
     suspend fun like(postId: Long): Result<Unit>

@@ -24,6 +24,7 @@ data class PostsUiState(
     val error: String? = null,
     val likedIds: Set<Long> = emptySet(),
     val drafts: List<PostDraft> = emptyList(),
+    val serverDrafts: List<PostCard> = emptyList(),
     val offline: Boolean = false
 )
 
@@ -63,6 +64,7 @@ class PostViewModel @Inject constructor(
         currentLoadJob = viewModelScope.launch {
             val likedIds = repository.getLikedPostIds().getOrDefault(emptySet())
             val drafts = loadDrafts(currentUserId)
+            val serverDrafts = loadServerDrafts()
             val cached = repository.getCachedPosts()
             val cachedFiltered = if (params.skipTypeFilters) {
                 cached
@@ -74,6 +76,7 @@ class PostViewModel @Inject constructor(
                     posts = cachedFiltered,
                     likedIds = likedIds,
                     drafts = drafts,
+                    serverDrafts = serverDrafts,
                     offline = false
                 )
             }
@@ -88,6 +91,7 @@ class PostViewModel @Inject constructor(
                     nextPage = page.nextPage,
                     likedIds = mergedLikedIds,
                     drafts = drafts,
+                    serverDrafts = serverDrafts,
                     offline = false
                 )
             } else {
@@ -104,6 +108,7 @@ class PostViewModel @Inject constructor(
                     error = res.exceptionOrNull()?.message ?: "Unknown",
                     likedIds = mergedLikedIds,
                     drafts = drafts,
+                    serverDrafts = serverDrafts,
                     offline = true
                 )
             }
@@ -148,8 +153,9 @@ class PostViewModel @Inject constructor(
 
     fun refreshDrafts(sync: Boolean = false) {
         viewModelScope.launch {
-            val drafts = loadDrafts(currentUserId, sync)
-            _uiState.update { it.copy(drafts = drafts) }
+            val localDrafts = loadDrafts(currentUserId, sync)
+            val serverDrafts = loadServerDrafts()
+            _uiState.update { it.copy(drafts = localDrafts, serverDrafts = serverDrafts) }
         }
     }
 
@@ -157,7 +163,7 @@ class PostViewModel @Inject constructor(
         if (currentUserId == userId) return
         currentUserId = userId
         if (userId == null) {
-            _uiState.update { it.copy(drafts = emptyList()) }
+            _uiState.update { it.copy(drafts = emptyList(), serverDrafts = emptyList()) }
             return
         }
         refreshDrafts(sync = true)
@@ -200,5 +206,9 @@ class PostViewModel @Inject constructor(
         if (authorId == null) return emptyList()
         if (sync) repository.syncDrafts(authorId)
         return repository.getDrafts(authorId).getOrDefault(emptyList())
+    }
+
+    private suspend fun loadServerDrafts(): List<PostCard> {
+        return repository.getServerDrafts().getOrDefault(emptyList())
     }
 }
