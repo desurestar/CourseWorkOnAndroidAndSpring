@@ -2,6 +2,7 @@ package ru.zagrebin.culinaryblog
 
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import ru.zagrebin.culinaryblog.BuildConfig
 import ru.zagrebin.culinaryblog.model.PostCreateRequest
 import ru.zagrebin.culinaryblog.model.PostDraft
 
@@ -23,6 +24,7 @@ class PostDraftTest {
             request = request
         ).toCard()
 
-        assertEquals("http://192.168.4.103:8080/uploads/photo.jpg", card.coverUrl)
+        val expectedBase = BuildConfig.BASE_URL.removeSuffix("/").substringBeforeLast("/api")
+        assertEquals("$expectedBase/uploads/photo.jpg", card.coverUrl)
     }
 }

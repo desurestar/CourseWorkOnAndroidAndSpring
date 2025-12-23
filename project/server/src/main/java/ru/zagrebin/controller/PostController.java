@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
 import ru.zagrebin.dto.*;
 import ru.zagrebin.security.UserPrincipal;
+import ru.zagrebin.model.PostStatus;
 import ru.zagrebin.service.LikeService;
 import ru.zagrebin.service.PostService;
 
@@ -29,7 +30,7 @@ public class PostController {
     }
 
     /**
-     * GET /api/v1/posts
+     * GET /api/posts
      * Возвращает карточки опубликованных постов
      */
     @GetMapping
@@ -55,7 +56,7 @@ public class PostController {
                 .tags(tags)
                 .build()
                 .normalize();
-        Page<PostCardDto> posts = postService.getPostsPageByStatus("published", pageable, filters);
+        Page<PostCardDto> posts = postService.getPostsPageByStatus(PostStatus.PUBLISHED, pageable, filters);
         if (principal != null) {
             posts.forEach(dto -> dto.setLiked(likeService.isLiked(dto.getId(), principal.getId())));
         }
@@ -73,7 +74,7 @@ public class PostController {
     }
 
     /**
-     * GET /api/v1/posts/{id}
+     * GET /api/posts/{id}
      * Возвращает полный пост. currentUserId можно брать из JWT; здесь параметр опционален.
      */
     @GetMapping("/{id}")
@@ -88,7 +89,7 @@ public class PostController {
     }
 
     /**
-     * POST /api/v1/posts
+     * POST /api/posts
      * Создание поста. В идеале currentUser берётся по JWT — сейчас authorId в dto.
      */
     @PostMapping
@@ -101,7 +102,7 @@ public class PostController {
     }
 
     /**
-     * PUT /api/v1/posts/{id}
+     * PUT /api/posts/{id}
      * Обновление поста
      * currentUserId передаётся опционально для логики авторства
      */
@@ -116,7 +117,7 @@ public class PostController {
     }
 
     /**
-     * DELETE /api/v1/posts/{id}
+     * DELETE /api/posts/{id}
      */
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id,
@@ -126,7 +127,7 @@ public class PostController {
     }
 
     /**
-     * POST /api/v1/posts/{id}/like?userId=...
+     * POST /api/posts/{id}/like
      * Поставить лайк. В реальном приложении userId берём из токена.
      */
     @PostMapping("/{id}/like")
@@ -140,7 +141,7 @@ public class PostController {
     }
 
     /**
-     * DELETE /api/v1/posts/{id}/like?userId=...
+     * DELETE /api/posts/{id}/like
      * Убрать лайк
      */
     @DeleteMapping("/{id}/like")

@@ -2,6 +2,7 @@ package ru.zagrebin.service.impl;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.zagrebin.model.PostLike;
@@ -43,7 +44,12 @@ public class LikeServiceImpl implements LikeService {
                 .post(postRepository.getReferenceById(postId))
                 .user(userRepository.getReferenceById(userId))
                 .build();
-        postLikeRepository.save(like);
+        try {
+            postLikeRepository.save(like);
+        } catch (DataIntegrityViolationException ex) {
+            log.warn("Concurrent like detected for post {} user {}: {}", postId, userId, ex.getMessage());
+            return false;
+        }
 
         // atomic increment at DB-level
         postRepository.incrementLikesCount(postId);

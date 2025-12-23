@@ -25,7 +25,7 @@ public class Post {
     private String postType;
 
     @Column(length = 20, nullable = false)
-    private String status;
+    private PostStatus status;
 
     @Column(nullable = false, length = 255)
     private String title;
@@ -92,7 +92,7 @@ public class Post {
         if (likesCount == null) likesCount = 0;
         if (commentsCount == null) commentsCount = 0;
         if (viewsCount == null) viewsCount = 0L;
-        if (status == null) status = "draft";
+        if (status == null) status = PostStatus.DRAFT;
         if (postType == null) postType = "recipe";
     }
 

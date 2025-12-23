@@ -1,5 +1,6 @@
 package ru.zagrebin.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 import java.time.OffsetDateTime;
@@ -26,7 +27,8 @@ public class PostFullDto {
     private List<RecipeStepDto> steps;
 
     private int likesCount;
-    private boolean isLiked;
+    @JsonProperty("liked")
+    private boolean liked;
     private long viewsCount;
 
     private Integer calories;
