@@ -34,6 +34,7 @@ import ru.zagrebin.culinaryblog.model.PostUpdateRequest
 import ru.zagrebin.culinaryblog.model.RecipeStepRequest
 import ru.zagrebin.culinaryblog.model.STATUS_DRAFT
 import ru.zagrebin.culinaryblog.model.TagItem
+import com.google.gson.reflect.TypeToken
 
 class PostRepositoryImpl @Inject constructor(
     @ApplicationContext private val context: Context,
@@ -42,6 +43,17 @@ class PostRepositoryImpl @Inject constructor(
     private val draftDao: DraftDao,
     private val gson: Gson
 ): PostRepository {
+    
+    companion object {
+        private const val TAG = "PostRepositoryImpl"
+        private const val OFFLINE_LIKE_CACHED = "Liked offline, will sync when online"
+        private const val OFFLINE_UNLIKE_CACHED = "Unliked offline, will sync when online"
+        
+        // Reusable TypeToken instances for JSON deserialization
+        private val STEPS_IMAGE_MAP_TYPE = object : TypeToken<Map<String, String>>() {}.type
+        private val RECIPE_STEPS_TYPE = object : TypeToken<List<RecipeStepRequest>>() {}.type
+    }
+    
     override suspend fun getPublishedPosts(
         page: Int,
         pageSize: Int,
@@ -322,14 +334,14 @@ class PostRepositoryImpl @Inject constructor(
                 if (entity.stepsImagesJson != null) {
                     val stepsImages = gson.fromJson<Map<String, String>>(
                         entity.stepsImagesJson,
-                        object : com.google.gson.reflect.TypeToken<Map<String, String>>() {}.type
+                        STEPS_IMAGE_MAP_TYPE
                     ) ?: emptyMap()
                     
                     if (stepsImages.isNotEmpty()) {
                         Log.d(TAG, "Uploading ${stepsImages.size} step images for draft ${entity.id}")
                         val steps = gson.fromJson<List<RecipeStepRequest>>(
                             entity.stepsJson,
-                            object : com.google.gson.reflect.TypeToken<List<RecipeStepRequest>>() {}.type
+                            RECIPE_STEPS_TYPE
                         ) ?: emptyList()
                         
                         val updatedStepsList = steps.mapIndexed { index, step ->
@@ -356,7 +368,7 @@ class PostRepositoryImpl @Inject constructor(
                 val draft = entity.toDraft(gson)
                 val stepsFromUpdated = gson.fromJson<List<RecipeStepRequest>>(
                     updatedSteps,
-                    object : com.google.gson.reflect.TypeToken<List<RecipeStepRequest>>() {}.type
+                    RECIPE_STEPS_TYPE
                 ) ?: draft.request.steps
                 
                 val requestWithImages = draft.request.copy(
@@ -419,9 +431,10 @@ class PostRepositoryImpl @Inject constructor(
             
             val bytes = inputStream.use { it.readBytes() }
             val mimeType = context.contentResolver.getType(uri) ?: "image/jpeg"
-            val fileName = "draft_image_${System.currentTimeMillis()}.${mimeType.substringAfter("/")}"
+            val extension = getFileExtensionFromMimeType(mimeType)
+            val fileName = "draft_image_${System.currentTimeMillis()}.$extension"
             
-            Log.d(TAG, "Uploading local image: $localUri, type: $type, size: ${bytes.size} bytes")
+            Log.d(TAG, "Uploading local image: $localUri, type: $type, mimeType: $mimeType, size: ${bytes.size} bytes")
             
             val requestBody = bytes.toRequestBody(mimeType.toMediaTypeOrNull())
             val part = MultipartBody.Part.createFormData("file", fileName, requestBody)
@@ -441,6 +454,27 @@ class PostRepositoryImpl @Inject constructor(
         } catch (e: Exception) {
             Log.e(TAG, "Failed to upload local image: $localUri", e)
             Result.failure(e)
+        }
+    }
+    
+    /**
+     * Convert MIME type to file extension.
+     * @param mimeType The MIME type (e.g., "image/jpeg", "image/png")
+     * @return File extension (e.g., "jpg", "png")
+     */
+    private fun getFileExtensionFromMimeType(mimeType: String): String {
+        return when {
+            mimeType.startsWith("image/jpeg") -> "jpg"
+            mimeType.startsWith("image/jpg") -> "jpg"
+            mimeType.startsWith("image/png") -> "png"
+            mimeType.startsWith("image/gif") -> "gif"
+            mimeType.startsWith("image/webp") -> "webp"
+            mimeType.startsWith("image/bmp") -> "bmp"
+            else -> {
+                // Fallback: try to extract from MIME type, or default to jpg
+                val extracted = mimeType.substringAfter("/", "").substringBefore(";", "")
+                if (extracted.isNotBlank() && extracted.length <= 5) extracted else "jpg"
+            }
         }
     }
 
