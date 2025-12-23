@@ -97,4 +97,8 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     void decrementLikesCount(@Param("postId") Long postId);
 
     Page<Post> findByTitleContainingIgnoreCaseOrderByCreatedAtDesc(String title, Pageable pageable);
+
+    Optional<Post> findByAuthorIdAndClientId(Long authorId, String clientId);
+
+    Page<Post> findByAuthorIdAndStatus(Long authorId, PostStatus status, Pageable pageable);
 }

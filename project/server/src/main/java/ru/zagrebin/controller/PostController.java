@@ -153,4 +153,32 @@ public class PostController {
         boolean ok = likeService.unlike(id, principal.getId());
         return ok ? ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
     }
+
+    /**
+     * GET /api/posts/mine/drafts
+     * Получить список черновиков текущего пользователя
+     */
+    @GetMapping("/mine/drafts")
+    public ResponseEntity<PaginatedResponse<PostCardDto>> getMyDrafts(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(name = "page_size", defaultValue = "20") int pageSize,
+            @AuthenticationPrincipal UserPrincipal principal
+    ) {
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        int pageIndex = Math.max(page - 1, 0);
+        Pageable pageable = PageRequest.of(pageIndex, pageSize);
+        Page<PostCardDto> drafts = postService.getMyDrafts(principal.getId(), pageable);
+        
+        String next = null;
+        if (drafts.hasNext()) {
+            UriComponentsBuilder builder = UriComponentsBuilder.fromPath("/api/posts/mine/drafts")
+                    .queryParam("page", page + 1)
+                    .queryParam("page_size", pageSize);
+            next = builder.build().toString();
+        }
+        
+        return ResponseEntity.ok(new PaginatedResponse<>(drafts.getContent(), next));
+    }
 }

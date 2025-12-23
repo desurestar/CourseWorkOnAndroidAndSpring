@@ -20,6 +20,8 @@ public class PostCreateDto {
 
     private Long authorId; // TODO переделать, когда будет аутентификация
 
+    private String clientId; // UUID from mobile client for idempotent sync
+
     private List<Long> tagIds;
 
     private List<PostIngredientCreateDto> ingredients;

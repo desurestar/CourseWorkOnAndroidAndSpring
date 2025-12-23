@@ -37,6 +37,7 @@ public class PostAssembler {
         post.setCoverUrl(dto.getCoverUrl());
         post.setCookingTimeMinutes(dto.getCookingTimeMinutes());
         post.setCalories(dto.getCalories());
+        post.setClientId(dto.getClientId());
 
         post.setAuthor(author);
 
@@ -143,5 +144,54 @@ public class PostAssembler {
         }
 
         return post;
+    }
+
+    /**
+     * Update collections (tags, ingredients, steps) from DTO without recreating the post entity.
+     * Used for idempotent upsert when clientId matches existing post.
+     */
+    @Transactional
+    public void updateCollections(Post post, PostCreateDto dto) {
+        // tags synchronization
+        if (dto.getTagIds() != null && !dto.getTagIds().isEmpty()) {
+            Set<Tag> newTags = new HashSet<>(tagRepository.findAllById(dto.getTagIds()));
+            post.getTags().clear();
+            post.getTags().addAll(newTags);
+        } else {
+            post.getTags().clear();
+        }
+
+        // ingredients synchronization
+        post.getIngredients().clear();
+        if (dto.getIngredients() != null && !dto.getIngredients().isEmpty()) {
+            for (PostIngredientCreateDto pigi : dto.getIngredients()) {
+                Ingredient ing = ingredientRepository.findById(pigi.getIngredientId())
+                        .orElseThrow(() -> new EntityNotFoundException("Ingredient not found: " + pigi.getIngredientId()));
+                PostIngredient pi = PostIngredient.builder()
+                        .post(post)
+                        .ingredient(ing)
+                        .quantityValue(pigi.getQuantityValue())
+                        .unit(pigi.getUnit())
+                        .build();
+                post.getIngredients().add(pi);
+            }
+        }
+
+        // steps synchronization
+        post.getSteps().clear();
+        if (dto.getSteps() != null && !dto.getSteps().isEmpty()) {
+            List<RecipeStep> steps = new ArrayList<>();
+            for (RecipeStepCreateDto s : dto.getSteps()) {
+                RecipeStep step = RecipeStep.builder()
+                        .post(post)
+                        .order(s.getOrder())
+                        .description(s.getDescription())
+                        .imageUrl(s.getImageUrl())
+                        .build();
+                steps.add(step);
+            }
+            steps.sort(Comparator.comparingInt(RecipeStep::getOrder));
+            post.getSteps().addAll(steps);
+        }
     }
 }
