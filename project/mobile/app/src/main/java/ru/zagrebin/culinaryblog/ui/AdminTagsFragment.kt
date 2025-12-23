@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
@@ -90,8 +91,8 @@ class AdminTagsFragment : Fragment() {
     private fun showColorPickerDialog() {
         // Get initial color - use current selected color or default to white
         val initialColor = ColorUtils.hexToColor(selectedColor) ?: Color.WHITE
-        
-        ColorPickerDialogBuilder
+
+        val builder = ColorPickerDialogBuilder
             .with(requireContext())
             .setTitle(getString(R.string.admin_tags_color_picker_title))
             .initialColor(initialColor)
@@ -103,11 +104,13 @@ class AdminTagsFragment : Fragment() {
                 applySelectedColor(hexColor)
             }
             .setNegativeButton(android.R.string.cancel, null)
-            .setNeutralButton(R.string.admin_tags_color_clear) { _, _ ->
-                applySelectedColor(null)
-            }
-            .build()
-            .show()
+
+        val dialog = builder.build()
+        // add neutral/clear button manually because builder doesn't provide setNeutralButton()
+        dialog.setButton(AlertDialog.BUTTON_NEUTRAL, getString(R.string.admin_tags_color_clear)) { _, _ ->
+            applySelectedColor(null)
+        }
+        dialog.show()
     }
 
     private fun applySelectedColor(color: String?) {
