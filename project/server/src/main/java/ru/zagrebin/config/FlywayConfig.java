@@ -29,6 +29,7 @@ public class FlywayConfig {
     public FlywayMigrationStrategy flywayMigrationStrategy() {
         return flyway -> {
             try {
+                flyway.validate();
                 flyway.migrate();
             } catch (FlywayValidateException ex) {
                 boolean repairAllowed = autoRepairEnabled && !environment.acceptsProfiles(productionProfiles());
@@ -40,7 +41,7 @@ public class FlywayConfig {
                 flyway.repair();
                 try {
                     flyway.validate();
-                } catch (Exception validationAfterRepairEx) {
+                } catch (FlywayValidateException validationAfterRepairEx) {
                     log.error("Flyway validation failed after repair attempt", validationAfterRepairEx);
                     throw validationAfterRepairEx;
                 }
