@@ -1,8 +1,8 @@
 package ru.zagrebin.culinaryblog.data.remote.dto
 
+import ru.zagrebin.culinaryblog.model.Author
 import ru.zagrebin.culinaryblog.model.PostCard
 import ru.zagrebin.culinaryblog.model.PostFull
-import ru.zagrebin.culinaryblog.model.PostAuthor
 import ru.zagrebin.culinaryblog.model.PostIngredientLine
 import ru.zagrebin.culinaryblog.model.PostStep
 import ru.zagrebin.culinaryblog.model.PostTag
@@ -47,7 +47,7 @@ fun PostFullDto.toModel(): PostFull = PostFull(
     cookingTimeMinutes = cookingTimeMinutes
 )
 
-private fun PostAuthorDto.toModel(): PostAuthor = PostAuthor(
+private fun PostAuthorDto.toModel(): Author = Author(
     id = id,
     displayName = displayName,
     avatarUrl = resolveUrl(avatarUrl),

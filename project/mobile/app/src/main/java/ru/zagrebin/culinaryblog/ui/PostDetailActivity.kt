@@ -44,7 +44,7 @@ import ru.zagrebin.culinaryblog.databinding.ActivityPostDetailBinding
 import ru.zagrebin.culinaryblog.formatDisplayDate
 import ru.zagrebin.culinaryblog.model.PostCard
 import ru.zagrebin.culinaryblog.model.PostFull
-import ru.zagrebin.culinaryblog.model.PostAuthor
+import ru.zagrebin.culinaryblog.model.Author
 import ru.zagrebin.culinaryblog.model.PostStep
 import ru.zagrebin.culinaryblog.model.Comment
 import ru.zagrebin.culinaryblog.util.renderAvatar
@@ -66,7 +66,7 @@ class PostDetailActivity : AppCompatActivity() {
     private var likeStateChanged: Boolean = false
     private var replyTo: Comment? = null
     private var backPressedCallback: OnBackPressedCallback? = null
-    private var author: PostAuthor? = null
+    private var author: Author? = null
     private var cachedCommentAuthor: CommentAuthor? = null
     private var cachedAuthorToken: String? = null
     private var currentUserId: Long? = null
@@ -117,7 +117,7 @@ class PostDetailActivity : AppCompatActivity() {
             post.authorName?.ifBlank { getString(R.string.author_unknown) }
                 ?: getString(R.string.author_unknown)
         renderAvatar(binding.avatarImage, binding.avatarInitial, post.authorAvatarUrl, post.authorName)
-        author = PostAuthor(post.authorId, post.authorName, post.authorAvatarUrl, null)
+        author = Author(post.authorId, post.authorName, post.authorAvatarUrl, null)
         updatePostActionsVisibility()
         binding.postType.text = formatType(post.postType)
         binding.publishedAt.text = formatDisplayDate(post.publishedAt) ?: getString(R.string.published_unknown)

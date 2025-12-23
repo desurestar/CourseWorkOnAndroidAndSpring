@@ -10,7 +10,7 @@ data class PostFull(
     val coverUrl: String?,
     val createdAt: String?,
     val updatedAt: String?,
-    val author: PostAuthor?,
+    val author: Author?,
     val tags: List<PostTag> = emptyList(),
     val ingredients: List<PostIngredientLine> = emptyList(),
     val steps: List<PostStep> = emptyList(),
@@ -21,7 +21,7 @@ data class PostFull(
     val cookingTimeMinutes: Int? = null
 )
 
-data class PostAuthor(
+data class Author(
     val id: Long?,
     val displayName: String?,
     val avatarUrl: String?,

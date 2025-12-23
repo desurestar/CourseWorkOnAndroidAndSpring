@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import android.util.Log
 import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
@@ -11,6 +12,7 @@ import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.toRequestBody
+import ru.zagrebin.culinaryblog.model.Author
 import ru.zagrebin.culinaryblog.data.local.dao.DraftDao
 import ru.zagrebin.culinaryblog.data.local.dao.PostDao
 import ru.zagrebin.culinaryblog.data.local.toDraft
@@ -26,7 +28,6 @@ import ru.zagrebin.culinaryblog.model.PostCreateRequest
 import ru.zagrebin.culinaryblog.model.PostDraft
 import ru.zagrebin.culinaryblog.model.PostFull
 import ru.zagrebin.culinaryblog.model.PostFilters
-import ru.zagrebin.culinaryblog.model.PostAuthor
 import ru.zagrebin.culinaryblog.model.PostIngredientLine
 import ru.zagrebin.culinaryblog.model.PostStep
 import ru.zagrebin.culinaryblog.model.PostTag
@@ -34,7 +35,6 @@ import ru.zagrebin.culinaryblog.model.PostUpdateRequest
 import ru.zagrebin.culinaryblog.model.RecipeStepRequest
 import ru.zagrebin.culinaryblog.model.STATUS_DRAFT
 import ru.zagrebin.culinaryblog.model.TagItem
-import com.google.gson.reflect.TypeToken
 
 class PostRepositoryImpl @Inject constructor(
     @ApplicationContext private val context: Context,
@@ -530,7 +530,7 @@ class PostRepositoryImpl @Inject constructor(
         coverUrl = card.coverUrl,
         createdAt = card.publishedAt,
         updatedAt = card.publishedAt,
-        author = PostAuthor(
+        author = Author(
             id = card.authorId,
             displayName = card.authorName,
             avatarUrl = card.authorAvatarUrl,
