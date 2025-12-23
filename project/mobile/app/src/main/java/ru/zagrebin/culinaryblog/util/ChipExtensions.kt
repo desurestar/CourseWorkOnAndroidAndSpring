@@ -23,7 +23,7 @@ fun Chip.applyInfoStyle() {
 }
 
 fun Chip.applyTagStyle(colorHex: String?) {
-    val parsedColor = colorHex?.let { runCatching { Color.parseColor(it) }.getOrNull() }
+    val parsedColor = ColorUtils.hexToColor(colorHex)
     val background = parsedColor
         ?: ContextCompat.getColor(context, R.color.recipe_primary_light)
     chipBackgroundColor = ColorStateList.valueOf(background)
