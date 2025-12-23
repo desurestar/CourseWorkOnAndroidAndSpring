@@ -2,6 +2,7 @@ package ru.zagrebin.config;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.exception.FlywayValidateException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.flyway.FlywayMigrationStrategy;
@@ -46,8 +47,7 @@ public class FlywayConfig {
     public FlywayMigrationStrategy flywayMigrationStrategy() {
         return flyway -> {
             try {
-                flyway.validate();
-                flyway.migrate();
+                runMigrations(flyway);
             } catch (FlywayValidateException ex) {
                 boolean repairAllowed = autoRepairEnabled && !environment.acceptsProfiles(productionProfiles);
                 if (!repairAllowed) {
@@ -57,19 +57,23 @@ public class FlywayConfig {
                     }
                     throw ex;
                 }
-                log.warn("Flyway validation failed ({}). Auto-repair is enabled for non-production profiles; attempting repair before re-running migrations.",
-                        ex.getClass().getSimpleName());
+                log.warn("Flyway validation failed ({} - {}). Auto-repair is enabled for non-production profiles; attempting repair before re-running migrations.",
+                        ex.getClass().getSimpleName(), ex.getMessage());
                 flyway.repair();
                 try {
-                    flyway.validate();
+                    runMigrations(flyway);
+                    log.info("Flyway repair completed successfully; migrations re-applied after validation error.");
                 } catch (FlywayValidateException validationAfterRepairEx) {
                     log.error("Flyway validation failed after repair attempt", validationAfterRepairEx);
                     throw validationAfterRepairEx;
                 }
-                flyway.migrate();
-                log.info("Flyway repair completed successfully; migrations re-applied after validation error.");
             }
         };
+    }
+
+    private void runMigrations(Flyway flyway) {
+        flyway.validate();
+        flyway.migrate();
     }
 
 }
