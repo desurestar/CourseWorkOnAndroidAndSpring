@@ -6,7 +6,7 @@ plugins {
     id("kotlin-parcelize")
 }
 
-val defaultBaseUrl = System.getenv("API_BASE_URL") ?: "http://10.0.2.2:8080/api/"
+val defaultBaseUrl = System.getenv("API_BASE_URL") ?: "http://192.168.4.103:8080/api/"
 
 android {
     namespace = "ru.zagrebin.culinaryblog"

@@ -12,7 +12,6 @@ import retrofit2.http.Part
 import retrofit2.http.Path
 import retrofit2.http.Query
 import ru.zagrebin.culinaryblog.data.remote.dto.PostCardDto
-import ru.zagrebin.culinaryblog.data.remote.dto.PostDto
 import ru.zagrebin.culinaryblog.data.remote.dto.PostFullDto
 import ru.zagrebin.culinaryblog.data.remote.dto.IngredientDto
 import ru.zagrebin.culinaryblog.data.remote.dto.PaginatedResponseDto
