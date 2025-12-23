@@ -14,8 +14,10 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class FlywayConfig {
     private static final Logger log = LoggerFactory.getLogger(FlywayConfig.class);
-    @Value("${app.flyway.auto-repair-enabled:false}")
+    @Value("${app.flyway.auto-repair-enabled:true}")
     private boolean autoRepairEnabled;
+    @Value("${app.flyway.prod-profiles:prod}")
+    private String prodProfiles;
     private final Environment environment;
 
     public FlywayConfig(Environment environment) {
@@ -27,11 +29,8 @@ public class FlywayConfig {
         return flyway -> {
             try {
                 flyway.migrate();
-            } catch (FlywayException ex) {
-                if (!(ex instanceof FlywayValidateException)) {
-                    throw ex;
-                }
-                boolean repairAllowed = autoRepairEnabled && !environment.acceptsProfiles(Profiles.of("prod"));
+            } catch (FlywayValidateException ex) {
+                boolean repairAllowed = autoRepairEnabled && !environment.acceptsProfiles(Profiles.of(prodProfiles));
                 if (!repairAllowed) {
                     throw ex;
                 }
@@ -46,6 +45,8 @@ public class FlywayConfig {
                     log.error("Flyway migrate failed after repair attempt", migrateAfterRepairEx);
                     throw migrateAfterRepairEx;
                 }
+            } catch (FlywayException ex) {
+                throw ex;
             }
         };
     }
