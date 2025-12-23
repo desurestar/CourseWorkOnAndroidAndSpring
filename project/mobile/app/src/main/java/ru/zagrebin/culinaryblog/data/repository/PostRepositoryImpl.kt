@@ -202,9 +202,13 @@ class PostRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun saveDraft(request: PostCreateRequest): Result<PostDraft> = withContext(Dispatchers.IO) {
+    override suspend fun saveDraft(
+        request: PostCreateRequest,
+        coverLocalUri: String?,
+        stepsImagesJson: String?
+    ): Result<PostDraft> = withContext(Dispatchers.IO) {
         try {
-            val entityId = draftDao.upsert(request.toDraftEntity(gson))
+            val entityId = draftDao.upsert(request.toDraftEntity(gson, coverLocalUri = coverLocalUri, stepsImagesJson = stepsImagesJson))
             val saved = draftDao.getById(entityId) ?: return@withContext Result.failure(
                 RuntimeException("Failed to persist draft")
             )
@@ -214,9 +218,14 @@ class PostRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun updateDraft(id: Long, request: PostCreateRequest): Result<PostDraft> = withContext(Dispatchers.IO) {
+    override suspend fun updateDraft(
+        id: Long,
+        request: PostCreateRequest,
+        coverLocalUri: String?,
+        stepsImagesJson: String?
+    ): Result<PostDraft> = withContext(Dispatchers.IO) {
         try {
-            val persistedId = draftDao.upsert(request.toDraftEntity(gson, draftId = id))
+            val persistedId = draftDao.upsert(request.toDraftEntity(gson, draftId = id, coverLocalUri = coverLocalUri, stepsImagesJson = stepsImagesJson))
             val saved = draftDao.getById(persistedId) ?: return@withContext Result.failure(
                 RuntimeException("Draft not found after update")
             )
