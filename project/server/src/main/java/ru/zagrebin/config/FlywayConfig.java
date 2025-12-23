@@ -18,7 +18,8 @@ import java.util.Arrays;
 public class FlywayConfig {
     private static final Logger log = LoggerFactory.getLogger(FlywayConfig.class);
     /**
-     * Enables automatic Flyway repair on validation errors. Should be disabled in production.
+     * Enables automatic Flyway repair on validation errors (e.g., checksum mismatches).
+     * Use cautiously because it can hide migration problems if run in production.
      */
     @Value("${app.flyway.auto-repair-enabled:false}")
     private boolean autoRepairEnabled;
@@ -57,14 +58,14 @@ public class FlywayConfig {
                     }
                     throw ex;
                 }
-                log.warn("Flyway validation failed ({} - {}). Auto-repair is enabled for non-production profiles; attempting repair before re-running migrations.",
-                        ex.getClass().getSimpleName(), ex.getMessage());
+                log.warn("Flyway validation failed ({}). Auto-repair is enabled for non-production profiles; attempting repair before re-running migrations.",
+                        ex.getMessage());
                 flyway.repair();
                 try {
                     runMigrations(flyway);
                     log.info("Flyway repair completed successfully; migrations re-applied after validation error.");
                 } catch (FlywayValidateException validationAfterRepairEx) {
-                    log.error("Flyway validation failed after repair attempt", validationAfterRepairEx);
+                    log.error("Flyway validation failed after repair attempt; underlying issue may persist", validationAfterRepairEx);
                     throw validationAfterRepairEx;
                 }
             }
