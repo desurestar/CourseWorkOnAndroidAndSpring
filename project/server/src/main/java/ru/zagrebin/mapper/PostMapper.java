@@ -21,6 +21,7 @@ public final class PostMapper {
         if (p == null) return null;
         PostCardDto dto = new PostCardDto();
         dto.setId(p.getId());
+        dto.setClientId(p.getClientId());
         dto.setTitle(p.getTitle());
         dto.setExcerpt(p.getExcerpt());
         dto.setCoverUrl(UrlHelper.toAbsolute(p.getCoverUrl()));
@@ -41,6 +42,7 @@ public final class PostMapper {
         if (p == null) return null;
         PostFullDto dto = new PostFullDto();
         dto.setId(p.getId());
+        dto.setClientId(p.getClientId());
         dto.setPostType(p.getPostType());
         dto.setStatus(p.getStatus() != null ? p.getStatus().getValue() : PostStatus.DRAFT.getValue());
         dto.setTitle(p.getTitle());

@@ -10,6 +10,7 @@ import ru.zagrebin.culinaryblog.util.resolveUrl
 
 fun PostCardDto.toModel(): PostCard = PostCard(
     id = id,
+    clientId = clientId,
     title = title,
     excerpt = excerpt,
     coverUrl = resolveUrl(coverUrl),
@@ -28,6 +29,7 @@ fun PostCardDto.toModel(): PostCard = PostCard(
 
 fun PostFullDto.toModel(): PostFull = PostFull(
     id = id,
+    clientId = clientId,
     postType = postType,
     status = status,
     title = title,

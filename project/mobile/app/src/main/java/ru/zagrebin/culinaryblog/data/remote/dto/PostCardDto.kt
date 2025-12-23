@@ -2,6 +2,7 @@ package ru.zagrebin.culinaryblog.data.remote.dto;
 
 data class PostCardDto(
         val id: Long,
+        val clientId: String? = null,
         val title: String,
         val excerpt: String,
         val coverUrl: String?,
