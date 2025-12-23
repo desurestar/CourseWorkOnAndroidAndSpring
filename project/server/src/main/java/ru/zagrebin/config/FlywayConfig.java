@@ -2,7 +2,6 @@ package ru.zagrebin.config;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.flywaydb.core.api.FlywayException;
 import org.flywaydb.core.api.exception.FlywayValidateException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.flyway.FlywayMigrationStrategy;
@@ -10,6 +9,8 @@ import org.springframework.core.env.Environment;
 import org.springframework.core.env.Profiles;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.util.Arrays;
 
 @Configuration
 public class FlywayConfig {
@@ -30,7 +31,7 @@ public class FlywayConfig {
             try {
                 flyway.migrate();
             } catch (FlywayValidateException ex) {
-                boolean repairAllowed = autoRepairEnabled && !environment.acceptsProfiles(Profiles.of(prodProfiles));
+                boolean repairAllowed = autoRepairEnabled && !environment.acceptsProfiles(productionProfiles());
                 if (!repairAllowed) {
                     throw ex;
                 }
@@ -45,9 +46,15 @@ public class FlywayConfig {
                     log.error("Flyway migrate failed after repair attempt", migrateAfterRepairEx);
                     throw migrateAfterRepairEx;
                 }
-            } catch (FlywayException ex) {
-                throw ex;
             }
         };
+    }
+
+    private Profiles productionProfiles() {
+        String[] profiles = Arrays.stream(prodProfiles.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .toArray(String[]::new);
+        return Profiles.of(profiles);
     }
 }
