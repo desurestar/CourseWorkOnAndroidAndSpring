@@ -52,7 +52,7 @@ import ru.zagrebin.culinaryblog.viewmodel.ProfileUiState
 import ru.zagrebin.culinaryblog.viewmodel.ProfileViewModel
 
 @AndroidEntryPoint
-class ProfileFragment : Fragment() {
+class ProfileFragment : Fragment(), RefreshableTab {
 
     private var _binding: ActivityProfileBinding? = null
     private val binding get() = _binding!!
@@ -122,9 +122,10 @@ class ProfileFragment : Fragment() {
         postViewModel.loadAllPosts()
     }
 
-    override fun onResume() {
-        super.onResume()
-        postViewModel.refreshDrafts()
+    override fun refreshContent() {
+        profileViewModel.loadProfile()
+        postViewModel.loadAllPosts()
+        postViewModel.refreshDrafts(sync = true)
     }
 
     override fun onDestroyView() {
