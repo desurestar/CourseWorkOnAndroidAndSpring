@@ -143,7 +143,9 @@ class CreatePostFragment : Fragment() {
             return
         }
 
-        val passedAuthorId = arguments?.getLong(ARG_AUTHOR_ID) ?: viewModel.authorId
+        val passedAuthorId = arguments?.getLong(ARG_AUTHOR_ID)
+            ?: tokenStorage.getUserId()
+            ?: viewModel.authorId
         viewModel.setAuthorId(passedAuthorId)
         draftId = arguments?.getLong(ARG_DRAFT_ID, INVALID_DRAFT_ID)?.takeIf { it != INVALID_DRAFT_ID }
         editPostId = arguments?.getLong(ARG_EDIT_POST_ID, INVALID_EDIT_ID)?.takeIf { it != INVALID_EDIT_ID }

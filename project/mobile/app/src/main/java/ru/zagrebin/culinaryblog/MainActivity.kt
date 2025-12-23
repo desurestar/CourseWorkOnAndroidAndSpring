@@ -700,6 +700,7 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
                     profileRepository.getProfile()
                         .onSuccess { profile ->
                             currentUserId = profile.id
+                            tokenStorage.saveUserId(profile.id)
                         }
                         .onFailure {
                             Log.w(TAG, "Failed to fetch current user id: ${it.message}")
