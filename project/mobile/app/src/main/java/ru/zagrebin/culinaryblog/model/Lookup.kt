@@ -35,6 +35,7 @@ data class PostCreateRequest(
     val cookingTimeMinutes: Int? = null,
     val calories: Int? = null,
     val authorId: Long,
+    val clientId: String? = null, // UUID for idempotent sync
     val tagIds: List<Long> = emptyList(),
     val ingredients: List<PostIngredientRequest> = emptyList(),
     val steps: List<RecipeStepRequest> = emptyList()

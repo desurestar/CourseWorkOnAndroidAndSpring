@@ -5,10 +5,14 @@ import ru.zagrebin.culinaryblog.data.remote.api.AuthApi
 import ru.zagrebin.culinaryblog.data.remote.dto.AuthRequest
 import ru.zagrebin.culinaryblog.data.remote.dto.AuthResponse
 import ru.zagrebin.culinaryblog.data.remote.dto.RegisterRequest
+import ru.zagrebin.culinaryblog.data.storage.TokenStorage
 import java.io.IOException
 import javax.inject.Inject
 
-class AuthRepository @Inject constructor(private val api: AuthApi) {
+class AuthRepository @Inject constructor(
+    private val api: AuthApi,
+    private val tokenStorage: TokenStorage
+) {
     suspend fun login(username: String, password: String): Result<Response<AuthResponse>> {
     return try {
         val response = api.login(AuthRequest(username, password))
@@ -29,5 +33,9 @@ class AuthRepository @Inject constructor(private val api: AuthApi) {
         } catch (e: IOException) {
             Result.failure(e)
         }
+    }
+
+    fun getCurrentUserId(): Long? {
+        return tokenStorage.getUserId()
     }
 }

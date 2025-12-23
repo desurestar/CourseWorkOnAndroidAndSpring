@@ -63,6 +63,7 @@ fun DraftEntity.toDraft(gson: Gson): PostDraft {
         cookingTimeMinutes = cookingTimeMinutes,
         calories = calories,
         authorId = authorId,
+        clientId = clientId,
         tagIds = tagIds.split(tagSeparator).filter { it.isNotBlank() }.mapNotNull { it.toLongOrNull() },
         ingredients = gson.fromJson(ingredientsJson, object : TypeToken<List<PostIngredientRequest>>() {}.type)
             ?: emptyList(),
@@ -72,12 +73,16 @@ fun DraftEntity.toDraft(gson: Gson): PostDraft {
     return PostDraft(
         id = id,
         updatedAt = updatedAt,
-        request = request
+        request = request,
+        syncState = syncState,
+        serverId = serverId
     )
 }
 
 fun PostDraft.toEntity(gson: Gson): DraftEntity = DraftEntity(
     id = id,
+    clientId = request.clientId ?: UUID.randomUUID().toString(),
+    serverId = serverId,
     postType = request.postType,
     status = request.status,
     title = request.title,
@@ -90,11 +95,14 @@ fun PostDraft.toEntity(gson: Gson): DraftEntity = DraftEntity(
     tagIds = request.tagIds.joinToString(tagSeparator),
     ingredientsJson = gson.toJson(request.ingredients),
     stepsJson = gson.toJson(request.steps),
+    syncState = syncState,
     updatedAt = updatedAt
 )
 
 fun PostCreateRequest.toDraftEntity(gson: Gson, draftId: Long = 0): DraftEntity = DraftEntity(
     id = draftId,
+    clientId = clientId ?: UUID.randomUUID().toString(),
+    serverId = null,
     postType = postType,
     status = status,
     title = title,
@@ -107,6 +115,7 @@ fun PostCreateRequest.toDraftEntity(gson: Gson, draftId: Long = 0): DraftEntity 
     tagIds = tagIds.joinToString(tagSeparator),
     ingredientsJson = gson.toJson(ingredients),
     stepsJson = gson.toJson(steps),
+    syncState = "PENDING",
     updatedAt = System.currentTimeMillis()
 )
 

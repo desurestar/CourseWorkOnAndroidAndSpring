@@ -6,6 +6,8 @@ import androidx.room.PrimaryKey
 @Entity(tableName = "drafts")
 data class DraftEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val clientId: String, // UUID for idempotent sync
+    val serverId: Long? = null, // Post ID from server after successful sync
     val postType: String,
     val status: String,
     val title: String,
@@ -18,5 +20,7 @@ data class DraftEntity(
     val tagIds: String,
     val ingredientsJson: String,
     val stepsJson: String,
-    val updatedAt: Long = System.currentTimeMillis()
+    val syncState: String = "PENDING", // PENDING, SYNCED, FAILED
+    val updatedAt: Long = System.currentTimeMillis(),
+    val lastSyncAttempt: Long? = null
 )

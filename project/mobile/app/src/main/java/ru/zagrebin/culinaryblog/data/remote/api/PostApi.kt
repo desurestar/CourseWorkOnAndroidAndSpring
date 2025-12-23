@@ -77,4 +77,10 @@ interface PostApi {
 
     @DELETE("posts/{id}/like")
     suspend fun unlike(@Path("id") id: Long): Response<Unit>
+
+    @GET("posts/mine/drafts")
+    suspend fun getMyDrafts(
+        @Query("page") page: Int = 1,
+        @Query("page_size") pageSize: Int = 20
+    ): Response<PaginatedResponseDto<PostCardDto>>
 }

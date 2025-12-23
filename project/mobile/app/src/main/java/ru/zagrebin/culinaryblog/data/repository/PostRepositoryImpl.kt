@@ -255,17 +255,34 @@ class PostRepositoryImpl @Inject constructor(
     override suspend fun syncDrafts(authorId: Long): Result<Int> = withContext(Dispatchers.IO) {
         var synced = 0
         var lastError: Exception? = null
-        draftDao.getByAuthor(authorId).forEach { entity ->
+        // Only sync pending or failed drafts
+        val pendingDrafts = draftDao.getByAuthorAndSyncState(authorId, "PENDING") +
+                           draftDao.getByAuthorAndSyncState(authorId, "FAILED")
+        
+        pendingDrafts.forEach { entity ->
             try {
                 val draft = entity.toDraft(gson)
-                val resp = api.createPost(draft.request)
+                // Ensure clientId is set in the request
+                val requestWithClientId = draft.request.copy(
+                    clientId = draft.request.clientId ?: entity.clientId
+                )
+                
+                draftDao.updateSyncState(entity.id, "IN_SYNC", System.currentTimeMillis())
+                val resp = api.createPost(requestWithClientId)
+                
                 if (resp.isSuccessful) {
-                    draftDao.delete(entity.id)
+                    val postCard = resp.body()
+                    if (postCard != null) {
+                        // Mark as synced with server ID
+                        draftDao.markSynced(entity.id, postCard.id, "SYNCED", System.currentTimeMillis())
+                    }
                     synced++
                 } else {
+                    draftDao.updateSyncState(entity.id, "FAILED", System.currentTimeMillis())
                     lastError = RuntimeException("Server error: ${resp.code()}")
                 }
             } catch (e: Exception) {
+                draftDao.updateSyncState(entity.id, "FAILED", System.currentTimeMillis())
                 lastError = e
             }
         }
