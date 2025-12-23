@@ -15,6 +15,7 @@ import ru.zagrebin.culinaryblog.model.PostCreateRequest
 import ru.zagrebin.culinaryblog.model.PostDraft
 import ru.zagrebin.culinaryblog.model.PostFull
 import ru.zagrebin.culinaryblog.model.PostUpdateRequest
+import ru.zagrebin.culinaryblog.model.STATUS_DRAFT
 import ru.zagrebin.culinaryblog.model.TagItem
 
 data class CreateFormState(
@@ -98,9 +99,13 @@ class CreatePostViewModel @Inject constructor(
                     it.copy(submitting = false, created = res.getOrNull())
                 } else {
                     val draft = repository.saveDraft(request).getOrNull()
+                    val errorMessage = when {
+                        request.status == STATUS_DRAFT && draft != null -> null
+                        else -> res.exceptionOrNull()?.message ?: GENERIC_ERROR_KEY
+                    }
                     it.copy(
                         submitting = false,
-                        error = res.exceptionOrNull()?.message ?: GENERIC_ERROR_KEY,
+                        error = errorMessage,
                         draftSaved = draft
                     )
                 }
