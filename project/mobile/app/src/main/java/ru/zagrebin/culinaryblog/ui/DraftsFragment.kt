@@ -19,7 +19,6 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import ru.zagrebin.culinaryblog.R
 import ru.zagrebin.culinaryblog.databinding.FragmentDraftsBinding
-import ru.zagrebin.culinaryblog.ui.RefreshableTab
 import ru.zagrebin.culinaryblog.model.PostDraft
 import ru.zagrebin.culinaryblog.viewmodel.PostViewModel
 
@@ -45,6 +44,8 @@ class DraftsFragment : Fragment(), RefreshableTab {
     }
 
     override fun refreshContent() {
+        // Safety: refresh can be called from Activity before fragment is attached
+        if (!isAdded) return
         postViewModel.refreshDrafts(sync = true)
     }
 
@@ -71,6 +72,7 @@ class DraftsFragment : Fragment(), RefreshableTab {
         drafts.forEach { draft ->
             val card = draft.toCard()
             val view = layoutInflater.inflate(R.layout.item_post_mini, binding.draftsList, false)
+
             view.findViewById<TextView>(R.id.miniPostTitle).text =
                 card.title.ifBlank { getString(R.string.card_title_placeholder) }
             view.findViewById<TextView>(R.id.miniPostExcerpt).text =
@@ -79,6 +81,7 @@ class DraftsFragment : Fragment(), RefreshableTab {
                 card.publishedAt ?: getString(R.string.published_unknown)
             view.findViewById<TextView>(R.id.miniPostLikes).text =
                 getString(R.string.likes_format, card.likesCount)
+
             val coverUrl = card.coverUrl?.takeIf { it.isNotBlank() }
             val coverView = view.findViewById<ImageView>(R.id.miniPostCover)
             coverView.isVisible = coverUrl != null
@@ -91,6 +94,7 @@ class DraftsFragment : Fragment(), RefreshableTab {
             } else {
                 coverView.setImageDrawable(null)
             }
+
             view.setOnClickListener { openDraft(draft) }
             binding.draftsList.addView(view)
         }
