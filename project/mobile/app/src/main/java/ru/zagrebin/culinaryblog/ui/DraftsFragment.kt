@@ -19,11 +19,12 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import ru.zagrebin.culinaryblog.R
 import ru.zagrebin.culinaryblog.databinding.FragmentDraftsBinding
+import ru.zagrebin.culinaryblog.ui.RefreshableTab
 import ru.zagrebin.culinaryblog.model.PostDraft
 import ru.zagrebin.culinaryblog.viewmodel.PostViewModel
 
 @AndroidEntryPoint
-class DraftsFragment : Fragment() {
+class DraftsFragment : Fragment(), RefreshableTab {
 
     private var _binding: FragmentDraftsBinding? = null
     private val binding get() = _binding!!
@@ -43,8 +44,7 @@ class DraftsFragment : Fragment() {
         observeDrafts()
     }
 
-    override fun onResume() {
-        super.onResume()
+    override fun refreshContent() {
         postViewModel.refreshDrafts(sync = true)
     }
 

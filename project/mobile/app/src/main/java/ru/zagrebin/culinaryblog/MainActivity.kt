@@ -44,6 +44,7 @@ import ru.zagrebin.culinaryblog.ui.CreatePostFragment
 import ru.zagrebin.culinaryblog.ui.PostDetailActivity
 import ru.zagrebin.culinaryblog.ui.ProfileFragment
 import ru.zagrebin.culinaryblog.ui.PublicProfileFragment
+import ru.zagrebin.culinaryblog.ui.RefreshableTab
 import ru.zagrebin.culinaryblog.viewmodel.PostViewModel
 import ru.zagrebin.culinaryblog.viewmodel.PostsUiState
 import ru.zagrebin.culinaryblog.data.repository.OFFLINE_LIKE_CACHED
@@ -112,6 +113,7 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
     private val scrollTopThresholdPx by lazy { (resources.displayMetrics.density * 200).toInt() }
     private var scrollTopBaseBottomMargin: Int = 0
     private val scrollTopRaisedOffset by lazy { resources.getDimensionPixelSize(R.dimen.scroll_top_button_raise) }
+    private var hasResumedOnce = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -203,6 +205,10 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
         ensureCurrentUserIdLoaded { id ->
             postViewModel.setCurrentUser(id)
         }
+        if (hasResumedOnce) {
+            refreshCurrentTabIfNeeded()
+        }
+        hasResumedOnce = true
     }
 
     private fun applySelection(itemId: Int) {
@@ -240,11 +246,13 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
             }
 
             ContentTab.DRAFTS -> {
-                showFragment(DRAFTS_TAG) { DraftsFragment() }
+                val fragment = showFragment(DRAFTS_TAG) { DraftsFragment() }
+                refreshFragment(fragment)
             }
 
             ContentTab.PROFILE -> {
-                showFragment(PROFILE_TAG) { ProfileFragment() }
+                val fragment = showFragment(PROFILE_TAG) { ProfileFragment() }
+                refreshFragment(fragment)
             }
 
             ContentTab.OTHER -> {
@@ -459,7 +467,7 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
         if (isFeed) updateFiltersButtonState()
     }
 
-    private fun showFragment(tag: String, provider: () -> Fragment) {
+    private fun showFragment(tag: String, provider: () -> Fragment): Fragment {
         val transaction = supportFragmentManager.beginTransaction()
         supportFragmentManager.fragments
             .filter { it.tag == CREATE_TAG || it.tag == PROFILE_TAG || it.tag == PUBLIC_PROFILE_TAG || it.tag == DRAFTS_TAG }
@@ -478,6 +486,25 @@ class MainActivity : AppCompatActivity(), CreatePostFragment.Host, ProfileFragme
         binding.swipeRefresh.isEnabled = false
         binding.swipeRefresh.isRefreshing = false
         binding.buttonScrollTop.isVisible = false
+        return fragment
+    }
+
+    private fun refreshFragment(fragment: Fragment) {
+        (fragment as? RefreshableTab)?.refreshContent()
+    }
+
+    private fun refreshCurrentTabIfNeeded() {
+        when (currentTab) {
+            ContentTab.DRAFTS -> {
+                supportFragmentManager.findFragmentByTag(DRAFTS_TAG)?.let { refreshFragment(it) }
+            }
+
+            ContentTab.PROFILE -> {
+                supportFragmentManager.findFragmentByTag(PROFILE_TAG)?.let { refreshFragment(it) }
+            }
+
+            else -> Unit
+        }
     }
 
     private fun hideFragments() {
