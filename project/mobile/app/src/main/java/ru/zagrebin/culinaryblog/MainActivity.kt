@@ -37,6 +37,7 @@ import ru.zagrebin.culinaryblog.data.storage.TokenStorage
 import ru.zagrebin.culinaryblog.databinding.ActivityMainBinding
 import ru.zagrebin.culinaryblog.databinding.DialogFiltersBinding
 import ru.zagrebin.culinaryblog.databinding.ItemPostCardBinding
+import ru.zagrebin.culinaryblog.data.local.LocalCacheManager
 import ru.zagrebin.culinaryblog.model.PostCard
 import ru.zagrebin.culinaryblog.model.PostFilters
 import ru.zagrebin.culinaryblog.model.TagItem
@@ -68,6 +69,7 @@ class MainActivity :
     @Inject lateinit var tokenStorage: TokenStorage
     @Inject lateinit var postRepository: PostRepository
     @Inject lateinit var profileRepository: ProfileRepository
+    @Inject lateinit var localCacheManager: LocalCacheManager
 
     @Volatile private var currentUserId: Long? = null
     private var loadUserIdJob: Job? = null
@@ -879,8 +881,10 @@ class MainActivity :
     override fun onProfileLogout() {
         tokenStorage.clearToken()
         currentUserId = null
-        postViewModel.setCurrentUser(null)
-        lifecycleScope.launch { postRepository.clearDrafts() }
+        lifecycleScope.launch {
+            localCacheManager.clearAll()
+            postViewModel.setCurrentUser(null)
+        }
         restoreFeedTab()
     }
 

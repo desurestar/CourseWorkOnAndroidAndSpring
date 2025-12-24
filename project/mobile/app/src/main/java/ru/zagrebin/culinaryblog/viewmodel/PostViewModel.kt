@@ -163,10 +163,12 @@ class PostViewModel @Inject constructor(
         if (currentUserId == userId) return
         currentUserId = userId
         if (userId == null) {
-            _uiState.update { it.copy(drafts = emptyList(), serverDrafts = emptyList()) }
+            _uiState.update { it.copy(drafts = emptyList(), serverDrafts = emptyList(), likedIds = emptySet()) }
+            loadPosts()
             return
         }
         refreshDrafts(sync = true)
+        loadPosts()
     }
 
     companion object {
