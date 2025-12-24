@@ -64,7 +64,6 @@ class PostViewModel @Inject constructor(
         currentLoadJob = viewModelScope.launch {
             val likedIds = repository.getLikedPostIds().getOrDefault(emptySet())
             val drafts = loadDrafts(currentUserId)
-            val serverDrafts = loadServerDrafts()
             val cached = repository.getCachedPosts()
             val cachedFiltered = if (params.skipTypeFilters) {
                 cached
@@ -76,10 +75,10 @@ class PostViewModel @Inject constructor(
                     posts = cachedFiltered,
                     likedIds = likedIds,
                     drafts = drafts,
-                    serverDrafts = serverDrafts,
                     offline = false
                 )
             }
+            val serverDrafts = loadServerDrafts()
             val res = repository.getPublishedPosts(filters = params.normalizedFilters)
             if (res.isSuccess) {
                 val page = res.getOrDefault(PaginatedResult(emptyList(), null))
@@ -206,8 +205,15 @@ class PostViewModel @Inject constructor(
 
     private suspend fun loadDrafts(authorId: Long?, sync: Boolean = false): List<PostDraft> {
         if (authorId == null) return emptyList()
-        if (sync) repository.syncDrafts(authorId)
-        return repository.getDrafts(authorId).getOrDefault(emptyList())
+        val localDrafts = repository.getDrafts(authorId).getOrDefault(emptyList())
+        if (sync) {
+            viewModelScope.launch {
+                repository.syncDrafts(authorId)
+                val refreshedDrafts = repository.getDrafts(authorId).getOrDefault(emptyList())
+                _uiState.update { it.copy(drafts = refreshedDrafts) }
+            }
+        }
+        return localDrafts
     }
 
     private suspend fun loadServerDrafts(): List<PostCard> {
