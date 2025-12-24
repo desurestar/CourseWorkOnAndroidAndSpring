@@ -17,6 +17,7 @@ class CulinaryBlogApp : Application(), Configuration.Provider {
         super.onCreate()
         // Schedule periodic draft sync
         DraftSyncScheduler.schedulePeriodicSync(this)
+        DraftSyncScheduler.triggerImmediateSync(this)
     }
     
     override val workManagerConfiguration: Configuration
