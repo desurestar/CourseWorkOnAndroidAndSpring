@@ -9,6 +9,7 @@ import java.util.List;
 @Data
 public class PostFullDto {
     private Long id;
+    private String clientId;
     private String postType;
     private String status;
 

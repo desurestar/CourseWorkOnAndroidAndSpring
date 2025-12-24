@@ -2,6 +2,7 @@ package ru.zagrebin.culinaryblog.data.remote.dto
 
 data class PostFullDto(
     val id: Long,
+    val clientId: String? = null,
     val postType: String?,
     val status: String?,
     val title: String?,

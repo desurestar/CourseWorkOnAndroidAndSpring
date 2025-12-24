@@ -6,6 +6,7 @@ import kotlinx.parcelize.Parcelize
 @Parcelize
 data class PostCard(
     val id: Long,
+    val clientId: String? = null,
     val title: String,
     val excerpt: String,
     val coverUrl: String?,

@@ -6,6 +6,7 @@ import java.util.Set;
 @Data
 public class PostCardDto {
     private Long id;
+    private String clientId;
     private String title;
     private String excerpt;
     private String coverUrl;
