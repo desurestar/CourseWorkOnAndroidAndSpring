@@ -152,9 +152,16 @@ class PostViewModel @Inject constructor(
 
     fun refreshDrafts(sync: Boolean = false) {
         viewModelScope.launch {
-            val localDrafts = loadDrafts(currentUserId, sync)
+            val authorId = currentUserId
+            val localDrafts = loadDrafts(authorId)
             val serverDrafts = loadServerDrafts()
             _uiState.update { it.copy(drafts = localDrafts, serverDrafts = serverDrafts) }
+            if (sync && authorId != null) {
+                repository.syncDrafts(authorId)
+                val refreshedDrafts = loadDrafts(authorId)
+                val refreshedServerDrafts = loadServerDrafts()
+                _uiState.update { it.copy(drafts = refreshedDrafts, serverDrafts = refreshedServerDrafts) }
+            }
         }
     }
 
@@ -203,18 +210,8 @@ class PostViewModel @Inject constructor(
         filters: PostFilters?
     ): Boolean = allowAnyType && postType == null && filters == null
 
-    private suspend fun loadDrafts(authorId: Long?, sync: Boolean = false): List<PostDraft> {
-        if (authorId == null) return emptyList()
-        val localDrafts = repository.getDrafts(authorId).getOrDefault(emptyList())
-        if (sync) {
-            viewModelScope.launch {
-                repository.syncDrafts(authorId)
-                val refreshedDrafts = repository.getDrafts(authorId).getOrDefault(emptyList())
-                _uiState.update { it.copy(drafts = refreshedDrafts) }
-            }
-        }
-        return localDrafts
-    }
+    private suspend fun loadDrafts(authorId: Long?): List<PostDraft> =
+        if (authorId == null) emptyList() else repository.getDrafts(authorId).getOrDefault(emptyList())
 
     private suspend fun loadServerDrafts(): List<PostCard> {
         return repository.getServerDrafts().getOrDefault(emptyList())
