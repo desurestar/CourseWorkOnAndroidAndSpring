@@ -787,6 +787,11 @@ class MainActivity :
             onLoaded(null)
             return
         }
+        tokenStorage.getUserId()?.let { cachedId ->
+            currentUserId = cachedId
+            onLoaded(cachedId)
+            return
+        }
         synchronized(pendingUserIdCallbacks) {
             if (loadUserIdJob != null) {
                 pendingUserIdCallbacks.add(onLoaded)
