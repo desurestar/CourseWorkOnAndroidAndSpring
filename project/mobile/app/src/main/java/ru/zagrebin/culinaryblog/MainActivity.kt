@@ -75,6 +75,7 @@ class MainActivity :
     private var loadUserIdJob: Job? = null
     private val pendingUserIdCallbacks = mutableListOf<(Long?) -> Unit>()
     private var backPressedCallback: OnBackPressedCallback? = null
+    private val loadedFeedTabs = mutableSetOf<ContentTab>()
 
     private val postDetailLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -114,6 +115,7 @@ class MainActivity :
         }
 
     private var currentTab: ContentTab = ContentTab.RECIPES
+    private var lastDraftsStateHash: Int = 0
     private val feedScrollPositions = EnumMap<ContentTab, Int>(ContentTab::class.java)
     private var restoreFeedScroll = false
     private var scrollRestoreScheduled = false
@@ -144,7 +146,21 @@ class MainActivity :
         }
 
         binding.swipeRefresh.setOnRefreshListener {
-            postViewModel.loadPosts(filtersForCurrentTab(), currentPostType())
+            when (currentTab) {
+                ContentTab.RECIPES, ContentTab.ARTICLES ->
+                    postViewModel.loadPosts(filtersForCurrentTab(), currentPostType())
+                ContentTab.DRAFTS, ContentTab.PROFILE -> {
+                    binding.swipeRefresh.isRefreshing = true
+                    val tag = if (currentTab == ContentTab.DRAFTS) DRAFTS_TAG else PROFILE_TAG
+                    val fragment = supportFragmentManager.findFragmentByTag(tag)
+                    if (fragment != null) {
+                        refreshFragment(fragment)
+                    } else {
+                        binding.swipeRefresh.isRefreshing = false
+                    }
+                }
+                else -> binding.swipeRefresh.isRefreshing = false
+            }
         }
         binding.swipeRefresh.setOnChildScrollUpCallback { _, _ ->
             !(currentTab.isFeed() && !binding.postsScroll.canScrollVertically(-1))
@@ -185,6 +201,10 @@ class MainActivity :
             true
         }
 
+        // Use white background for swipe refresh progress circle and hide the small header progress
+        binding.swipeRefresh.setProgressBackgroundColorSchemeResource(android.R.color.white)
+        binding.progressBar.isVisible = false
+
         val initialTab = intent.getStringExtra(EXTRA_TARGET_TAB)
         binding.bottomNavigation.selectedItemId = when (initialTab) {
             EXTRA_TAB_ARTICLES -> R.id.menu_articles
@@ -208,6 +228,15 @@ class MainActivity :
                 postViewModel.uiState.collect { state ->
                     latestState = state
                     renderState(state)
+
+                    // If swipe-refresh is active for drafts/profile, stop it when drafts/serverDrafts change
+                    if (binding.swipeRefresh.isRefreshing && (currentTab == ContentTab.DRAFTS || currentTab == ContentTab.PROFILE)) {
+                        val currentHash = (state.drafts.hashCode() xor state.serverDrafts.hashCode())
+                        if (currentHash != lastDraftsStateHash) {
+                            binding.swipeRefresh.isRefreshing = false
+                        }
+                        lastDraftsStateHash = currentHash
+                    }
                 }
             }
         }
@@ -268,7 +297,10 @@ class MainActivity :
         if (currentTab.isFeed()) {
             lastFeedTabId = itemId
             restoreFeedScroll = true
-            postViewModel.loadPosts(filtersForCurrentTab(), currentPostType())
+            if (!loadedFeedTabs.contains(currentTab)) {
+                loadedFeedTabs.add(currentTab)
+                postViewModel.loadPosts(filtersForCurrentTab(), currentPostType())
+            }
         }
 
         if (currentTab.isFeed()) {
@@ -323,7 +355,9 @@ class MainActivity :
         likedPostIds.clear()
         likedPostIds.addAll(state.likedIds)
 
-        binding.progressBar.isVisible = state.isLoading
+        // Use SwipeRefreshLayout's spinner as single loading indicator
+        // keep `progressBar` hidden to avoid duplicate spinners
+        binding.progressBar.isVisible = false
         val errorText = when {
             state.offline -> getString(R.string.offline_feed_message)
             else -> state.error
@@ -529,6 +563,7 @@ class MainActivity :
             .forEach { transaction.hide(it) }
 
         val fragment = supportFragmentManager.findFragmentByTag(tag) ?: provider()
+        val isNew = !fragment.isAdded
         if (fragment.isAdded) {
             transaction.show(fragment)
         } else {
@@ -537,7 +572,7 @@ class MainActivity :
 
         // refresh only AFTER commit (when fragment is attached)
         transaction.runOnCommit {
-            refreshFragment(fragment)
+            if (isNew) refreshFragment(fragment)
         }
 
         transaction.commit()
@@ -545,7 +580,8 @@ class MainActivity :
         binding.postsContent.isVisible = false
         binding.stubText.isVisible = false
         binding.fragmentContainer.isVisible = true
-        binding.swipeRefresh.isEnabled = false
+        // Enable swipe-refresh for fragments that implement RefreshableTab
+        binding.swipeRefresh.isEnabled = fragment is RefreshableTab
         binding.swipeRefresh.isRefreshing = false
         binding.buttonScrollTop.isVisible = false
         return fragment
@@ -812,6 +848,17 @@ class MainActivity :
                         }
                         .onFailure {
                             Log.w(TAG, "Failed to fetch current user id: ${it.message}")
+                            // Attempt to infer current user id from any local draft author (offline fallback)
+                            try {
+                                val inferred = postRepository.getAnyDraftAuthorId()
+                                if (inferred != null) {
+                                    currentUserId = inferred
+                                    tokenStorage.saveUserId(inferred)
+                                    Log.d(TAG, "Inferred current user id from local drafts: $inferred")
+                                }
+                            } catch (t: Exception) {
+                                Log.w(TAG, "Failed to infer user id from local drafts: ${t.message}")
+                            }
                         }
                 } finally {
                     val callbacks = synchronized(pendingUserIdCallbacks) {
@@ -918,4 +965,10 @@ class MainActivity :
 
     private fun normalizePostType(postType: String?): String =
         postType?.lowercase()?.takeIf { it.isNotBlank() } ?: DEFAULT_POST_TYPE
+
+    fun isSwipeRefreshing(): Boolean = binding.swipeRefresh.isRefreshing
+
+    fun stopSwipeRefresh() {
+        if (binding.swipeRefresh.isRefreshing) binding.swipeRefresh.isRefreshing = false
+    }
 }

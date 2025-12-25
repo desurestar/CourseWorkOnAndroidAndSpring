@@ -58,7 +58,9 @@ class PostDetailActivity : AppCompatActivity() {
     @Inject lateinit var postRepository: PostRepository
     @Inject lateinit var commentRepository: CommentRepository
     @Inject lateinit var profileRepository: ProfileRepository
+    @Inject lateinit var checklistRepository: ru.zagrebin.culinaryblog.data.repository.ChecklistRepository
     @Inject lateinit var tokenStorage: TokenStorage
+    @Inject lateinit var gson: com.google.gson.Gson
 
     private var currentPostId: Long = -1
     private var isLiked: Boolean = false
@@ -207,6 +209,49 @@ class PostDetailActivity : AppCompatActivity() {
             chip.applyInfoStyle()
             binding.ingredientsGroup.addView(chip)
         }
+        // Add "Добавить список" action chip
+        val addChip = Chip(this)
+        addChip.text = getString(R.string.add_checklist_label)
+        addChip.isClickable = true
+        addChip.isCheckable = false
+        addChip.applyInfoStyle()
+        addChip.setOnClickListener {
+            val labels = ingredientsSafe
+            showCreateChecklistDialog(labels)
+        }
+        binding.ingredientsGroup.addView(addChip)
+    }
+
+    private fun showCreateChecklistDialog(items: List<String>) {
+        val titleInput = EditText(this)
+        titleInput.setText(getString(R.string.default_checklist_title))
+        AlertDialog.Builder(this)
+            .setTitle(R.string.add_checklist_dialog_title)
+            .setView(titleInput)
+            .setPositiveButton(R.string.action_save) { dialog, _ ->
+                val title = titleInput.text.toString().ifBlank { getString(R.string.default_checklist_title) }
+                lifecycleScope.launch {
+                        // Convert to ChecklistItem list with unchecked state
+                        val checklistItems = items.map { ru.zagrebin.culinaryblog.model.ChecklistItem(it, false) }
+                        val itemsJson = gson.toJson(checklistItems)
+                    val ownerId = currentUserId ?: -1L
+                    val entity = ru.zagrebin.culinaryblog.data.local.entity.ChecklistEntity(
+                        postId = if (currentPostId > 0) currentPostId else null,
+                        title = title,
+                        itemsJson = itemsJson,
+                        ownerId = ownerId
+                    )
+                    try {
+                        checklistRepository.insert(entity)
+                        Toast.makeText(this@PostDetailActivity, R.string.checklist_saved, Toast.LENGTH_SHORT).show()
+                    } catch (t: Exception) {
+                        Toast.makeText(this@PostDetailActivity, R.string.error_saving, Toast.LENGTH_SHORT).show()
+                    }
+                }
+                dialog.dismiss()
+            }
+                .setNegativeButton(R.string.comments_cancel_reply, null)
+            .show()
     }
 
     private fun bindSteps(isRecipe: Boolean, steps: List<PostStep>) {

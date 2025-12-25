@@ -73,6 +73,18 @@
             android:exported="false"
             android:label="@string/admin_panel_title"
             android:theme="@style/Theme.CulinaryBlog" />
+        <activity
+            android:name=".ui.ChecklistWidgetConfigureActivity"
+            android:exported="true"
+            android:label="@string/add_checklist_label"
+            android:theme="@style/Theme.CulinaryBlog" />
+
+        <receiver android:name=".ui.ChecklistWidgetProvider" android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/checklist_widget_info" />
+        </receiver>
     </application>
 
 </manifest>

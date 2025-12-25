@@ -17,6 +17,8 @@ data class PostEntity(
     val authorName: String?,
     val publishedAt: String?,
     val tags: String?,
+    val ingredientsJson: String? = null,
+    val stepsJson: String? = null,
     val viewsCount: Long?,
     val liked: Boolean = false
 )

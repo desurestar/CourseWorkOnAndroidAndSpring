@@ -169,8 +169,16 @@ class PostViewModel @Inject constructor(
         if (currentUserId == userId) return
         currentUserId = userId
         if (userId == null) {
-            _uiState.update { it.copy(drafts = emptyList(), serverDrafts = emptyList(), likedIds = emptySet()) }
-            loadPosts()
+            // Try to infer user id from any local draft to allow offline drafts view
+            viewModelScope.launch {
+                val inferred = repository.getAnyDraftAuthorId()
+                if (inferred != null) {
+                    setCurrentUser(inferred)
+                    return@launch
+                }
+                _uiState.update { it.copy(drafts = emptyList(), serverDrafts = emptyList(), likedIds = emptySet()) }
+                loadPosts()
+            }
             return
         }
         refreshDrafts(sync = true)

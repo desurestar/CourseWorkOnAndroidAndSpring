@@ -42,6 +42,9 @@ class DraftsFragment : Fragment(), RefreshableTab {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        binding.draftsSwipeRefresh.setOnRefreshListener {
+            postViewModel.refreshDrafts(sync = true)
+        }
         observeDrafts()
     }
 
@@ -61,6 +64,7 @@ class DraftsFragment : Fragment(), RefreshableTab {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 postViewModel.uiState.collectLatest { state -> 
                     renderDrafts(state.serverDrafts, state.drafts, state.offline)
+                    binding.draftsSwipeRefresh.isRefreshing = false
                 }
             }
         }

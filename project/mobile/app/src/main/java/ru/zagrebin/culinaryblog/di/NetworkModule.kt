@@ -103,6 +103,14 @@ object NetworkModule {
 
     @Provides
     @Singleton
+    fun provideChecklistRepository(
+        checklistDao: ru.zagrebin.culinaryblog.data.local.dao.ChecklistDao,
+        gson: Gson
+    ): ru.zagrebin.culinaryblog.data.repository.ChecklistRepository =
+        ru.zagrebin.culinaryblog.data.repository.ChecklistRepositoryImpl(checklistDao, gson)
+
+    @Provides
+    @Singleton
     fun provideAdminRepository(
         api: AdminApi
     ): AdminRepository = AdminRepositoryImpl(api)

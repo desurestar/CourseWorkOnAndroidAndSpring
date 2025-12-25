@@ -4,6 +4,11 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import ru.zagrebin.culinaryblog.data.local.entity.DraftEntity
 import ru.zagrebin.culinaryblog.data.local.entity.PostEntity
+import ru.zagrebin.culinaryblog.model.PostFull
+import ru.zagrebin.culinaryblog.model.PostIngredientLine
+import ru.zagrebin.culinaryblog.model.PostStep
+import ru.zagrebin.culinaryblog.model.PostAuthor
+import ru.zagrebin.culinaryblog.model.PostTag
 import ru.zagrebin.culinaryblog.data.local.entity.UserProfileEntity
 import ru.zagrebin.culinaryblog.model.PostCard
 import ru.zagrebin.culinaryblog.model.PostCreateRequest
@@ -50,6 +55,47 @@ fun PostEntity.toModel(): PostCard = PostCard(
     tags = tags?.let { tagsGson.fromJson<List<String>>(it, tagListType) }?.filter { it.isNotBlank() }?.toSet(),
     viewsCount = viewsCount,
     liked = liked
+)
+
+fun PostFull.toEntity(gson: Gson): PostEntity = PostEntity(
+    id = id,
+    title = title.orEmpty(),
+    excerpt = excerpt.orEmpty(),
+    coverUrl = coverUrl,
+    authorId = author?.id,
+    postType = postType,
+    likesCount = likesCount,
+    cookingTimeMinutes = cookingTimeMinutes,
+    calories = calories,
+    authorName = author?.displayName,
+    publishedAt = createdAt,
+    tags = tags?.let { tagsGson.toJson(it.map { t -> t.name }) },
+    ingredientsJson = gson.toJson(ingredients ?: emptyList<PostIngredientLine>()),
+    stepsJson = gson.toJson(steps ?: emptyList<PostStep>()),
+    viewsCount = viewsCount,
+    liked = liked
+)
+
+fun PostEntity.toFullModel(gson: Gson): PostFull = PostFull(
+    id = id,
+    clientId = null,
+    postType = postType,
+    status = "offline",
+    title = title,
+    excerpt = excerpt,
+    content = excerpt,
+    coverUrl = coverUrl,
+    createdAt = publishedAt,
+    updatedAt = publishedAt,
+    author = authorId?.let { PostAuthor(id = it, displayName = authorName, avatarUrl = null, subscribed = null) },
+    tags = tags?.let { tagsGson.fromJson<List<String>>(it, tagListType) }?.mapIndexed { i, name -> PostTag(id = i.toLong(), name = name, color = null) } ?: emptyList(),
+    ingredients = ingredientsJson?.let { gson.fromJson(it, object : TypeToken<List<PostIngredientLine>>() {}.type) } ?: emptyList(),
+    steps = stepsJson?.let { gson.fromJson(it, object : TypeToken<List<PostStep>>() {}.type) } ?: emptyList(),
+    likesCount = likesCount,
+    liked = liked,
+    viewsCount = viewsCount ?: 0L,
+    calories = calories,
+    cookingTimeMinutes = cookingTimeMinutes
 )
 
 fun DraftEntity.toDraft(gson: Gson): PostDraft {

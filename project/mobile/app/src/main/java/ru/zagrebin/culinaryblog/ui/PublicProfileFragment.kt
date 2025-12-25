@@ -234,7 +234,11 @@ class PublicProfileFragment : Fragment() {
             view.findViewById<TextView>(R.id.miniProfileName).text = name
             view.findViewById<TextView>(R.id.miniProfileMeta).text = metaText
             view.findViewById<TextView>(R.id.miniProfileAvatar).text = name.firstOrNull()?.uppercase() ?: "U"
-            view.setOnClickListener { openUser(user) }
+            view.setOnClickListener {
+                usersDialog?.dismiss()
+                usersDialog = null
+                openUser(user)
+            }
             container.addView(view)
         }
     }

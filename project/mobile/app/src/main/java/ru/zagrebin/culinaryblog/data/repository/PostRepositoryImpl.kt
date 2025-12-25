@@ -15,9 +15,12 @@ import ru.zagrebin.culinaryblog.data.local.toDraft
 import ru.zagrebin.culinaryblog.data.local.toEntity
 import ru.zagrebin.culinaryblog.data.local.toModel
 import ru.zagrebin.culinaryblog.data.local.toDraftEntity
+import ru.zagrebin.culinaryblog.data.local.toFullModel
 import ru.zagrebin.culinaryblog.data.remote.api.PostApi
 import ru.zagrebin.culinaryblog.data.remote.dto.toModel
+import ru.zagrebin.culinaryblog.data.local.entity.PostEntity
 import ru.zagrebin.culinaryblog.model.IngredientItem
+import com.google.gson.reflect.TypeToken
 import ru.zagrebin.culinaryblog.model.PaginatedResult
 import ru.zagrebin.culinaryblog.model.PostCard
 import ru.zagrebin.culinaryblog.model.PostCreateRequest
@@ -65,7 +68,15 @@ class PostRepositoryImpl @Inject constructor(
                 }
                 val nextPage = body.next?.let { Uri.parse(it).getQueryParameter("page")?.toIntOrNull() }
                 val shouldCache = normalizedFilters == null || normalizedFilters.isEmpty(normalizedFilters.postType)
-                if (shouldCache && page == 1) postDao.clear()
+                if (shouldCache && page == 1) {
+                    // Only clear the cached posts for this postType to avoid removing other tab caches
+                    val typeToClear = normalizedFilters?.postType
+                    if (!typeToClear.isNullOrBlank()) {
+                        postDao.clearByPostType(typeToClear)
+                    } else {
+                        postDao.clear()
+                    }
+                }
                 if (shouldCache) {
                     postDao.insertAll(mergedItems.map { it.toEntity() })
                 }
@@ -92,14 +103,44 @@ class PostRepositoryImpl @Inject constructor(
             val resp = api.getPost(id)
             if (resp.isSuccessful) {
                 val body = resp.body() ?: return@withContext Result.failure(RuntimeException("Empty body"))
-                Result.success(body.toModel())
+                val model = body.toModel()
+                // Cache full post locally (including ingredients and steps)
+                try {
+                    postDao.insertAll(listOf(model.toEntity(gson)))
+                } catch (t: Exception) {
+                    Log.w("PostRepositoryImpl", "Failed to cache full post locally: ${t.message}")
+                }
+                Result.success(model)
             } else {
                 Result.failure(RuntimeException("Server error: ${resp.code()}"))
             }
         } catch (e: Exception) {
-            val cached = postDao.getById(id)?.toModel()
-            if (cached != null) {
-                Result.success(toFullFromCard(cached))
+            val cachedEntity = postDao.getById(id)
+            if (cachedEntity != null) {
+                return@withContext try {
+                    val full = cachedEntity.toFullModel(gson)
+                    val hasSteps = full.steps.isNotEmpty()
+                    val hasIngredients = full.ingredients.isNotEmpty()
+                    if (!hasSteps || !hasIngredients) {
+                        val draft = runCatching { draftDao.getByServerId(id) }.getOrNull()
+                        if (draft != null) {
+                            val ingredients = runCatching {
+                                gson.fromJson<List<ru.zagrebin.culinaryblog.model.PostIngredientLine>>(draft.ingredientsJson, object : TypeToken<List<ru.zagrebin.culinaryblog.model.PostIngredientLine>>() {}.type)
+                            }.getOrNull() ?: emptyList()
+                            val steps = runCatching {
+                                gson.fromJson<List<ru.zagrebin.culinaryblog.model.PostStep>>(draft.stepsJson, object : TypeToken<List<ru.zagrebin.culinaryblog.model.PostStep>>() {}.type)
+                            }.getOrNull() ?: emptyList()
+                            val merged = full.copy(
+                                ingredients = if (full.ingredients.isNotEmpty()) full.ingredients else ingredients,
+                                steps = if (full.steps.isNotEmpty()) full.steps else steps
+                            )
+                            return@withContext Result.success(merged)
+                        }
+                    }
+                    Result.success(full)
+                } catch (t: Exception) {
+                    Result.failure(e)
+                }
             } else {
                 Result.failure(e)
             }
@@ -162,6 +203,12 @@ class PostRepositoryImpl @Inject constructor(
             val resp = api.createPost(request)
             if (resp.isSuccessful) {
                 val body = resp.body() ?: return@withContext Result.failure(RuntimeException("Empty body"))
+                // Cache created post locally so it appears in Profile/Drafts offline
+                try {
+                    postDao.insertAll(listOf(body.toModel().toEntity()))
+                } catch (t: Exception) {
+                    Log.w(TAG, "Failed to cache created post locally: ${t.message}")
+                }
                 Result.success(body.toModel())
             } else {
                 Result.failure(RuntimeException("Server error: ${resp.code()}"))
@@ -241,6 +288,15 @@ class PostRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun getAnyDraftAuthorId(): Long? = withContext(Dispatchers.IO) {
+        return@withContext try {
+            val all = draftDao.getAll()
+            all.firstOrNull()?.authorId
+        } catch (e: Exception) {
+            null
+        }
+    }
+
     override suspend fun getDraft(id: Long): Result<PostDraft> = withContext(Dispatchers.IO) {
         try {
             val draft = draftDao.getById(id) ?: return@withContext Result.failure(
@@ -264,6 +320,31 @@ class PostRepositoryImpl @Inject constructor(
                 }
                 val drafts = body.results?.map { it.toModel() } ?: emptyList()
                 Log.d(TAG, "Successfully fetched ${drafts.size} server drafts")
+                // Cache server drafts as posts so they are available offline in Profile.
+                // If we have a local draft synced to this server post, reuse its ingredients/steps.
+                try {
+                    val entities = mutableListOf<PostEntity>()
+                    drafts.forEach { card ->
+                        val localDraft = runCatching { draftDao.getByServerId(card.id) }.getOrNull()
+                        if (localDraft != null) {
+                            val base = card.toEntity()
+                            entities.add(base.copy(ingredientsJson = localDraft.ingredientsJson, stepsJson = localDraft.stepsJson))
+                        } else {
+                            // Try to fetch full post details and cache full model when possible
+                            val fullResp = runCatching { api.getPost(card.id) }.getOrNull()
+                            if (fullResp?.isSuccessful == true) {
+                                fullResp.body()?.let { dto ->
+                                    entities.add(dto.toModel().toEntity(gson))
+                                }
+                            } else {
+                                entities.add(card.toEntity())
+                            }
+                        }
+                    }
+                    if (entities.isNotEmpty()) postDao.insertAll(entities)
+                } catch (t: Exception) {
+                    Log.w(TAG, "Failed to cache server drafts: ${t.message}")
+                }
                 Result.success(drafts)
             } else {
                 val errorMsg = "Server error: ${resp.code()}"
@@ -303,6 +384,23 @@ class PostRepositoryImpl @Inject constructor(
                         // Mark as synced with server ID
                         draftDao.markSynced(entity.id, postCard.id, "SYNCED", System.currentTimeMillis())
                         Log.d(TAG, "Successfully synced draft ${entity.id} -> server post ${postCard.id}")
+                        // Cache synced post locally so it appears in Profile/Drafts offline
+                        try {
+                            val postEntity = postCard.toModel().toEntity().copy(
+                                ingredientsJson = entity.ingredientsJson,
+                                stepsJson = entity.stepsJson
+                            )
+                            postDao.insertAll(listOf(postEntity))
+                        } catch (t: Exception) {
+                            Log.w(TAG, "Failed to cache synced draft as post: ${t.message}")
+                        }
+                        // Delete local draft after successful sync
+                        try {
+                            draftDao.delete(entity.id)
+                            Log.d(TAG, "Deleted local draft ${entity.id} after sync")
+                        } catch (t: Exception) {
+                            Log.w(TAG, "Failed to delete local draft ${entity.id} after sync: ${t.message}")
+                        }
                     }
                     synced++
                 } else {
@@ -343,12 +441,55 @@ class PostRepositoryImpl @Inject constructor(
             val resp = api.like(postId)
             if (resp.isSuccessful) {
                 postDao.markLiked(postId)
+                // Ensure liked post content is cached for offline viewing.
+                try {
+                    val existing = postDao.getById(postId)
+                    if (existing == null) {
+                        val fullResp = api.getPost(postId)
+                        if (fullResp.isSuccessful) {
+                            val fullBody = fullResp.body()
+                            if (fullBody != null) {
+                                val model = fullBody.toModel()
+                                postDao.insertAll(listOf(model.toEntity(gson)))
+                            }
+                        }
+                    }
+                } catch (t: Exception) {
+                    Log.w(TAG, "Failed to fetch/cache liked post: ${t.message}")
+                }
                 Result.success(Unit)
             } else {
                 Result.failure(RuntimeException("Server error: ${resp.code()}"))
             }
         } catch (e: Exception) {
-            postDao.markLiked(postId)
+            // Offline: mark liked locally and insert a minimal placeholder if missing
+            try {
+                postDao.markLiked(postId)
+                val existing = postDao.getById(postId)
+                if (existing == null) {
+                    val placeholder = PostEntity(
+                        id = postId,
+                        title = "",
+                        excerpt = "",
+                        coverUrl = null,
+                        authorId = null,
+                        postType = null,
+                        likesCount = 0,
+                        cookingTimeMinutes = null,
+                        calories = null,
+                        authorName = null,
+                        publishedAt = null,
+                        tags = null,
+                        ingredientsJson = null,
+                        stepsJson = null,
+                        viewsCount = 0L,
+                        liked = true
+                    )
+                    postDao.insertAll(listOf(placeholder))
+                }
+            } catch (t: Exception) {
+                Log.w(TAG, "Failed to mark liked offline: ${t.message}")
+            }
             Result.failure(RuntimeException(OFFLINE_LIKE_CACHED))
         }
     }

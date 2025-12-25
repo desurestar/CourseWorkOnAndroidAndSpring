@@ -208,4 +208,9 @@
     <string name="admin_error_action">Не удалось выполнить действие</string>
     <string name="server_drafts_header">Черновики на сервере</string>
     <string name="local_drafts_header">Локальные черновики</string>
+    <string name="add_checklist_label">Добавить список</string>
+    <string name="add_checklist_dialog_title">Создать список покупок</string>
+    <string name="default_checklist_title">Список покупок</string>
+    <string name="checklist_saved">Список сохранён</string>
+    <string name="error_saving">Не удалось сохранить список</string>
 </resources>

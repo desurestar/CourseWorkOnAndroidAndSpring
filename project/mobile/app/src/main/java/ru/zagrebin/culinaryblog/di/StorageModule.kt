@@ -39,11 +39,25 @@ object StorageModule {
         }
     }
     
+    private val MIGRATION_2_3 = object : Migration(2, 3) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            // Add columns to posts table to store ingredients and steps as JSON
+            database.execSQL("ALTER TABLE posts ADD COLUMN ingredientsJson TEXT")
+            database.execSQL("ALTER TABLE posts ADD COLUMN stepsJson TEXT")
+        }
+    }
+    
+    private val MIGRATION_3_4 = object : Migration(3, 4) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            database.execSQL("CREATE TABLE IF NOT EXISTS `checklists` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `post_id` INTEGER, `title` TEXT NOT NULL, `items_json` TEXT NOT NULL, `owner_id` INTEGER NOT NULL, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL)")
+        }
+    }
+    
     @Provides
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): CulinaryDatabase =
         Room.databaseBuilder(context, CulinaryDatabase::class.java, "culinary_offline.db")
-            .addMigrations(MIGRATION_1_2)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
             .build()
 
 
@@ -55,4 +69,7 @@ object StorageModule {
 
     @Provides
     fun provideUserProfileDao(db: CulinaryDatabase): UserProfileDao = db.userProfileDao()
+
+    @Provides
+    fun provideChecklistDao(db: CulinaryDatabase): ru.zagrebin.culinaryblog.data.local.dao.ChecklistDao = db.checklistDao()
 }

@@ -84,6 +84,8 @@ class ProfileFragment : Fragment(), RefreshableTab {
         pendingAvatarUri = null
     }
     @Inject lateinit var tokenStorage: TokenStorage
+    @Inject lateinit var checklistRepository: ru.zagrebin.culinaryblog.data.repository.ChecklistRepository
+    @Inject lateinit var gson: com.google.gson.Gson
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -97,6 +99,11 @@ class ProfileFragment : Fragment(), RefreshableTab {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        binding.profileSwipeRefresh.setOnRefreshListener {
+            profileViewModel.loadProfile()
+            postViewModel.loadAllPosts()
+            postViewModel.refreshDrafts(sync = true)
+        }
         if (tokenStorage.getToken().isNullOrBlank()) {
             val handled = (activity as? Host)?.let { it.onProfileRequiresAuth(); true } ?: false
             if (!handled) {
@@ -246,7 +253,10 @@ class ProfileFragment : Fragment(), RefreshableTab {
     private fun observeProfile() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                profileViewModel.uiState.collectLatest { renderProfile(it) }
+                profileViewModel.uiState.collectLatest {
+                    renderProfile(it)
+                    binding.profileSwipeRefresh.isRefreshing = false
+                }
             }
         }
     }
@@ -265,7 +275,8 @@ class ProfileFragment : Fragment(), RefreshableTab {
     }
 
     private fun renderProfile(state: ProfileUiState) {
-        binding.profileProgress.isVisible = state.isLoading || state.isSaving
+        // val activityRefreshing = (activity as? ru.zagrebin.culinaryblog.MainActivity)?.isSwipeRefreshing() == true
+        // binding.profileProgress.isVisible = (state.isLoading || state.isSaving) && !activityRefreshing
         binding.buttonSaveProfile.isEnabled = !state.isLoading && !state.isSaving
         binding.buttonChangeAvatar.isEnabled = binding.buttonSaveProfile.isEnabled
 
@@ -276,6 +287,13 @@ class ProfileFragment : Fragment(), RefreshableTab {
 
         val user = state.user
         if (user != null) {
+            // Observe checklists for this user
+            val ownerId = user.id ?: -1L
+            viewLifecycleOwner.lifecycleScope.launch {
+                checklistRepository.getByOwner(ownerId).collectLatest { lists ->
+                    renderChecklists(lists)
+                }
+            }
             followersCount = user.followersCount
             followingCount = user.followingCount
             val displayName = user.displayName?.takeIf { it.isNotBlank() }
@@ -307,6 +325,76 @@ class ProfileFragment : Fragment(), RefreshableTab {
             binding.buttonAdminPanel.isVisible = false
         }
         updateCounters()
+
+        if (!state.isLoading && !state.isSaving) {
+            (activity as? ru.zagrebin.culinaryblog.MainActivity)?.stopSwipeRefresh()
+        }
+    }
+
+    private fun renderChecklists(lists: List<ru.zagrebin.culinaryblog.data.local.entity.ChecklistEntity>) {
+        binding.checklistsList.removeAllViews()
+        if (lists.isEmpty()) return
+        lists.forEach { checklist ->
+            val view = layoutInflater.inflate(ru.zagrebin.culinaryblog.R.layout.item_checklist, binding.checklistsList, false)
+            val title = view.findViewById<TextView>(ru.zagrebin.culinaryblog.R.id.checklistTitle)
+            val preview = view.findViewById<TextView>(ru.zagrebin.culinaryblog.R.id.checklistPreview)
+            val openBtn = view.findViewById<android.widget.Button>(ru.zagrebin.culinaryblog.R.id.buttonOpenChecklist)
+            val delBtn = view.findViewById<android.widget.Button>(ru.zagrebin.culinaryblog.R.id.buttonDeleteChecklist)
+
+
+            title.text = checklist.title
+            val items = runCatching {
+                gson.fromJson<List<ru.zagrebin.culinaryblog.model.ChecklistItem>>(checklist.itemsJson, com.google.gson.reflect.TypeToken.getParameterized(List::class.java, ru.zagrebin.culinaryblog.model.ChecklistItem::class.java).type)
+            }.getOrNull() ?: emptyList()
+            preview.text = items.take(3).joinToString(", ") { it.text }
+
+            openBtn.setOnClickListener {
+                showChecklistEditor(checklist)
+            }
+
+            delBtn.setOnClickListener {
+                viewLifecycleOwner.lifecycleScope.launch {
+                    checklistRepository.delete(checklist)
+                }
+            }
+
+
+
+            binding.checklistsList.addView(view)
+        }
+    }
+
+    private fun showChecklistEditor(checklist: ru.zagrebin.culinaryblog.data.local.entity.ChecklistEntity) {
+        val items = runCatching {
+            gson.fromJson<List<ru.zagrebin.culinaryblog.model.ChecklistItem>>(checklist.itemsJson, com.google.gson.reflect.TypeToken.getParameterized(List::class.java, ru.zagrebin.culinaryblog.model.ChecklistItem::class.java).type)
+        }.getOrNull() ?: emptyList()
+
+        val container = LinearLayout(requireContext()).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(16,16,16,16)
+        }
+
+        val checkBoxes = items.map { item ->
+            val cb = android.widget.CheckBox(requireContext())
+            cb.text = item.text
+            cb.isChecked = item.checked
+            container.addView(cb)
+            cb
+        }
+
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(checklist.title)
+            .setView(container)
+            .setPositiveButton(R.string.action_save) { dialog, _ ->
+                val updated = checkBoxes.map { cb -> ru.zagrebin.culinaryblog.model.ChecklistItem(cb.text.toString(), cb.isChecked) }
+                val updatedJson = gson.toJson(updated)
+                viewLifecycleOwner.lifecycleScope.launch {
+                    checklistRepository.update(checklist.copy(itemsJson = updatedJson, updatedAt = System.currentTimeMillis()))
+                }
+                dialog.dismiss()
+            }
+                .setNegativeButton(R.string.comments_cancel_reply, null)
+            .show()
     }
 
     private fun renderAvatar(avatarUrl: String?, title: String?) {
@@ -549,7 +637,11 @@ class ProfileFragment : Fragment(), RefreshableTab {
             view.findViewById<TextView>(R.id.miniProfileName).text = name
             view.findViewById<TextView>(R.id.miniProfileMeta).text = metaText
             view.findViewById<TextView>(R.id.miniProfileAvatar).text = name.firstOrNull()?.uppercase() ?: "U"
-            view.setOnClickListener { openUser(user) }
+            view.setOnClickListener {
+                usersDialog?.dismiss()
+                usersDialog = null
+                openUser(user)
+            }
             container.addView(view)
         }
     }
@@ -557,7 +649,9 @@ class ProfileFragment : Fragment(), RefreshableTab {
     private fun filterCurrentUserPosts(state: PostsUiState): List<PostCard> {
         val currentUserId = profileViewModel.uiState.value.user?.id
         return state.posts.filter { post ->
-            currentUserId?.let { post.authorId == it } ?: true
+            val isAuthor = currentUserId?.let { post.authorId == it } ?: false
+            val isPublished = !post.publishedAt.isNullOrBlank()
+            isAuthor && isPublished
         }
     }
 
