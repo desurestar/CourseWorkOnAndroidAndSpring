@@ -11,7 +11,7 @@ import ru.zagrebin.culinaryblog.R
 import ru.zagrebin.culinaryblog.model.PostCard
 
 class PostCardAdapter(
-    private val items: List<PostCard>,
+    var items: List<PostCard>,
     private val onClick: (PostCard) -> Unit
 ) : RecyclerView.Adapter<PostCardAdapter.PostCardViewHolder>() {
 
@@ -32,7 +32,7 @@ class PostCardAdapter(
             val title = itemView.findViewById<TextView>(R.id.postTitle)
             val excerpt = itemView.findViewById<TextView>(R.id.postExcerpt)
             val cover = itemView.findViewById<ImageView>(R.id.postCover)
-            val author = itemView.findViewById<TextView>(R.id.postAuthor)
+            val author = itemView.findViewById<TextView>(R.id.authorName)
             title.text = post.title
             excerpt.text = post.excerpt
             author.text = post.authorName ?: ""

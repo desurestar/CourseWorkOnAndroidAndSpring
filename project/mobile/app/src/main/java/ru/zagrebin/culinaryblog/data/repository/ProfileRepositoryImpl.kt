@@ -36,6 +36,10 @@ class ProfileRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun getCachedProfile(): UserProfile? = withContext(Dispatchers.IO) {
+        userProfileDao.getProfile()?.toModel()
+    }
+
     override suspend fun updateProfile(request: UpdateProfileRequest): Result<UserProfile> = withContext(Dispatchers.IO) {
         return@withContext try {
             val resp = api.update(request)

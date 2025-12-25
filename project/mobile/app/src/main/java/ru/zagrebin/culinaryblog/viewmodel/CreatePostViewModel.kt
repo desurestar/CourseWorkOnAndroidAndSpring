@@ -93,6 +93,15 @@ class CreatePostViewModel @Inject constructor(
     fun createPost(request: PostCreateRequest) {
         viewModelScope.launch {
             _state.update { it.copy(submitting = true, error = null, created = null, draftSaved = null) }
+            if (request.status == STATUS_DRAFT) {
+                // Local-first: save draft immediately to local DB and update UI
+                val draft = repository.saveDraft(request).getOrNull()
+                _state.update {
+                    it.copy(submitting = false, draftSaved = draft, error = null)
+                }
+                return@launch
+            }
+
             val res = repository.createPost(request)
             _state.update {
                 if (res.isSuccess) {

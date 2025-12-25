@@ -19,7 +19,8 @@ class RecipesViewModel @Inject constructor(
 
     fun loadRecipes() {
         viewModelScope.launch {
-            _recipes.value = postRepository.getPosts(postType = "Recipe")
+            val result = postRepository.getPublishedPosts(filters = ru.zagrebin.culinaryblog.model.PostFilters(postType = "Recipe"))
+            _recipes.value = result.getOrNull()?.items ?: emptyList()
         }
     }
 }

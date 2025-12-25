@@ -11,12 +11,14 @@ import ru.zagrebin.culinaryblog.data.local.entity.UserProfileEntity
 import ru.zagrebin.culinaryblog.data.local.entity.ChecklistEntity
 
 @Database(
-    entities = [PostEntity::class, DraftEntity::class, UserProfileEntity::class, ChecklistEntity::class],
-    version = 4
+    entities = [PostEntity::class, DraftEntity::class, UserProfileEntity::class, ChecklistEntity::class, ru.zagrebin.culinaryblog.data.local.entity.StepEntity::class, ru.zagrebin.culinaryblog.data.local.entity.IngredientEntity::class],
+    version = 6
 )
 abstract class CulinaryDatabase : RoomDatabase() {
     abstract fun postDao(): PostDao
     abstract fun draftDao(): DraftDao
     abstract fun userProfileDao(): UserProfileDao
     abstract fun checklistDao(): ru.zagrebin.culinaryblog.data.local.dao.ChecklistDao
+    abstract fun stepDao(): ru.zagrebin.culinaryblog.data.local.dao.StepDao
+    abstract fun ingredientDao(): ru.zagrebin.culinaryblog.data.local.dao.IngredientDao
 }

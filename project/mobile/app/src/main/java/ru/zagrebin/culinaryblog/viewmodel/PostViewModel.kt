@@ -39,6 +39,7 @@ class PostViewModel @Inject constructor(
     private var activePostType: String? = DEFAULT_POST_TYPE
     private var currentUserId: Long? = null
     private var currentLoadJob: Job? = null
+    private val postsCache: MutableMap<String, List<PostCard>> = mutableMapOf()
 
     init {
         loadPosts(postType = DEFAULT_POST_TYPE)
@@ -71,6 +72,9 @@ class PostViewModel @Inject constructor(
                 PostFilters.filter(cached, params.normalizedFilters, params.targetType)
             }
             if (cachedFiltered.isNotEmpty()) {
+                synchronized(postsCache) {
+                    postsCache[params.targetType] = cachedFiltered
+                }
                 _uiState.value = _uiState.value.copy(
                     posts = cachedFiltered,
                     likedIds = likedIds,
@@ -83,6 +87,9 @@ class PostViewModel @Inject constructor(
             if (res.isSuccess) {
                 val page = res.getOrDefault(PaginatedResult(emptyList(), null))
                 val mergedLikedIds = likedIds + page.items.filter { it.liked }.map { it.id }.toSet()
+                synchronized(postsCache) {
+                    postsCache[params.targetType] = page.items
+                }
                 _uiState.value = PostsUiState(
                     isLoading = false,
                     isAppending = false,
@@ -99,10 +106,14 @@ class PostViewModel @Inject constructor(
                     else -> if (cachedFiltered.isNotEmpty()) cachedFiltered else repository.getCachedPosts()
                 }
                 val mergedLikedIds = likedIds + cachedFallback.filter { it.liked }.map { it.id }.toSet()
+                val filteredForType = if (params.skipTypeFilters) cachedFallback else PostFilters.filter(cachedFallback, params.normalizedFilters, params.targetType)
+                synchronized(postsCache) {
+                    postsCache[params.targetType] = filteredForType
+                }
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     isAppending = false,
-                    posts = if (params.skipTypeFilters) cachedFallback else PostFilters.filter(cachedFallback, params.normalizedFilters, params.targetType),
+                    posts = filteredForType,
                     nextPage = null,
                     error = res.exceptionOrNull()?.message ?: "Unknown",
                     likedIds = mergedLikedIds,
@@ -112,6 +123,10 @@ class PostViewModel @Inject constructor(
                 )
             }
         }
+    }
+
+    fun getCachedPostsForType(type: String): List<PostCard> = synchronized(postsCache) {
+        postsCache[type] ?: emptyList()
     }
 
     fun loadNextPage() {

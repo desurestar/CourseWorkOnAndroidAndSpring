@@ -19,6 +19,7 @@ interface PostRepository {
     ): Result<PaginatedResult<PostCard>>
     suspend fun getCachedPosts(): List<PostCard>
     suspend fun getPost(id: Long): Result<PostFull>
+    suspend fun getCachedPost(id: Long): PostFull?
     suspend fun getTags(search: String? = null): Result<List<TagItem>>
     suspend fun getIngredients(search: String? = null): Result<List<IngredientItem>>
     suspend fun uploadImage(type: String, fileName: String, content: ByteArray, mimeType: String): Result<String>

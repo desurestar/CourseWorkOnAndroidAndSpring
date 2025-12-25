@@ -325,15 +325,25 @@ class PostDetailActivity : AppCompatActivity() {
 
     private fun loadFull(id: Long) {
         lifecycleScope.launch {
+            // First try to load cached post from local DB to render UI quickly
+            val cached = runCatching { postRepository.getCachedPost(id) }.getOrNull()
+            if (cached != null) {
+                renderFull(cached)
+            }
+
+            // Then fetch fresh data from server and update UI when available
             val result = postRepository.getPost(id)
             if (result.isSuccess) {
                 result.getOrNull()?.let { renderFull(it) }
             } else {
-                Toast.makeText(
-                    this@PostDetailActivity,
-                    R.string.error_loading,
-                    Toast.LENGTH_SHORT
-                ).show()
+                // Only show error when there was no cached data to display
+                if (cached == null) {
+                    Toast.makeText(
+                        this@PostDetailActivity,
+                        R.string.error_loading,
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
             }
         }
     }

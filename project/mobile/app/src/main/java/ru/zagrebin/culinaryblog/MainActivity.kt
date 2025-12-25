@@ -294,12 +294,64 @@ class MainActivity :
         }
 
         currentTab = nextTab
+        val fragmentManager = supportFragmentManager
+        val recipesFragment = fragmentManager.findFragmentByTag("RECIPES_TAB")
+        val articlesFragment = fragmentManager.findFragmentByTag("ARTICLES_TAB")
+        val draftsFragment = fragmentManager.findFragmentByTag("DRAFTS_TAB")
+        fragmentManager.commit {
+            setReorderingAllowed(true)
+            // Скрыть все
+            recipesFragment?.let { hide(it) }
+            articlesFragment?.let { hide(it) }
+            draftsFragment?.let { hide(it) }
+            // Показать нужный
+            when (currentTab) {
+                ContentTab.RECIPES -> {
+                    if (recipesFragment == null) {
+                        add(R.id.fragmentContainer, ru.zagrebin.culinaryblog.ui.RecipesFragment(), "RECIPES_TAB")
+                    } else {
+                        show(recipesFragment)
+                        (recipesFragment as? ru.zagrebin.culinaryblog.ui.RecipesFragment)?.recipesViewModel?.loadRecipes()
+                    }
+                }
+                ContentTab.ARTICLES -> {
+                    if (articlesFragment == null) {
+                        add(R.id.fragmentContainer, ru.zagrebin.culinaryblog.ui.ArticlesFragment(), "ARTICLES_TAB")
+                    } else {
+                        show(articlesFragment)
+                        (articlesFragment as? ru.zagrebin.culinaryblog.ui.ArticlesFragment)?.articlesViewModel?.loadArticles()
+                    }
+                }
+                ContentTab.DRAFTS -> {
+                    if (draftsFragment == null) {
+                        add(R.id.fragmentContainer, ru.zagrebin.culinaryblog.ui.DraftsFragment(), "DRAFTS_TAB")
+                    } else {
+                        show(draftsFragment)
+                        // Если есть ViewModel для черновиков, вызвать обновление
+                        // (draftsFragment as? ru.zagrebin.culinaryblog.ui.DraftsFragment)?.draftsViewModel?.loadDrafts()
+                    }
+                }
+                else -> {}
+            }
+        }
+        binding.fragmentContainer.visibility = if (currentTab.isFeed() || currentTab == ContentTab.DRAFTS) View.VISIBLE else View.GONE
+        binding.postsContent.visibility = if (currentTab.isFeed() || currentTab == ContentTab.DRAFTS) View.GONE else View.VISIBLE
+
         if (currentTab.isFeed()) {
             lastFeedTabId = itemId
             restoreFeedScroll = true
-            if (!loadedFeedTabs.contains(currentTab)) {
+            val postType = currentPostType()
+            val cached = postViewModel.getCachedPostsForType(postType)
+            if (cached.isNotEmpty()) {
+                val filtered = PostFilters.filter(cached, filtersForCurrentTab(), postType)
+                latestState = latestState.copy(posts = filtered, isLoading = false, isAppending = false, error = null)
+                renderState(latestState)
+            }
+            val needLoad = !loadedFeedTabs.contains(currentTab) || cached.isEmpty() ||
+                latestState.posts.none { normalizePostType(it.postType) == postType }
+            if (needLoad) {
                 loadedFeedTabs.add(currentTab)
-                postViewModel.loadPosts(filtersForCurrentTab(), currentPostType())
+                postViewModel.loadPosts(filtersForCurrentTab(), postType)
             }
         }
 

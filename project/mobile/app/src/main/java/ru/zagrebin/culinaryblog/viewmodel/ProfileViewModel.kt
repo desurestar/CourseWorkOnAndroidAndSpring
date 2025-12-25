@@ -44,6 +44,14 @@ class ProfileViewModel @Inject constructor(
     fun loadProfile() {
         _uiState.update { it.copy(isLoading = true, error = null, message = null) }
         viewModelScope.launch {
+            // Render cached profile immediately if available
+            val cached = runCatching { repository.getCachedProfile() }.getOrNull()
+            if (cached != null) {
+                updateFields(cached)
+                _uiState.update { it.copy(user = cached, isLoading = true) }
+            }
+
+            // Then attempt network refresh and update UI when available
             val res = repository.getProfile()
             res.fold(
                 onSuccess = { user ->
@@ -51,11 +59,16 @@ class ProfileViewModel @Inject constructor(
                     _uiState.value = ProfileUiState(user = user, isLoading = false)
                 },
                 onFailure = { e ->
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            error = e.message ?: "Нет подключения. Проверьте интернет и попробуйте снова."
-                        )
+                    // If we already displayed cached data, only stop loading; otherwise show error
+                    if (cached != null) {
+                        _uiState.update { it.copy(isLoading = false) }
+                    } else {
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                error = e.message ?: "Нет подключения. Проверьте интернет и попробуйте снова."
+                            )
+                        }
                     }
                 }
             )

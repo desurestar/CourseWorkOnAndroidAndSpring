@@ -311,6 +311,8 @@ class ProfileFragment : Fragment(), RefreshableTab {
             }
             renderAvatar(avatar, displayName)
             user.id?.let { profileViewModel.loadRelations(it) }
+            // Ensure posts feed shows current user's posts
+            user.id?.let { postViewModel.setCurrentUser(it) }
             renderFollowers(profileViewModel.followers.value)
             renderFollowing(profileViewModel.following.value)
             binding.buttonAdminPanel.isVisible = user.role?.equals("admin", ignoreCase = true) == true

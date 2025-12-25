@@ -19,7 +19,8 @@ class ArticlesViewModel @Inject constructor(
 
     fun loadArticles() {
         viewModelScope.launch {
-            _articles.value = postRepository.getPosts(postType = "Article")
+            val result = postRepository.getPublishedPosts(filters = ru.zagrebin.culinaryblog.model.PostFilters(postType = "Article"))
+            _articles.value = result.getOrNull()?.items ?: emptyList()
         }
     }
 }

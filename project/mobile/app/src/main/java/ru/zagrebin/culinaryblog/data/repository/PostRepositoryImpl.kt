@@ -19,6 +19,10 @@ import ru.zagrebin.culinaryblog.data.local.toFullModel
 import ru.zagrebin.culinaryblog.data.remote.api.PostApi
 import ru.zagrebin.culinaryblog.data.remote.dto.toModel
 import ru.zagrebin.culinaryblog.data.local.entity.PostEntity
+import ru.zagrebin.culinaryblog.data.local.entity.StepEntity
+import ru.zagrebin.culinaryblog.data.local.entity.IngredientEntity
+import ru.zagrebin.culinaryblog.data.local.dao.StepDao
+import ru.zagrebin.culinaryblog.data.local.dao.IngredientDao
 import ru.zagrebin.culinaryblog.model.IngredientItem
 import com.google.gson.reflect.TypeToken
 import ru.zagrebin.culinaryblog.model.PaginatedResult
@@ -39,6 +43,8 @@ class PostRepositoryImpl @Inject constructor(
     private val api: PostApi,
     private val postDao: PostDao,
     private val draftDao: DraftDao,
+    private val stepDao: StepDao,
+    private val ingredientDao: IngredientDao,
     private val gson: Gson
 ): PostRepository {
     override suspend fun getPublishedPosts(
@@ -98,6 +104,60 @@ class PostRepositoryImpl @Inject constructor(
         postDao.getAll().map { it.toModel() }
     }
 
+    override suspend fun getCachedPost(id: Long): PostFull? = withContext(Dispatchers.IO) {
+        val cachedEntity = postDao.getById(id) ?: return@withContext null
+        return@withContext try {
+            var full = cachedEntity.toFullModel(gson)
+
+            val hasSteps = full.steps.isNotEmpty()
+            val hasIngredients = full.ingredients.isNotEmpty()
+
+            if (!hasSteps) {
+                try {
+                    val persisted = stepDao.getByPostId(id).map { se -> PostStep(order = se.stepOrder, description = se.description, imageUrl = se.imageUrl) }
+                    if (persisted.isNotEmpty()) {
+                        full = full.copy(steps = persisted)
+                    }
+                } catch (t3: Exception) {
+                    Log.w(TAG, "Failed to read steps from StepDao for post $id: ${t3.message}")
+                }
+            }
+
+            if (!hasIngredients) {
+                try {
+                    val persistedIng = ingredientDao.getByPostId(id).map { ie -> PostIngredientLine(ingredientId = ie.ingredientId ?: -1L, ingredientName = ie.ingredientName, quantityValue = ie.quantityValue, unit = ie.unit) }
+                    if (persistedIng.isNotEmpty()) {
+                        full = full.copy(ingredients = persistedIng)
+                    }
+                } catch (t4: Exception) {
+                    Log.w(TAG, "Failed to read ingredients from IngredientDao for post $id: ${t4.message}")
+                }
+            }
+
+            if (full.steps.isEmpty() || full.ingredients.isEmpty()) {
+                val draft = runCatching { draftDao.getByServerId(id) }.getOrNull()
+                if (draft != null) {
+                    val ingredients = runCatching {
+                        gson.fromJson<List<ru.zagrebin.culinaryblog.model.PostIngredientLine>>(draft.ingredientsJson, object : TypeToken<List<ru.zagrebin.culinaryblog.model.PostIngredientLine>>() {}.type)
+                    }.getOrNull() ?: emptyList()
+                    val steps = runCatching {
+                        gson.fromJson<List<ru.zagrebin.culinaryblog.model.PostStep>>(draft.stepsJson, object : TypeToken<List<ru.zagrebin.culinaryblog.model.PostStep>>() {}.type)
+                    }.getOrNull() ?: emptyList()
+                    val merged = full.copy(
+                        ingredients = if (full.ingredients.isNotEmpty()) full.ingredients else ingredients,
+                        steps = if (full.steps.isNotEmpty()) full.steps else steps
+                    )
+                    return@withContext merged
+                }
+            }
+
+            full
+        } catch (t: Exception) {
+            Log.w(TAG, "Failed to build cached PostFull for $id: ${t.message}")
+            null
+        }
+    }
+
     override suspend fun getPost(id: Long): Result<PostFull> = withContext(Dispatchers.IO) {
         return@withContext try {
             val resp = api.getPost(id)
@@ -107,6 +167,27 @@ class PostRepositoryImpl @Inject constructor(
                 // Cache full post locally (including ingredients and steps)
                 try {
                     postDao.insertAll(listOf(model.toEntity(gson)))
+                    // Persist steps and ingredients into separate tables for faster local access
+                    val steps = model.steps ?: emptyList()
+                    if (steps.isNotEmpty()) {
+                        try {
+                            stepDao.deleteByPostId(model.id)
+                            val stepEntities = steps.map { s -> StepEntity(postId = model.id, stepOrder = s.order, description = s.description, imageUrl = s.imageUrl) }
+                            stepDao.insertAll(stepEntities)
+                        } catch (t2: Exception) {
+                            Log.w(TAG, "Failed to cache steps for post ${model.id}: ${t2.message}")
+                        }
+                    }
+                    val ingredients = model.ingredients ?: emptyList()
+                    if (ingredients.isNotEmpty()) {
+                        try {
+                            ingredientDao.deleteByPostId(model.id)
+                            val ingEntities = ingredients.map { it -> IngredientEntity(postId = model.id, ingredientId = it.ingredientId, ingredientName = it.ingredientName, quantityValue = it.quantityValue, unit = it.unit) }
+                            ingredientDao.insertAll(ingEntities)
+                        } catch (t3: Exception) {
+                            Log.w(TAG, "Failed to cache ingredients for post ${model.id}: ${t3.message}")
+                        }
+                    }
                 } catch (t: Exception) {
                     Log.w("PostRepositoryImpl", "Failed to cache full post locally: ${t.message}")
                 }
@@ -118,10 +199,35 @@ class PostRepositoryImpl @Inject constructor(
             val cachedEntity = postDao.getById(id)
             if (cachedEntity != null) {
                 return@withContext try {
-                    val full = cachedEntity.toFullModel(gson)
+                    var full = cachedEntity.toFullModel(gson)
                     val hasSteps = full.steps.isNotEmpty()
                     val hasIngredients = full.ingredients.isNotEmpty()
-                    if (!hasSteps || !hasIngredients) {
+
+                    if (!hasSteps) {
+                        // Try to read persisted steps from steps table
+                        try {
+                            val persisted = stepDao.getByPostId(id).map { se -> PostStep(order = se.stepOrder, description = se.description, imageUrl = se.imageUrl) }
+                            if (persisted.isNotEmpty()) {
+                                full = full.copy(steps = persisted)
+                            }
+                        } catch (t3: Exception) {
+                            Log.w(TAG, "Failed to read steps from StepDao for post $id: ${t3.message}")
+                        }
+                    }
+
+                    if (!hasIngredients) {
+                        // Try to read persisted ingredients from ingredients table
+                        try {
+                            val persistedIng = ingredientDao.getByPostId(id).map { ie -> PostIngredientLine(ingredientId = ie.ingredientId ?: -1L, ingredientName = ie.ingredientName, quantityValue = ie.quantityValue, unit = ie.unit) }
+                            if (persistedIng.isNotEmpty()) {
+                                full = full.copy(ingredients = persistedIng)
+                            }
+                        } catch (t4: Exception) {
+                            Log.w(TAG, "Failed to read ingredients from IngredientDao for post $id: ${t4.message}")
+                        }
+                    }
+
+                    if (full.steps.isEmpty() || full.ingredients.isEmpty()) {
                         val draft = runCatching { draftDao.getByServerId(id) }.getOrNull()
                         if (draft != null) {
                             val ingredients = runCatching {
@@ -137,6 +243,7 @@ class PostRepositoryImpl @Inject constructor(
                             return@withContext Result.success(merged)
                         }
                     }
+
                     Result.success(full)
                 } catch (t: Exception) {
                     Result.failure(e)
@@ -341,7 +448,39 @@ class PostRepositoryImpl @Inject constructor(
                             }
                         }
                     }
-                    if (entities.isNotEmpty()) postDao.insertAll(entities)
+                    if (entities.isNotEmpty()) {
+                        postDao.insertAll(entities)
+                        // Also persist steps for cached server drafts (if stepsJson available)
+                        try {
+                            entities.forEach { ent ->
+                                val stepsJson = ent.stepsJson
+                                        if (!stepsJson.isNullOrBlank()) {
+                                            val parsed = runCatching {
+                                                gson.fromJson<List<PostStep>>(stepsJson, object : TypeToken<List<PostStep>>() {}.type)
+                                            }.getOrNull() ?: emptyList()
+                                            if (parsed.isNotEmpty()) {
+                                                stepDao.deleteByPostId(ent.id)
+                                                val stepEntities = parsed.map { s -> StepEntity(postId = ent.id, stepOrder = s.order, description = s.description, imageUrl = s.imageUrl) }
+                                                stepDao.insertAll(stepEntities)
+                                            }
+                                        }
+                                        // ingredients handled below (keep block ordering clear)
+                                        val ingredientsJson = ent.ingredientsJson
+                                        if (!ingredientsJson.isNullOrBlank()) {
+                                            val parsedIng = runCatching {
+                                                gson.fromJson<List<PostIngredientLine>>(ingredientsJson, object : TypeToken<List<PostIngredientLine>>() {}.type)
+                                            }.getOrNull() ?: emptyList()
+                                            if (parsedIng.isNotEmpty()) {
+                                                ingredientDao.deleteByPostId(ent.id)
+                                                val ingEntities = parsedIng.map { i -> IngredientEntity(postId = ent.id, ingredientId = i.ingredientId, ingredientName = i.ingredientName, quantityValue = i.quantityValue, unit = i.unit) }
+                                                ingredientDao.insertAll(ingEntities)
+                                            }
+                                        }
+                            }
+                        } catch (t2: Exception) {
+                            Log.w(TAG, "Failed to cache steps for server drafts: ${t2.message}")
+                        }
+                    }
                 } catch (t: Exception) {
                     Log.w(TAG, "Failed to cache server drafts: ${t.message}")
                 }
@@ -391,6 +530,33 @@ class PostRepositoryImpl @Inject constructor(
                                 stepsJson = entity.stepsJson
                             )
                             postDao.insertAll(listOf(postEntity))
+                            // persist steps and ingredients for the newly created server post (coming from a synced draft)
+                            try {
+                                val stepsJson = entity.stepsJson
+                                if (!stepsJson.isNullOrBlank()) {
+                                    val parsed = runCatching {
+                                        gson.fromJson<List<PostStep>>(stepsJson, object : TypeToken<List<PostStep>>() {}.type)
+                                    }.getOrNull() ?: emptyList()
+                                    if (parsed.isNotEmpty()) {
+                                        stepDao.deleteByPostId(postCard.id)
+                                        val stepEntities = parsed.map { s -> StepEntity(postId = postCard.id, stepOrder = s.order, description = s.description, imageUrl = s.imageUrl) }
+                                        stepDao.insertAll(stepEntities)
+                                    }
+                                }
+                                val ingredientsJson = entity.ingredientsJson
+                                if (!ingredientsJson.isNullOrBlank()) {
+                                    val parsedIng = runCatching {
+                                        gson.fromJson<List<PostIngredientLine>>(ingredientsJson, object : TypeToken<List<PostIngredientLine>>() {}.type)
+                                    }.getOrNull() ?: emptyList()
+                                    if (parsedIng.isNotEmpty()) {
+                                        ingredientDao.deleteByPostId(postCard.id)
+                                        val ingEntities = parsedIng.map { i -> IngredientEntity(postId = postCard.id, ingredientId = i.ingredientId, ingredientName = i.ingredientName, quantityValue = i.quantityValue, unit = i.unit) }
+                                        ingredientDao.insertAll(ingEntities)
+                                    }
+                                }
+                            } catch (t2: Exception) {
+                                Log.w(TAG, "Failed to cache steps/ingredients for synced post ${postCard.id}: ${t2.message}")
+                            }
                         } catch (t: Exception) {
                             Log.w(TAG, "Failed to cache synced draft as post: ${t.message}")
                         }
@@ -451,6 +617,28 @@ class PostRepositoryImpl @Inject constructor(
                             if (fullBody != null) {
                                 val model = fullBody.toModel()
                                 postDao.insertAll(listOf(model.toEntity(gson)))
+                                // persist steps for liked post cached from server
+                                try {
+                                    val steps = model.steps ?: emptyList()
+                                    if (steps.isNotEmpty()) {
+                                        stepDao.deleteByPostId(model.id)
+                                        val stepEntities = steps.map { s -> StepEntity(postId = model.id, stepOrder = s.order, description = s.description, imageUrl = s.imageUrl) }
+                                        stepDao.insertAll(stepEntities)
+                                    }
+                                } catch (t2: Exception) {
+                                    Log.w(TAG, "Failed to cache steps for liked post ${model.id}: ${t2.message}")
+                                }
+                                    // persist ingredients for liked post
+                                    try {
+                                        val ingredients = model.ingredients ?: emptyList()
+                                        if (ingredients.isNotEmpty()) {
+                                            ingredientDao.deleteByPostId(model.id)
+                                            val ingEntities = ingredients.map { it -> IngredientEntity(postId = model.id, ingredientId = it.ingredientId, ingredientName = it.ingredientName, quantityValue = it.quantityValue, unit = it.unit) }
+                                            ingredientDao.insertAll(ingEntities)
+                                        }
+                                    } catch (t3: Exception) {
+                                        Log.w(TAG, "Failed to cache ingredients for liked post ${model.id}: ${t3.message}")
+                                    }
                             }
                         }
                     }

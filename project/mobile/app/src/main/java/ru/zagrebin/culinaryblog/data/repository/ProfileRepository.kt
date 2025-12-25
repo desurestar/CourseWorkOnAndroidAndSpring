@@ -6,6 +6,7 @@ import ru.zagrebin.culinaryblog.model.UserProfile
 
 interface ProfileRepository {
     suspend fun getProfile(): Result<UserProfile>
+    suspend fun getCachedProfile(): UserProfile?
     suspend fun updateProfile(request: UpdateProfileRequest): Result<UserProfile>
     suspend fun uploadAvatar(fileName: String, content: ByteArray, mimeType: String): Result<String>
     suspend fun getUserProfile(userId: Long): Result<UserProfile>

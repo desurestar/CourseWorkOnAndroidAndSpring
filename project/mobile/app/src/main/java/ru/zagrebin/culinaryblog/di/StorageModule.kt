@@ -52,12 +52,24 @@ object StorageModule {
             database.execSQL("CREATE TABLE IF NOT EXISTS `checklists` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `post_id` INTEGER, `title` TEXT NOT NULL, `items_json` TEXT NOT NULL, `owner_id` INTEGER NOT NULL, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL)")
         }
     }
+
+    private val MIGRATION_4_5 = object : Migration(4, 5) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            database.execSQL("CREATE TABLE IF NOT EXISTS `steps` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `postId` INTEGER NOT NULL, `stepOrder` INTEGER NOT NULL, `description` TEXT NOT NULL, `imageUrl` TEXT)")
+        }
+    }
+
+    private val MIGRATION_5_6 = object : Migration(5, 6) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            database.execSQL("CREATE TABLE IF NOT EXISTS `ingredients` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `postId` INTEGER NOT NULL, `ingredientId` INTEGER, `ingredientName` TEXT NOT NULL, `quantityValue` REAL, `unit` TEXT)")
+        }
+    }
     
     @Provides
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): CulinaryDatabase =
         Room.databaseBuilder(context, CulinaryDatabase::class.java, "culinary_offline.db")
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
             .build()
 
 
@@ -72,4 +84,10 @@ object StorageModule {
 
     @Provides
     fun provideChecklistDao(db: CulinaryDatabase): ru.zagrebin.culinaryblog.data.local.dao.ChecklistDao = db.checklistDao()
+
+    @Provides
+    fun provideStepDao(db: CulinaryDatabase): ru.zagrebin.culinaryblog.data.local.dao.StepDao = db.stepDao()
+
+    @Provides
+    fun provideIngredientDao(db: CulinaryDatabase): ru.zagrebin.culinaryblog.data.local.dao.IngredientDao = db.ingredientDao()
 }

@@ -14,6 +14,8 @@ import ru.zagrebin.culinaryblog.BuildConfig
 import ru.zagrebin.culinaryblog.data.remote.api.AdminApi
 import ru.zagrebin.culinaryblog.data.local.dao.DraftDao
 import ru.zagrebin.culinaryblog.data.local.dao.PostDao
+import ru.zagrebin.culinaryblog.data.local.dao.StepDao
+import ru.zagrebin.culinaryblog.data.local.dao.IngredientDao
 import ru.zagrebin.culinaryblog.data.local.dao.UserProfileDao
 import ru.zagrebin.culinaryblog.data.remote.api.AuthApi
 import ru.zagrebin.culinaryblog.data.remote.api.PostApi
@@ -98,8 +100,10 @@ object NetworkModule {
         api: PostApi,
         postDao: PostDao,
         draftDao: DraftDao,
+        stepDao: StepDao,
+        ingredientDao: IngredientDao,
         gson: Gson
-    ): PostRepository = PostRepositoryImpl(api, postDao, draftDao, gson)
+    ): PostRepository = PostRepositoryImpl(api, postDao, draftDao, stepDao, ingredientDao, gson)
 
     @Provides
     @Singleton
