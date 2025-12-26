@@ -14,6 +14,20 @@ spring:
     password: ${DB_PASSWORD:190485}
     driver-class-name: org.postgresql.Driver
 
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: denrod7075@gmail.com
+    password: nnroymrynulqngxo
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+          ssl:
+            trust: smtp.gmail.com
+
   servlet:
     multipart:
       max-file-size: 10MB
@@ -38,5 +52,5 @@ jwt:
 
 logging:
   level:
+    org.hibernate.orm.jdbc.bind: TRACE
     org.hibernate.SQL: DEBUG
-    org.hibernate.type.descriptor.sql.BasicBinder: TRACE

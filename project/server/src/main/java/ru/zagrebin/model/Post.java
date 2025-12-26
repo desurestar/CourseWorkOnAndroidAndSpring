@@ -24,7 +24,8 @@ public class Post {
     @Column(name = "post_type", length = 20, nullable = false)
     private String postType;
 
-    @Column(length = 20, nullable = false)
+    @Convert(converter = ru.zagrebin.model.converter.PostStatusConverter.class)
+    @Column(name="status", length=20, nullable=false)
     private PostStatus status;
 
     @Column(nullable = false, length = 255)

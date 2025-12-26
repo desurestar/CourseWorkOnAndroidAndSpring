@@ -19,7 +19,7 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     @Query("""
         select p.id from Post p
         where p.status = :status
-          and (:postType is null or lower(p.postType) = lower(:postType))
+          and (:postType is null or p.postType ilike :postType)
           and (:cookingTimeMin is null or p.cookingTimeMinutes >= :cookingTimeMin)
           and (:cookingTimeMax is null or p.cookingTimeMinutes <= :cookingTimeMax)
           and (:caloriesMin is null or p.calories >= :caloriesMin)
@@ -50,7 +50,7 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     @Query("""
         select count(distinct p.id) from Post p
         where p.status = :status
-          and (:postType is null or lower(p.postType) = lower(:postType))
+          and (:postType is null or p.postType ilike :postType)
           and (:cookingTimeMin is null or p.cookingTimeMinutes >= :cookingTimeMin)
           and (:cookingTimeMax is null or p.cookingTimeMinutes <= :cookingTimeMax)
           and (:caloriesMin is null or p.calories >= :caloriesMin)

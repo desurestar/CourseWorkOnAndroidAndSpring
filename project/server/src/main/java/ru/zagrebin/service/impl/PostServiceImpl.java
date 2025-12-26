@@ -1,13 +1,21 @@
 package ru.zagrebin.service.impl;
 
-import jakarta.persistence.EntityNotFoundException;
-import lombok.extern.slf4j.Slf4j;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import jakarta.persistence.EntityNotFoundException;
+import lombok.extern.slf4j.Slf4j;
 import ru.zagrebin.dto.PostCardDto;
 import ru.zagrebin.dto.PostCreateDto;
 import ru.zagrebin.dto.PostFilterRequest;
@@ -15,19 +23,17 @@ import ru.zagrebin.dto.PostFullDto;
 import ru.zagrebin.dto.PostUpdateDto;
 import ru.zagrebin.mapper.PostMapper;
 import ru.zagrebin.model.Post;
+import ru.zagrebin.model.PostStatus;
 import ru.zagrebin.model.RecipeStep;
 import ru.zagrebin.model.User;
-import ru.zagrebin.model.PostStatus;
 import ru.zagrebin.repository.PostRepository;
 import ru.zagrebin.repository.UserRepository;
 import ru.zagrebin.security.Roles;
+import ru.zagrebin.service.EmailNotificationService;
 import ru.zagrebin.service.FileStorageService;
 import ru.zagrebin.service.LikeService;
 import ru.zagrebin.service.PostService;
 import ru.zagrebin.service.assembler.PostAssembler;
-
-import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -38,17 +44,20 @@ public class PostServiceImpl implements PostService {
     private final LikeService likeService;
     private final UserRepository userRepository;
     private final FileStorageService fileStorageService;
+    private final EmailNotificationService emailNotificationService;
 
     public PostServiceImpl(PostRepository postRepository,
                            PostAssembler postAssembler,
                            LikeService likeService,
                            UserRepository userRepository,
-                           FileStorageService fileStorageService) {
+                           FileStorageService fileStorageService,
+                           EmailNotificationService emailNotificationService) {
         this.postRepository = postRepository;
         this.postAssembler = postAssembler;
         this.likeService = likeService;
         this.userRepository = userRepository;
         this.fileStorageService = fileStorageService;
+        this.emailNotificationService = emailNotificationService;
     }
 
     /**
@@ -158,6 +167,18 @@ public class PostServiceImpl implements PostService {
         // Create new post
         Post created = postAssembler.createFromDto(dto, author);
         Post saved = postRepository.save(created);
+
+        // Уведомление подписчиков
+        if (saved.getAuthor() != null && saved.getAuthor().getSubscribers() != null) {
+            String subject = "Новый пост от автора, на которого вы подписаны";
+            String postTitle = saved.getTitle() != null ? saved.getTitle() : "Пост";
+            String text = String.format("Автор %s опубликовал новый пост: %s", saved.getAuthor().getDisplayName() != null ? saved.getAuthor().getDisplayName() : saved.getAuthor().getUsername(), postTitle);
+            for (User subscriber : saved.getAuthor().getSubscribers()) {
+                if (subscriber.getEmail() != null && !subscriber.getEmail().isBlank()) {
+                    emailNotificationService.sendNotification(subscriber.getEmail(), subject, text);
+                }
+            }
+        }
         return PostMapper.toCard(saved);
     }
 
